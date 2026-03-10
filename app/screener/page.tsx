@@ -13,7 +13,24 @@ export interface SymbolState {
   has3xLiquidity: boolean;
 }
 
-type FundingFilter = "all" | "positive" | "negative" | "neutral";
+type FundingFilter = "all" | "favourable";
+
+const FAV_FUNDING_STORAGE_KEY = "tradeict-earner-fav-funding";
+
+/** True if net funding profit for the current direction is > 0. */
+function isFavourableFunding(
+  binanceVWAP: number | null,
+  bybitVWAP: number | null,
+  binanceFunding: number | null,
+  bybitFunding: number | null
+): boolean {
+  if (binanceVWAP == null || bybitVWAP == null) return false;
+  const bFunding = binanceFunding ?? 0;
+  const yFunding = bybitFunding ?? 0;
+  if (bybitVWAP > binanceVWAP) return yFunding - bFunding > 0;
+  if (binanceVWAP > bybitVWAP) return bFunding - yFunding > 0;
+  return false;
+}
 
 function formatFundingPct(n: number) {
   const pct = (n * 100).toFixed(4);
@@ -45,7 +62,14 @@ export default function ScreenerPage() {
   const [tradeAmount, setTradeAmount] = useState(10000);
   const [tokenSearch, setTokenSearch] = useState("");
   const [minL2SpreadPct, setMinL2SpreadPct] = useState<number>(0);
-  const [fundingType, setFundingType] = useState<FundingFilter>("all");
+  const [fundingType, setFundingType] = useState<FundingFilter>(() => {
+    if (typeof window === "undefined") return "all";
+    try {
+      const s = localStorage.getItem(FAV_FUNDING_STORAGE_KEY);
+      if (s === "all" || s === "favourable") return s;
+    } catch {}
+    return "all";
+  });
   const [onlySafeOpportunities, setOnlySafeOpportunities] = useState(false);
 
   const wsRef = useRef<WebSocket | null>(null);
@@ -95,6 +119,13 @@ export default function ScreenerPage() {
     };
   }, [tradeAmount]);
 
+  // Persist Fav Funding filter to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem(FAV_FUNDING_STORAGE_KEY, fundingType);
+    } catch {}
+  }, [fundingType]);
+
   const filteredRows = useMemo(() => {
     return states
       .map((s) => {
@@ -108,11 +139,16 @@ export default function ScreenerPage() {
           if (!row.state.symbol.toUpperCase().includes(q)) return false;
         }
         if (row.l2SpreadPct != null && Math.abs(row.l2SpreadPct) < minL2SpreadPct) return false;
-        if (fundingType !== "all" && row.fundingSpread != null) {
-          const fs = row.fundingSpread;
-          if (fundingType === "positive" && fs <= 0) return false;
-          if (fundingType === "negative" && fs >= 0) return false;
-          if (fundingType === "neutral" && Math.abs(fs) >= 0.0001) return false;
+        if (fundingType === "favourable") {
+          if (
+            !isFavourableFunding(
+              row.state.binanceVWAP,
+              row.state.bybitVWAP,
+              row.state.binanceFunding,
+              row.state.bybitFunding
+            )
+          )
+            return false;
         }
         if (onlySafeOpportunities) {
           const stableMs = row.state.spreadStableMs ?? 0;
@@ -183,16 +219,14 @@ export default function ScreenerPage() {
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1.5">Funding type</label>
+            <label className="block text-xs font-medium text-slate-500 mb-1.5">Fav Funding</label>
             <select
               value={fundingType}
               onChange={(e) => setFundingType(e.target.value as FundingFilter)}
               className="w-full rounded-xl border border-white/[0.1] bg-white/[0.06] px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
             >
-              <option value="all">All</option>
-              <option value="positive">Positive spread</option>
-              <option value="negative">Negative spread</option>
-              <option value="neutral">Neutral</option>
+              <option value="all">Any Funding</option>
+              <option value="favourable">Favourable Funding</option>
             </select>
           </div>
           <div className="flex items-end">
