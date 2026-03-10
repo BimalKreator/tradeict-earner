@@ -61,11 +61,13 @@ export async function POST(request: Request) {
       bybit: { apiKey: bybitApiKey, apiSecret: bybitApiSecret },
     };
 
-    const [orderbook, binanceBalance, bybitBalance] = await Promise.all([
+    const [orderbook, binanceData, bybitData] = await Promise.all([
       fetchOrderbookSnapshot(symbol),
       getBinanceBalance(binanceApiKey, binanceApiSecret),
       getBybitBalance(bybitApiKey, bybitApiSecret),
     ]);
+    const binanceBalance = binanceData.available;
+    const bybitBalance = bybitData.available;
 
     const bestAsk = orderbook.asks[0]?.[0] ? parseFloat(orderbook.asks[0][0]) : 0;
     const bestBid = orderbook.bids[0]?.[0] ? parseFloat(orderbook.bids[0][0]) : 0;

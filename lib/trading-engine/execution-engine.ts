@@ -154,17 +154,31 @@ export async function placeBinanceOrder(
   return { orderId: String(data.orderId ?? ""), status: data.status ?? "UNKNOWN" };
 }
 
-export async function getBinanceBalance(apiKey: string, apiSecret: string): Promise<number> {
+export interface BalanceMetrics {
+  total: number;
+  used: number;
+  available: number;
+}
+
+/** Fetch balance metrics from Binance USDT-M futures: /fapi/v2/account. */
+export async function getBinanceBalance(apiKey: string, apiSecret: string): Promise<BalanceMetrics> {
   const timestamp = Date.now();
   const query = `timestamp=${timestamp}`;
   const signature = signBinance(apiSecret, query);
-  const res = await fetch(`${BINANCE_BASE}/fapi/v2/balance?${query}&signature=${signature}`, {
+  const res = await fetch(`${BINANCE_BASE}/fapi/v2/account?${query}&signature=${signature}`, {
     headers: { "X-MBX-APIKEY": apiKey },
   });
-  if (!res.ok) throw new Error(`Binance balance: ${res.status}`);
-  const arr = (await res.json()) as { asset: string; availableBalance: string }[];
-  const usdt = arr.find((a) => a.asset === "USDT");
-  return usdt ? parseFloat(usdt.availableBalance) : 0;
+  if (!res.ok) throw new Error(`Binance account: ${res.status}`);
+  const data = (await res.json()) as {
+    totalMarginBalance?: string;
+    totalInitialMargin?: string;
+    availableBalance?: string;
+  };
+  return {
+    total: parseFloat(data.totalMarginBalance ?? "0") || 0,
+    used: parseFloat(data.totalInitialMargin ?? "0") || 0,
+    available: parseFloat(data.availableBalance ?? "0") || 0,
+  };
 }
 
 /** Returns max allowed leverage for symbol (from leverage bracket). */
@@ -273,10 +287,9 @@ async function fetchBybitBalanceWithAccountType(
   apiKey: string,
   apiSecret: string,
   accountType: "UNIFIED" | "CONTRACT"
-): Promise<number> {
+): Promise<BalanceMetrics> {
   const timestamp = String(Date.now());
   const recvWindow = "5000";
-  // queryString exactly as in URL; parameter order alpha-sorted: accountType, coin
   const queryString = `accountType=${accountType}&coin=USDT`;
   const sign = signBybitV5Get(apiSecret, timestamp, apiKey, recvWindow, queryString);
   const res = await fetch(`${BYBIT_BASE}/v5/account/wallet-balance?${queryString}`, {
@@ -290,7 +303,13 @@ async function fetchBybitBalanceWithAccountType(
   const data = (await res.json()) as {
     retCode?: number;
     retMsg?: string;
-    result?: { list?: { totalEquity?: string; totalAvailableBalance?: string }[] };
+    result?: {
+      list?: {
+        totalEquity?: string;
+        totalInitialMargin?: string;
+        totalAvailableBalance?: string;
+      }[];
+    };
   };
   if (data.retCode !== 0 && data.retCode != null) {
     throw new Error(data.retMsg ?? `Bybit balance: ${data.retCode}`);
@@ -298,11 +317,14 @@ async function fetchBybitBalanceWithAccountType(
   if (!res.ok) throw new Error(`Bybit balance: ${res.status}`);
   const list = data.result?.list ?? [];
   const acc = list[0];
-  const bal = acc?.totalAvailableBalance ?? acc?.totalEquity ?? "0";
-  return parseFloat(bal);
+  const total = parseFloat(acc?.totalEquity ?? "0") || 0;
+  const used = parseFloat(acc?.totalInitialMargin ?? "0") || 0;
+  const available = parseFloat(acc?.totalAvailableBalance ?? "0") || 0;
+  return { total, used, available };
 }
 
-export async function getBybitBalance(apiKey: string, apiSecret: string): Promise<number> {
+/** Fetch balance metrics from Bybit UNIFIED wallet (v5/account/wallet-balance). */
+export async function getBybitBalance(apiKey: string, apiSecret: string): Promise<BalanceMetrics> {
   return fetchBybitBalanceWithAccountType(apiKey, apiSecret, "UNIFIED");
 }
 

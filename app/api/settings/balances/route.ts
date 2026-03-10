@@ -22,7 +22,10 @@ export async function POST(request: Request) {
       getBybitBalance(bybitApiKey, bybitApiSecret),
     ]);
 
-    return NextResponse.json({ binance, bybit });
+    return NextResponse.json({
+      binance: { total: binance.total, used: binance.used, available: binance.available },
+      bybit: { total: bybit.total, used: bybit.used, available: bybit.available },
+    });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Failed to fetch balances";
     return NextResponse.json({ error: message }, { status: 200 });

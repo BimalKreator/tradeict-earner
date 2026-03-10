@@ -221,7 +221,10 @@ export default function ScreenerPage() {
         .then((r) => r.json())
         .then((data: { binance?: number; bybit?: number; error?: string }) => {
           if (data.error) setBalances({ binance: 0, bybit: 0 });
-          else setBalances({ binance: data.binance ?? 0, bybit: data.bybit ?? 0 });
+          else setBalances({
+            binance: (data.binance as { available?: number } | undefined)?.available ?? 0,
+            bybit: (data.bybit as { available?: number } | undefined)?.available ?? 0,
+          });
         })
         .catch(() => setBalances({ binance: 0, bybit: 0 }))
         .finally(() => setBalancesLoading(false));

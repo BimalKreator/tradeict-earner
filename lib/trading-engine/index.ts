@@ -29,4 +29,5 @@ export type {
   PlacedOrder,
   ChunkResult,
   PrivateWSManagerCallbacks,
+  BalanceMetrics,
 } from "./execution-engine";

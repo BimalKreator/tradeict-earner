@@ -4,6 +4,12 @@ import { useCallback, useEffect, useState } from "react";
 
 const API_KEYS_STORAGE_KEY = "tradeict-earner-api-keys";
 
+interface BalanceMetrics {
+  total: number;
+  used: number;
+  available: number;
+}
+
 function getApiKeysFromStorage(): {
   binanceApiKey: string;
   binanceApiSecret: string;
@@ -27,16 +33,20 @@ function getApiKeysFromStorage(): {
   }
 }
 
+function fmt(n: number): string {
+  return `$${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
 export default function FundsPage() {
-  const [binanceBalance, setBinanceBalance] = useState<number | null>(null);
-  const [bybitBalance, setBybitBalance] = useState<number | null>(null);
+  const [binance, setBinance] = useState<BalanceMetrics | null>(null);
+  const [bybit, setBybit] = useState<BalanceMetrics | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchBalances = useCallback(() => {
     const keys = getApiKeysFromStorage();
     if (!keys.binanceApiKey || !keys.binanceApiSecret || !keys.bybitApiKey || !keys.bybitApiSecret) {
-      setBinanceBalance(null);
-      setBybitBalance(null);
+      setBinance(null);
+      setBybit(null);
       setLoading(false);
       return;
     }
@@ -47,18 +57,34 @@ export default function FundsPage() {
       body: JSON.stringify(keys),
     })
       .then((r) => r.json())
-      .then((data: { binance?: number; bybit?: number; error?: string }) => {
+      .then((data: { binance?: BalanceMetrics; bybit?: BalanceMetrics; error?: string }) => {
         if (data.error) {
-          setBinanceBalance(null);
-          setBybitBalance(null);
+          setBinance(null);
+          setBybit(null);
         } else {
-          setBinanceBalance(typeof data.binance === "number" ? data.binance : null);
-          setBybitBalance(typeof data.bybit === "number" ? data.bybit : null);
+          setBinance(
+            data.binance && typeof data.binance.total === "number"
+              ? {
+                  total: data.binance.total,
+                  used: data.binance.used ?? 0,
+                  available: data.binance.available ?? 0,
+                }
+              : null
+          );
+          setBybit(
+            data.bybit && typeof data.bybit.total === "number"
+              ? {
+                  total: data.bybit.total,
+                  used: data.bybit.used ?? 0,
+                  available: data.bybit.available ?? 0,
+                }
+              : null
+          );
         }
       })
       .catch(() => {
-        setBinanceBalance(null);
-        setBybitBalance(null);
+        setBinance(null);
+        setBybit(null);
       })
       .finally(() => setLoading(false));
   }, []);
@@ -67,12 +93,20 @@ export default function FundsPage() {
     fetchBalances();
   }, [fetchBalances]);
 
-  const binance = binanceBalance ?? 0;
-  const bybit = bybitBalance ?? 0;
-  const combined = binance + bybit;
-  const diff = Math.abs(binance - bybit);
-  const transferAmount = diff / 2;
-  const fromBinanceToBybit = binance > bybit;
+  const hasData = binance !== null || bybit !== null;
+  const bTotal = binance?.total ?? 0;
+  const bUsed = binance?.used ?? 0;
+  const bAvail = binance?.available ?? 0;
+  const yTotal = bybit?.total ?? 0;
+  const yUsed = bybit?.used ?? 0;
+  const yAvail = bybit?.available ?? 0;
+  const combTotal = bTotal + yTotal;
+  const combUsed = bUsed + yUsed;
+  const combAvail = bAvail + yAvail;
+
+  const availDiff = Math.abs(bAvail - yAvail);
+  const transferAmount = availDiff / 2;
+  const fromBinanceToBybit = bAvail > yAvail;
 
   return (
     <div className="space-y-6 lg:space-y-8">
@@ -81,74 +115,86 @@ export default function FundsPage() {
         <p className="text-slate-400 text-sm mt-1">Balance overview and rebalancing</p>
       </div>
 
-      {/* Balance Overview */}
-      <div className="glass-panel p-6 md:p-8">
-        <h2 className="text-lg font-semibold text-white border-b border-white/[0.06] pb-3 mb-6">Balance Overview</h2>
+      {/* Balance table */}
+      <div className="glass-panel overflow-hidden">
+        <div className="p-4 md:p-5 border-b border-white/[0.06]">
+          <h2 className="text-lg font-semibold text-white">Balance Overview</h2>
+          <p className="text-slate-400 text-sm mt-0.5">Total, used margin, and available to trade (USDT)</p>
+        </div>
         {loading ? (
-          <p className="text-slate-500">Loading balances…</p>
-        ) : binanceBalance === null && bybitBalance === null ? (
-          <p className="text-slate-500">Save API keys in Settings to see balances.</p>
+          <div className="p-8 text-center text-slate-500">Loading balances…</div>
+        ) : !hasData ? (
+          <div className="p-8 text-center text-slate-500">Save API keys in Settings to see balances.</div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
-            <div className="rounded-xl border border-white/[0.1] bg-white/[0.04] p-5 md:p-6">
-              <p className="text-slate-400 text-sm font-medium uppercase tracking-wider">Binance</p>
-              <p className="text-2xl md:text-3xl font-bold text-white mt-2">
-                ${binance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </p>
-              <p className="text-slate-500 text-xs mt-1">Available USDT</p>
-            </div>
-            <div className="rounded-xl border border-white/[0.1] bg-white/[0.04] p-5 md:p-6">
-              <p className="text-slate-400 text-sm font-medium uppercase tracking-wider">Bybit</p>
-              <p className="text-2xl md:text-3xl font-bold text-white mt-2">
-                ${bybit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </p>
-              <p className="text-slate-500 text-xs mt-1">Available USDT</p>
-            </div>
-            <div className="rounded-xl border border-blue-500/20 bg-blue-500/5 p-5 md:p-6">
-              <p className="text-slate-400 text-sm font-medium uppercase tracking-wider">Combined</p>
-              <p className="text-2xl md:text-3xl font-bold text-white mt-2">
-                ${combined.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </p>
-              <p className="text-slate-500 text-xs mt-1">Total USDT</p>
-            </div>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[400px]">
+              <thead>
+                <tr className="text-left text-slate-400 text-xs font-medium uppercase tracking-wider border-b border-white/[0.06]">
+                  <th className="p-4">Metric</th>
+                  <th className="p-4 text-right">Binance</th>
+                  <th className="p-4 text-right">Bybit</th>
+                  <th className="p-4 text-right">Combined</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr className="border-b border-white/[0.04]">
+                  <td className="p-4 font-medium text-white">Total Balance</td>
+                  <td className="p-4 text-right text-slate-200">{fmt(bTotal)}</td>
+                  <td className="p-4 text-right text-slate-200">{fmt(yTotal)}</td>
+                  <td className="p-4 text-right font-semibold text-white">{fmt(combTotal)}</td>
+                </tr>
+                <tr className="border-b border-white/[0.04]">
+                  <td className="p-4 font-medium text-slate-300">Used Margin</td>
+                  <td className="p-4 text-right text-slate-400">{fmt(bUsed)}</td>
+                  <td className="p-4 text-right text-slate-400">{fmt(yUsed)}</td>
+                  <td className="p-4 text-right text-slate-300">{fmt(combUsed)}</td>
+                </tr>
+                <tr className="border-b border-white/[0.04] last:border-0">
+                  <td className="p-4 font-medium text-slate-300">Available Margin (To Trade)</td>
+                  <td className="p-4 text-right text-emerald-300/90">{fmt(bAvail)}</td>
+                  <td className="p-4 text-right text-emerald-300/90">{fmt(yAvail)}</td>
+                  <td className="p-4 text-right font-medium text-emerald-300">{fmt(combAvail)}</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         )}
       </div>
 
-      {/* Rebalancing */}
+      {/* Rebalancing Advice — based on Available Margin */}
       <div className="glass-panel p-6 md:p-8">
-        <h2 className="text-lg font-semibold text-white border-b border-white/[0.06] pb-3 mb-4">Rebalancing</h2>
-        <p className="text-slate-400 text-sm mb-4">Transfer suggestion to equalize balances across exchanges.</p>
-        {loading || (binanceBalance === null && bybitBalance === null) ? (
+        <h2 className="text-lg font-semibold text-white border-b border-white/[0.06] pb-3 mb-4">Rebalancing Advice</h2>
+        <p className="text-slate-400 text-sm mb-4">
+          Suggestion to equalize <strong className="text-slate-300">Available Margin</strong> across exchanges.
+        </p>
+        {loading || !hasData ? (
           <p className="text-slate-500 text-sm">—</p>
         ) : transferAmount < 0.01 ? (
           <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-emerald-200">
-            Balances are equal. No transfer needed.
+            Available margin is balanced. No transfer needed.
           </div>
         ) : (
           <div className="rounded-xl border border-white/[0.1] bg-white/[0.04] px-4 py-4">
             <p className="text-white font-medium">
               Transfer{" "}
-              <span className="text-blue-300 font-semibold">
-                {transferAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDT
-              </span>{" "}
-              from {fromBinanceToBybit ? "Binance" : "Bybit"} to {fromBinanceToBybit ? "Bybit" : "Binance"} to equalize.
+              <span className="text-blue-300 font-semibold">{fmt(transferAmount)}</span> from{" "}
+              {fromBinanceToBybit ? "Binance" : "Bybit"} to {fromBinanceToBybit ? "Bybit" : "Binance"} to equalize
+              available margin.
             </p>
             <p className="text-slate-500 text-sm mt-1">
-              After transfer: each exchange would have{" "}
-              ${(combined / 2).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDT.
+              After transfer, each exchange would have{" "}
+              <span className="text-slate-300">{fmt(combAvail / 2)}</span> available to trade.
             </p>
           </div>
         )}
       </div>
 
-      {/* Refresh hint */}
       <div className="flex justify-end">
         <button
           type="button"
           onClick={fetchBalances}
           disabled={loading}
-          className="glass-button px-4 py-2 rounded-xl text-sm font-medium text-slate-300 disabled:opacity-50"
+          className="glass-button px-4 py-2 rounded-xl text-sm font-medium text-slate-300 disabled:opacity-50 border border-white/[0.1]"
         >
           {loading ? "Loading…" : "Refresh balances"}
         </button>
