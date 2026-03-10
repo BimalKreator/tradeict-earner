@@ -77,13 +77,29 @@ function signBinance(secret: string, queryString: string): string {
   return crypto.createHmac("sha256", secret).update(queryString).digest("hex");
 }
 
-/** Bybit V5: sign sorted key=val& string (params + timestamp, recvWindow for REST). */
+/** Bybit V5: sign sorted key=val& string (params + timestamp, recvWindow for REST). Used for POST and some GET. */
 function signBybitV5(secret: string, params: Record<string, string | number>): string {
   const sorted = Object.keys(params)
     .sort()
     .map((k) => `${k}=${params[k]}`)
     .join("&");
   return crypto.createHmac("sha256", secret).update(sorted).digest("hex");
+}
+
+/**
+ * Bybit V5 GET: sign string = timestamp + api_key + recv_window + queryString.
+ * queryString must be exactly the URL query part (e.g. accountType=UNIFIED&coin=USDT).
+ * Ref: https://bybit-exchange.github.io/docs/v5/guide
+ */
+function signBybitV5Get(
+  secret: string,
+  timestamp: string,
+  apiKey: string,
+  recvWindow: string,
+  queryString: string
+): string {
+  const originString = timestamp + apiKey + recvWindow + queryString;
+  return crypto.createHmac("sha256", secret).update(originString).digest("hex");
 }
 
 // ---------------------------------------------------------------------------
@@ -166,7 +182,7 @@ export async function getBinanceLeverage(apiKey: string, apiSecret: string, symb
   return sym.brackets[0].initialLeverage ?? 1;
 }
 
-/** Fetch open positions from Binance USDT-M futures. */
+/** Fetch open positions from Binance USDT-M futures (fapi = USDT-margined). Only active positions (size !== 0) and symbol ending USDT for dashboard consistency. */
 export async function getBinancePositions(apiKey: string, apiSecret: string): Promise<RawPosition[]> {
   const timestamp = Date.now();
   const query = `timestamp=${timestamp}`;
@@ -188,6 +204,7 @@ export async function getBinancePositions(apiKey: string, apiSecret: string): Pr
   for (const p of arr) {
     const amt = parseFloat(p.positionAmt);
     if (amt === 0) continue;
+    if (!p.symbol || !p.symbol.endsWith("USDT")) continue;
     const side: OrderSide = amt > 0 ? "Long" : "Short";
     out.push({
       exchange: "binance",
@@ -257,24 +274,16 @@ async function fetchBybitBalanceWithAccountType(
   apiSecret: string,
   accountType: "UNIFIED" | "CONTRACT"
 ): Promise<number> {
-  const timestamp = Date.now();
+  const timestamp = String(Date.now());
   const recvWindow = "5000";
-  const params: Record<string, string | number> = {
-    accountType,
-    coin: "USDT",
-    recvWindow,
-    timestamp: String(timestamp),
-  };
-  const sign = signBybitV5(apiSecret, params);
-  const qs = Object.keys(params)
-    .sort()
-    .map((k) => `${k}=${params[k]}`)
-    .join("&");
-  const res = await fetch(`${BYBIT_BASE}/v5/account/wallet-balance?${qs}`, {
+  // queryString exactly as in URL; parameter order alpha-sorted: accountType, coin
+  const queryString = `accountType=${accountType}&coin=USDT`;
+  const sign = signBybitV5Get(apiSecret, timestamp, apiKey, recvWindow, queryString);
+  const res = await fetch(`${BYBIT_BASE}/v5/account/wallet-balance?${queryString}`, {
     headers: {
       "X-BAPI-API-KEY": apiKey,
       "X-BAPI-SIGN": sign,
-      "X-BAPI-TIMESTAMP": String(timestamp),
+      "X-BAPI-TIMESTAMP": timestamp,
       "X-BAPI-RECV-WINDOW": recvWindow,
     },
   });
@@ -294,11 +303,7 @@ async function fetchBybitBalanceWithAccountType(
 }
 
 export async function getBybitBalance(apiKey: string, apiSecret: string): Promise<number> {
-  try {
-    return await fetchBybitBalanceWithAccountType(apiKey, apiSecret, "UNIFIED");
-  } catch {
-    return fetchBybitBalanceWithAccountType(apiKey, apiSecret, "CONTRACT");
-  }
+  return fetchBybitBalanceWithAccountType(apiKey, apiSecret, "UNIFIED");
 }
 
 /** Returns max leverage for linear symbol from instruments info. */
@@ -316,7 +321,7 @@ export async function getBybitLeverage(symbol: string): Promise<number> {
   return max ? parseFloat(max) : 1;
 }
 
-/** Fetch open positions from Bybit linear (USDT). */
+/** Fetch open positions from Bybit linear USDT (USD-margined futures only). category=linear + settleCoin=USDT; only active (size > 0). */
 export async function getBybitPositions(apiKey: string, apiSecret: string): Promise<RawPosition[]> {
   const timestamp = Date.now();
   const recvWindow = "5000";
@@ -327,7 +332,10 @@ export async function getBybitPositions(apiKey: string, apiSecret: string): Prom
     recvWindow,
   };
   const sign = signBybitV5(apiSecret, params);
-  const qs = new URLSearchParams(params as Record<string, string>).toString();
+  const qs = Object.keys(params)
+    .sort()
+    .map((k) => `${k}=${params[k]}`)
+    .join("&");
   const res = await fetch(`${BYBIT_BASE}/v5/position/list?${qs}`, {
     headers: {
       "X-BAPI-API-KEY": apiKey,
@@ -346,7 +354,7 @@ export async function getBybitPositions(apiKey: string, apiSecret: string): Prom
   const out: RawPosition[] = [];
   for (const p of list) {
     const size = parseFloat(p.size);
-    if (size === 0) continue;
+    if (size <= 0) continue;
     const side: OrderSide = p.side === "Buy" ? "Long" : "Short";
     out.push({
       exchange: "bybit",

@@ -119,7 +119,9 @@ export async function POST(request: Request) {
       getBybitPositions(bybitApiKey, bybitApiSecret),
     ]);
 
-    const positions = groupPositions(binanceList, bybitList);
+    const activeBinance = binanceList.filter((p) => p.quantity > 0);
+    const activeBybit = bybitList.filter((p) => p.quantity > 0);
+    const positions = groupPositions(activeBinance, activeBybit);
     return NextResponse.json({ positions });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Failed to fetch positions";
