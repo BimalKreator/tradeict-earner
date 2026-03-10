@@ -78,8 +78,13 @@ html {
 /* Safe area insets for mobile PWA (notch, home indicator) */
 @supports (padding: env(safe-area-inset-bottom)) {
   body {
-    padding-bottom: env(safe-area-inset-bottom);
     padding-left: env(safe-area-inset-left);
     padding-right: env(safe-area-inset-right);
   }
+}
+
+/* Bottom nav safe area - padding applied in component */
+.safe-area-bottom {
+  padding-left: max(0.5rem, env(safe-area-inset-left));
+  padding-right: max(0.5rem, env(safe-area-inset-right));
 }

@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export default function Home() {
   return (
     <main className="min-h-screen flex flex-col items-center justify-center p-6 md:p-8">
@@ -16,16 +18,15 @@ export default function Home() {
         <div className="glass-panel-strong p-6 flex flex-col gap-4">
           <h2 className="text-lg font-semibold text-slate-200">Getting started</h2>
           <p className="text-slate-400 text-sm">
-            This is a Next.js App Router app with Tailwind CSS and TypeScript.
-            It works as both a website and an installable PWA.
+            Use the navigation to open Dashboard, Screener, Funds, Logs, and Settings.
           </p>
           <div className="flex flex-wrap gap-3 justify-center pt-2">
-            <a
-              href="#"
+            <Link
+              href="/dashboard"
               className="glass-button px-5 py-2.5 rounded-xl text-sm font-medium text-slate-200 accent-border"
             >
-              Learn more
-            </a>
+              Open dashboard
+            </Link>
           </div>
         </div>
       </div>

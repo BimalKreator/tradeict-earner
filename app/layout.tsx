@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { SWRegister } from "./sw-register";
+import AppShell from "@/components/AppShell";
 
 const appName = "Tradeict Earner";
 const description = "Tradeict Earner — Web & Mobile";
@@ -40,7 +41,7 @@ export default function RootLayout({
       </head>
       <body className="antialiased min-h-screen">
         <SWRegister />
-        {children}
+        <AppShell>{children}</AppShell>
       </body>
     </html>
   );
