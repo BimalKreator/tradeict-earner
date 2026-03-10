@@ -262,7 +262,7 @@ export async function placeBybitOrder(
     category: "linear";
   }
 ): Promise<{ orderId: string; orderStatus: string }> {
-  const timestamp = Date.now();
+  const timestamp = String(Date.now());
   const recvWindow = "5000";
   const body: Record<string, string> = {
     category: params.category,
@@ -272,20 +272,20 @@ export async function placeBybitOrder(
     qty: params.qty,
     price: params.price,
     timeInForce: params.timeInForce,
-    timestamp: String(timestamp),
-    recvWindow,
   };
-  const sign = signBybitV5(apiSecret, body);
+  const payloadString = JSON.stringify(body);
+  const signString = timestamp + apiKey + recvWindow + payloadString;
+  const sign = crypto.createHmac("sha256", apiSecret).update(signString).digest("hex");
   const res = await fetch(`${BYBIT_BASE}/v5/order/create`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       "X-BAPI-API-KEY": apiKey,
       "X-BAPI-SIGN": sign,
-      "X-BAPI-TIMESTAMP": String(timestamp),
+      "X-BAPI-TIMESTAMP": timestamp,
       "X-BAPI-RECV-WINDOW": recvWindow,
     },
-    body: JSON.stringify(body),
+    body: payloadString,
   });
   const data = (await res.json()) as { result?: { orderId?: string; orderStatus?: string }; retMsg?: string; retCode?: number };
   if (data.retCode !== 0 && data.retCode != null) throw new Error(data.retMsg ?? "Bybit order failed");
