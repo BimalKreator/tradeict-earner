@@ -45,12 +45,12 @@ function sortAsksAsc(a: OrderbookLevel, b: OrderbookLevel) {
 function orderbookFromMaps(ob: OrderbookState): Orderbook {
   const bids: OrderbookLevel[] = Array.from(ob.bids.entries())
     .filter(([, q]) => q > 0)
-    .map(([p, q]) => [String(p), String(q)])
+    .map(([p, q]) => [String(p), String(q)] as OrderbookLevel)
     .sort(sortBidsDesc)
     .slice(0, 20);
   const asks: OrderbookLevel[] = Array.from(ob.asks.entries())
     .filter(([, q]) => q > 0)
-    .map(([p, q]) => [String(p), String(q)])
+    .map(([p, q]) => [String(p), String(q)] as OrderbookLevel)
     .sort(sortAsksAsc)
     .slice(0, 20);
   return { bids, asks };
@@ -83,7 +83,7 @@ export async function fetchCommonUsdtPerpetualSymbols(): Promise<string[]> {
     symbols?: { symbol: string; contractType?: string; quoteAsset?: string }[];
   };
   const bybitData = (await bybitRes.json()) as {
-    result?: { list?: { symbol: string; contractType?: string }[] };
+    result?: { list?: { symbol: string; contractType?: string; status?: string }[] };
   };
 
   const binanceSet = new Set(
@@ -99,7 +99,7 @@ export async function fetchCommonUsdtPerpetualSymbols(): Promise<string[]> {
       .filter((s) => s.endsWith("USDT"))
   );
 
-  const common = [...binanceSet].filter((s) => bybitSet.has(s));
+  const common = Array.from(binanceSet).filter((s) => bybitSet.has(s));
   return common.sort();
 }
 
