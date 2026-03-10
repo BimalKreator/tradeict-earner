@@ -1,0 +1,47 @@
+import type { Metadata, Viewport } from "next";
+import "./globals.css";
+import { SWRegister } from "./sw-register";
+
+const appName = "Tradeict Earner";
+const description = "Tradeict Earner — Web & Mobile";
+
+export const metadata: Metadata = {
+  title: appName,
+  description,
+  applicationName: appName,
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: appName,
+  },
+  formatDetection: {
+    telephone: false,
+  },
+  manifest: "/manifest.json",
+};
+
+export const viewport: Viewport = {
+  themeColor: "#0f172a",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  userScalable: true,
+};
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return (
+    <html lang="en">
+      <head>
+        <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+      </head>
+      <body className="antialiased min-h-screen">
+        <SWRegister />
+        {children}
+      </body>
+    </html>
+  );
+}
