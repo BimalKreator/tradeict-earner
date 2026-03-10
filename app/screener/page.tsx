@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 export interface SymbolState {
   symbol: string;
@@ -9,6 +9,8 @@ export interface SymbolState {
   binanceFunding: number | null;
   bybitFunding: number | null;
   lastUpdate: number;
+  spreadStableMs: number;
+  has3xLiquidity: boolean;
 }
 
 type FundingFilter = "all" | "positive" | "negative" | "neutral";
@@ -44,9 +46,14 @@ export default function ScreenerPage() {
   const [tokenSearch, setTokenSearch] = useState("");
   const [minL2SpreadPct, setMinL2SpreadPct] = useState<number>(0);
   const [fundingType, setFundingType] = useState<FundingFilter>("all");
+  const [onlySafeOpportunities, setOnlySafeOpportunities] = useState(false);
+
+  const wsRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
-    const ws = new WebSocket("ws://localhost:8080");
+    const hostname = window.location.hostname || "localhost";
+    const ws = new WebSocket(`ws://${hostname}:8080`);
+    wsRef.current = ws;
 
     ws.onopen = () => setConnected(true);
     ws.onclose = () => setConnected(false);
@@ -64,9 +71,29 @@ export default function ScreenerPage() {
     };
 
     return () => {
+      wsRef.current = null;
       ws.close();
     };
   }, []);
+
+  // Debounce sending trade amount to the WS server
+  useEffect(() => {
+    const id = window.setTimeout(() => {
+      const ws = wsRef.current;
+      if (!ws || ws.readyState !== WebSocket.OPEN) return;
+      const amount = Number(tradeAmount);
+      if (!Number.isFinite(amount) || amount <= 0) return;
+      try {
+        ws.send(JSON.stringify({ action: "set_trade_amount", amount }));
+      } catch {
+        // ignore send errors
+      }
+    }, 500);
+
+    return () => {
+      window.clearTimeout(id);
+    };
+  }, [tradeAmount]);
 
   const filteredRows = useMemo(() => {
     return states
@@ -87,6 +114,11 @@ export default function ScreenerPage() {
           if (fundingType === "negative" && fs >= 0) return false;
           if (fundingType === "neutral" && Math.abs(fs) >= 0.0001) return false;
         }
+        if (onlySafeOpportunities) {
+          const stableMs = row.state.spreadStableMs ?? 0;
+          const has3x = row.state.has3xLiquidity ?? false;
+          if (stableMs < 2000 || !has3x) return false;
+        }
         return true;
       })
       .sort((a, b) => {
@@ -94,7 +126,7 @@ export default function ScreenerPage() {
         const bAbs = b.l2SpreadPct != null ? Math.abs(b.l2SpreadPct) : 0;
         return bAbs - aAbs;
       });
-  }, [states, tokenSearch, minL2SpreadPct, fundingType]);
+  }, [states, tokenSearch, minL2SpreadPct, fundingType, onlySafeOpportunities]);
 
   return (
     <div className="space-y-6 lg:space-y-8">
@@ -163,6 +195,17 @@ export default function ScreenerPage() {
               <option value="neutral">Neutral</option>
             </select>
           </div>
+          <div className="flex items-end">
+            <label className="flex items-center gap-2 cursor-pointer rounded-xl border border-white/[0.1] bg-white/[0.06] px-3 py-2.5 h-[42px]">
+              <input
+                type="checkbox"
+                checked={onlySafeOpportunities}
+                onChange={(e) => setOnlySafeOpportunities(e.target.checked)}
+                className="rounded border-white/20 bg-white/10 text-blue-500 focus:ring-blue-500/50"
+              />
+              <span className="text-sm font-medium text-slate-300">Show only safe opportunities</span>
+            </label>
+          </div>
         </div>
       </div>
 
@@ -185,12 +228,14 @@ export default function ScreenerPage() {
                 <th className="p-4">Funding (Bybit)</th>
                 <th className="p-4">Funding spread</th>
                 <th className="p-4">Direction</th>
+                <th className="p-4">Stability</th>
+                <th className="p-4">Liquidity</th>
               </tr>
             </thead>
             <tbody>
               {filteredRows.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="p-8 text-center text-slate-500">
+                  <td colSpan={10} className="p-8 text-center text-slate-500">
                     {states.length === 0
                       ? connected
                         ? "Waiting for data…"
@@ -241,6 +286,22 @@ export default function ScreenerPage() {
                       )}
                     </td>
                     <td className="p-4 text-slate-300 text-sm">{direction}</td>
+                    <td className="p-4">
+                      {(() => {
+                        const ms = s.spreadStableMs ?? 0;
+                        const sec = (ms / 1000).toFixed(1);
+                        if (ms >= 2000) return <span className="text-emerald-400 font-medium">{sec}s</span>;
+                        if (ms >= 500) return <span className="text-amber-400">{sec}s</span>;
+                        return <span className="text-red-400/90">{sec}s</span>;
+                      })()}
+                    </td>
+                    <td className="p-4">
+                      {s.has3xLiquidity ? (
+                        <span className="text-emerald-400 font-medium">Safe</span>
+                      ) : (
+                        <span className="text-red-400/90">Low</span>
+                      )}
+                    </td>
                   </tr>
                 ))
               )}

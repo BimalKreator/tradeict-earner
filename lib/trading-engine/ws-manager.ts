@@ -1,12 +1,12 @@
 import WebSocket from "ws";
-import type { Orderbook, OrderbookLevel, SymbolState } from "./types";
-import { calculateVWAP as calcVWAP, type VWAPResult } from "./vwap";
+import type { Orderbook, OrderbookLevel, SymbolState, VWAPResult } from "./types";
+import { calculateVWAP as calcVWAP } from "./vwap";
 
-/** Calculate VWAP for buy side; checks 2x liquidity, else uses available depth. */
+/** Calculate VWAP for buy side; checks 3x liquidity. */
 export function calculateVWAP(orderbook: Orderbook, targetAmount: number): VWAPResult {
   return calcVWAP(orderbook, targetAmount, "buy");
 }
-export type { VWAPResult } from "./vwap";
+export type { VWAPResult } from "./types";
 
 const BINANCE_FUTURES_WS = "wss://fstream.binance.com/stream";
 const BYBIT_LINEAR_WS = "wss://stream.bybit.com/v5/public/linear";
@@ -16,10 +16,13 @@ const BYBIT_INSTRUMENTS = "https://api.bybit.com/v5/market/instruments-info?cate
 /** Default trade amount (in quote/USDT) used for VWAP calculation */
 const DEFAULT_VWAP_TARGET_AMOUNT = 10_000;
 
+/** Base threshold (absolute L2 spread %) above which we track stability duration. */
+const SPREAD_STABILITY_THRESHOLD_PCT = 0.2;
+
 export type OnStateUpdate = (states: SymbolState[]) => void;
 
 export interface WsManagerOptions {
-  /** Trade amount (quote) used for VWAP; also checks 2x liquidity. */
+  /** Trade amount (quote) used for VWAP; also checks 3x liquidity. */
   vwapTargetAmount?: number;
   /** Max number of common symbols to subscribe to (exchange limits). Default 50. */
   maxSymbols?: number;
@@ -119,6 +122,9 @@ export class WsManager {
   /** Latest state per symbol, for broadcast. */
   private state = new Map<string, SymbolState>();
 
+  /** Per-symbol: timestamp (ms) when spread first went above threshold, or null. */
+  private spreadAboveThresholdSince = new Map<string, number | null>();
+
   constructor(options: WsManagerOptions = {}) {
     this.vwapTargetAmount = options.vwapTargetAmount ?? DEFAULT_VWAP_TARGET_AMOUNT;
     this.onStateUpdate = options.onStateUpdate;
@@ -158,6 +164,8 @@ export class WsManager {
         binanceFunding: null,
         bybitFunding: null,
         lastUpdate: 0,
+        spreadStableMs: 0,
+        has3xLiquidity: false,
       });
     }
   }
@@ -275,31 +283,52 @@ export class WsManager {
     const bybitBook = orderbookFromMaps(bybitOb);
 
     const target = this.vwapTargetAmount;
+    const now = Date.now();
 
     let binanceVWAP: number | null = null;
+    let binanceHas3x = false;
     if (binanceBook.asks.length > 0) {
       const buy = calcVWAP(binanceBook, target, "buy");
       binanceVWAP = buy.vwap;
+      binanceHas3x = buy.has3xLiquidity;
     }
 
     let bybitVWAP: number | null = null;
+    let bybitHas3x = false;
     if (bybitBook.asks.length > 0) {
       const buy = calcVWAP(bybitBook, target, "buy");
       bybitVWAP = buy.vwap;
+      bybitHas3x = buy.has3xLiquidity;
     }
 
     s.binanceVWAP = binanceVWAP;
     s.bybitVWAP = bybitVWAP;
     s.binanceFunding = this.binanceFunding.get(symbol) ?? s.binanceFunding;
     s.bybitFunding = this.bybitFunding.get(symbol) ?? s.bybitFunding;
-    s.lastUpdate = Date.now();
+    s.has3xLiquidity = binanceHas3x && bybitHas3x;
+    s.lastUpdate = now;
+
+    const absL2SpreadPct =
+      binanceVWAP != null && bybitVWAP != null && binanceVWAP !== 0
+        ? Math.abs((bybitVWAP - binanceVWAP) / binanceVWAP * 100)
+        : 0;
+
+    if (absL2SpreadPct >= SPREAD_STABILITY_THRESHOLD_PCT) {
+      const since = this.spreadAboveThresholdSince.get(symbol) ?? null;
+      const start = since ?? now;
+      if (since == null) this.spreadAboveThresholdSince.set(symbol, now);
+      s.spreadStableMs = now - start;
+    } else {
+      this.spreadAboveThresholdSince.set(symbol, null);
+      s.spreadStableMs = 0;
+    }
 
     this.onStateUpdate?.(this.getStates());
   }
 
   /**
    * Calculate VWAP for a given orderbook and target amount.
-   * Checks 2x liquidity; if not available, uses available depth.
+   * Returns has3xLiquidity if total liquidity >= 3 * targetAmount.
    */
   calculateVWAP(orderbook: Orderbook, targetAmount: number): VWAPResult {
     return calcVWAP(orderbook, targetAmount, "buy");
@@ -315,6 +344,20 @@ export class WsManager {
 
   getVwapTargetAmount(): number {
     return this.vwapTargetAmount;
+  }
+
+  /** Update VWAP target amount and recompute all symbol states. */
+  setVwapTargetAmount(amount: number): void {
+    if (!Number.isFinite(amount) || amount <= 0) return;
+    this.vwapTargetAmount = amount;
+    this.recomputeAll();
+  }
+
+  /** Recalculate VWAP, funding-derived values, and stability for all symbols. */
+  recomputeAll(): void {
+    for (const symbol of this.symbols) {
+      this.recomputeAndEmit(symbol, "binance");
+    }
   }
 
   stop(): void {

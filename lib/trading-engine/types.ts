@@ -16,11 +16,16 @@ export interface SymbolState {
   binanceFunding: number | null;
   bybitFunding: number | null;
   lastUpdate: number;
+  /** How long (ms) absolute L2 spread % has stayed above the stability threshold. */
+  spreadStableMs: number;
+  /** True if both exchanges have orderbook liquidity >= 3 * targetAmount. */
+  has3xLiquidity: boolean;
 }
 
 export interface VWAPResult {
   vwap: number;
   filledAmount: number;
   usedLiquidity: number;
-  has2xLiquidity: boolean;
+  /** True if total orderbook liquidity on the side >= 3 * targetAmount. */
+  has3xLiquidity: boolean;
 }

@@ -52,6 +52,20 @@ async function main() {
       console.error("[WS Server] Initial send error:", e);
     }
 
+    ws.on("message", (data) => {
+      try {
+        const msg = JSON.parse(data.toString()) as { action?: string; amount?: unknown };
+        if (msg.action === "set_trade_amount") {
+          const amount = Number(msg.amount);
+          if (Number.isFinite(amount) && amount > 0) {
+            manager.setVwapTargetAmount(amount);
+          }
+        }
+      } catch (err) {
+        console.error("[WS Server] Message parse error:", err);
+      }
+    });
+
     ws.on("close", () => {
       clients.delete(ws);
       console.log(`[WS Server] Client disconnected. Total: ${clients.size}`);

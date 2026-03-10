@@ -12,7 +12,7 @@ function toNumericLevels(levels: [string, string][]): NumericLevel[] {
  * Calculate VWAP for a given target amount using the provided side of the book.
  * - For buy VWAP: use asks (ascending by price).
  * - For sell VWAP: use bids (descending by price).
- * Checks if 2x target amount liquidity is available; if not, uses available depth.
+ * Uses available depth; has3xLiquidity is true if total orderbook liquidity >= 3 * targetAmount.
  */
 export function calculateVWAP(
   orderbook: Orderbook,
@@ -26,31 +26,28 @@ export function calculateVWAP(
 
   let cumulativeValue = 0;
   let cumulativeQty = 0;
-  const requiredLiquidity = targetAmount * 2;
-  let usedLiquidity = 0;
-  let has2xLiquidity = false;
+  const requiredLiquidity = targetAmount * 3;
+  let totalLiquidity = 0;
 
   for (const [price, qty] of levels) {
+    totalLiquidity += qty;
     const take = Math.min(qty, targetAmount - cumulativeQty);
-    if (take <= 0) break;
+    if (take <= 0 && cumulativeQty >= targetAmount) break;
 
     cumulativeValue += price * take;
     cumulativeQty += take;
-    usedLiquidity += qty;
 
-    if (cumulativeQty >= targetAmount) {
-      has2xLiquidity = usedLiquidity >= requiredLiquidity;
-      break;
-    }
+    if (cumulativeQty >= targetAmount) break;
   }
 
   const vwap = cumulativeQty > 0 ? cumulativeValue / cumulativeQty : 0;
+  const has3xLiquidity = totalLiquidity >= requiredLiquidity;
 
   return {
     vwap,
     filledAmount: cumulativeQty,
-    usedLiquidity,
-    has2xLiquidity,
+    usedLiquidity: totalLiquidity,
+    has3xLiquidity,
   };
 }
 
