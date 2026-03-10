@@ -14,6 +14,7 @@ export interface GroupPositionLeg {
   liquidationPrice: number;
   unrealizedPnl: number;
   side: OrderSide;
+  marginUsed: number;
 }
 
 export interface GroupedPosition {
@@ -27,28 +28,51 @@ export interface GroupedPosition {
   groupPnl: number;
   markPriceBinance: number | null;
   markPriceBybit: number | null;
+  /** Sum of margin used across both legs (USD). */
+  usedMargin: number;
 }
 
+function normalizeSymbol(s: string): string {
+  return (s || "").toUpperCase();
+}
+
+function toLeg(p: RawPosition): GroupPositionLeg {
+  return {
+    exchange: p.exchange,
+    quantity: p.quantity,
+    entryPrice: p.entryPrice,
+    markPrice: p.markPrice,
+    liquidationPrice: p.liquidationPrice,
+    unrealizedPnl: p.unrealizedPnl,
+    side: p.side,
+    marginUsed: p.marginUsed ?? 0,
+  };
+}
+
+/** Group by normalized symbol. Include orphans (position on one exchange only). */
 function groupPositions(binance: RawPosition[], bybit: RawPosition[]): GroupedPosition[] {
   const bySymbol = new Map<
     string,
     { binance: RawPosition | null; bybit: RawPosition | null }
   >();
   for (const p of binance) {
-    const cur = bySymbol.get(p.symbol) ?? { binance: null, bybit: null };
+    const key = normalizeSymbol(p.symbol);
+    const cur = bySymbol.get(key) ?? { binance: null, bybit: null };
     cur.binance = p;
-    bySymbol.set(p.symbol, cur);
+    bySymbol.set(key, cur);
   }
   for (const p of bybit) {
-    const cur = bySymbol.get(p.symbol) ?? { binance: null, bybit: null };
+    const key = normalizeSymbol(p.symbol);
+    const cur = bySymbol.get(key) ?? { binance: null, bybit: null };
     cur.bybit = p;
-    bySymbol.set(p.symbol, cur);
+    bySymbol.set(key, cur);
   }
 
   const out: GroupedPosition[] = [];
   Array.from(bySymbol.entries()).forEach(([symbol, legs]) => {
     const b = legs.binance;
     const y = legs.bybit;
+    if (!b && !y) return;
     const totalQuantity = b && y ? Math.min(b.quantity, y.quantity) : (b?.quantity ?? 0) + (y?.quantity ?? 0);
     if (totalQuantity <= 0) return;
 
@@ -72,16 +96,7 @@ function groupPositions(binance: RawPosition[], bybit: RawPosition[]): GroupedPo
       groupPnl = y.unrealizedPnl;
     }
 
-    const toLeg = (p: RawPosition): GroupPositionLeg => ({
-      exchange: p.exchange,
-      quantity: p.quantity,
-      entryPrice: p.entryPrice,
-      markPrice: p.markPrice,
-      liquidationPrice: p.liquidationPrice,
-      unrealizedPnl: p.unrealizedPnl,
-      side: p.side,
-    });
-
+    const usedMargin = (b?.marginUsed ?? 0) + (y?.marginUsed ?? 0);
     out.push({
       symbol,
       side,
@@ -93,6 +108,7 @@ function groupPositions(binance: RawPosition[], bybit: RawPosition[]): GroupedPo
       groupPnl,
       markPriceBinance: b?.markPrice ?? null,
       markPriceBybit: y?.markPrice ?? null,
+      usedMargin,
     });
   });
   return out.sort((a, b) => a.symbol.localeCompare(b.symbol));

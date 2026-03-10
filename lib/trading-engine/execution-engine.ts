@@ -64,6 +64,8 @@ export interface RawPosition {
   markPrice: number;
   liquidationPrice: number;
   unrealizedPnl: number;
+  /** Initial/margin used (USD) for this position. */
+  marginUsed: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -213,6 +215,8 @@ export async function getBinancePositions(apiKey: string, apiSecret: string): Pr
     liquidationPrice: string;
     unRealizedProfit: string;
     positionSide: string;
+    notional?: string;
+    leverage?: string;
   }[];
   const out: RawPosition[] = [];
   for (const p of arr) {
@@ -220,15 +224,22 @@ export async function getBinancePositions(apiKey: string, apiSecret: string): Pr
     if (amt === 0) continue;
     if (!p.symbol || !p.symbol.endsWith("USDT")) continue;
     const side: OrderSide = amt > 0 ? "Long" : "Short";
+    const symbol = p.symbol.toUpperCase();
+    const mark = parseFloat(p.markPrice) || 0;
+    const qty = Math.abs(amt);
+    const notional = Math.abs(parseFloat(p.notional ?? "0") || 0) || qty * mark;
+    const leverage = parseFloat(p.leverage ?? "1") || 1;
+    const marginUsed = leverage > 0 ? notional / leverage : notional;
     out.push({
       exchange: "binance",
-      symbol: p.symbol,
+      symbol,
       side,
       quantity: Math.abs(amt),
       entryPrice: parseFloat(p.entryPrice) || 0,
       markPrice: parseFloat(p.markPrice) || 0,
       liquidationPrice: parseFloat(p.liquidationPrice) || 0,
       unrealizedPnl: parseFloat(p.unRealizedProfit) || 0,
+      marginUsed,
     });
   }
   return out;
@@ -345,31 +356,42 @@ export async function getBybitLeverage(symbol: string): Promise<number> {
 
 /** Fetch open positions from Bybit linear USDT (USD-margined futures only). category=linear + settleCoin=USDT; only active (size > 0). */
 export async function getBybitPositions(apiKey: string, apiSecret: string): Promise<RawPosition[]> {
-  const timestamp = Date.now();
+  const timestamp = String(Date.now());
   const recvWindow = "5000";
-  const params: Record<string, string | number> = {
+  const params: Record<string, string> = {
     category: "linear",
     settleCoin: "USDT",
-    timestamp: String(timestamp),
+    timestamp,
     recvWindow,
   };
-  const sign = signBybitV5(apiSecret, params);
   const qs = Object.keys(params)
     .sort()
     .map((k) => `${k}=${params[k]}`)
     .join("&");
+  const sign = signBybitV5Get(apiSecret, timestamp, apiKey, recvWindow, qs);
   const res = await fetch(`${BYBIT_BASE}/v5/position/list?${qs}`, {
     headers: {
       "X-BAPI-API-KEY": apiKey,
       "X-BAPI-SIGN": sign,
-      "X-BAPI-TIMESTAMP": String(timestamp),
+      "X-BAPI-TIMESTAMP": timestamp,
       "X-BAPI-RECV-WINDOW": recvWindow,
     },
   });
   if (!res.ok) throw new Error(`Bybit positions: ${res.status}`);
   const data = (await res.json()) as {
     retCode?: number;
-    result?: { list?: { symbol: string; side: string; size: string; avgPrice: string; markPrice: string; liqPrice: string; unrealisedPnl: string }[] };
+    result?: {
+      list?: {
+        symbol: string;
+        side: string;
+        size: string;
+        avgPrice: string;
+        markPrice: string;
+        liqPrice: string;
+        unrealisedPnl: string;
+        positionIM?: string;
+      }[];
+    };
   };
   if (data.retCode !== 0 && data.retCode != null) throw new Error("Bybit positions: " + (data as { retMsg?: string }).retMsg);
   const list = data.result?.list ?? [];
@@ -378,15 +400,18 @@ export async function getBybitPositions(apiKey: string, apiSecret: string): Prom
     const size = parseFloat(p.size);
     if (size <= 0) continue;
     const side: OrderSide = p.side === "Buy" ? "Long" : "Short";
+    const symbol = (p.symbol || "").toUpperCase();
+    const marginUsed = parseFloat(p.positionIM ?? "0") || 0;
     out.push({
       exchange: "bybit",
-      symbol: p.symbol,
+      symbol,
       side,
       quantity: size,
       entryPrice: parseFloat(p.avgPrice) || 0,
       markPrice: parseFloat(p.markPrice) || 0,
       liquidationPrice: parseFloat(p.liqPrice || "0") || 0,
       unrealizedPnl: parseFloat(p.unrealisedPnl || "0") || 0,
+      marginUsed,
     });
   }
   return out;
