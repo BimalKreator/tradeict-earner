@@ -252,12 +252,25 @@ export async function placeBybitOrder(
   return { orderId: result.orderId ?? "", orderStatus: result.orderStatus ?? "Unknown" };
 }
 
-export async function getBybitBalance(apiKey: string, apiSecret: string): Promise<number> {
+async function fetchBybitBalanceWithAccountType(
+  apiKey: string,
+  apiSecret: string,
+  accountType: "UNIFIED" | "CONTRACT"
+): Promise<number> {
   const timestamp = Date.now();
   const recvWindow = "5000";
-  const params = { accountType: "UNIFIED", timestamp: String(timestamp), recvWindow };
+  const params: Record<string, string | number> = {
+    accountType,
+    coin: "USDT",
+    recvWindow,
+    timestamp: String(timestamp),
+  };
   const sign = signBybitV5(apiSecret, params);
-  const res = await fetch(`${BYBIT_BASE}/v5/account/wallet-balance/account-type?accountType=UNIFIED`, {
+  const qs = Object.keys(params)
+    .sort()
+    .map((k) => `${k}=${params[k]}`)
+    .join("&");
+  const res = await fetch(`${BYBIT_BASE}/v5/account/wallet-balance?${qs}`, {
     headers: {
       "X-BAPI-API-KEY": apiKey,
       "X-BAPI-SIGN": sign,
@@ -265,14 +278,27 @@ export async function getBybitBalance(apiKey: string, apiSecret: string): Promis
       "X-BAPI-RECV-WINDOW": recvWindow,
     },
   });
-  if (!res.ok) throw new Error(`Bybit balance: ${res.status}`);
   const data = (await res.json()) as {
+    retCode?: number;
+    retMsg?: string;
     result?: { list?: { totalEquity?: string; totalAvailableBalance?: string }[] };
   };
+  if (data.retCode !== 0 && data.retCode != null) {
+    throw new Error(data.retMsg ?? `Bybit balance: ${data.retCode}`);
+  }
+  if (!res.ok) throw new Error(`Bybit balance: ${res.status}`);
   const list = data.result?.list ?? [];
   const acc = list[0];
   const bal = acc?.totalAvailableBalance ?? acc?.totalEquity ?? "0";
   return parseFloat(bal);
+}
+
+export async function getBybitBalance(apiKey: string, apiSecret: string): Promise<number> {
+  try {
+    return await fetchBybitBalanceWithAccountType(apiKey, apiSecret, "UNIFIED");
+  } catch {
+    return fetchBybitBalanceWithAccountType(apiKey, apiSecret, "CONTRACT");
+  }
 }
 
 /** Returns max leverage for linear symbol from instruments info. */
