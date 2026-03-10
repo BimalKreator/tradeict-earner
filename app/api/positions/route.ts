@@ -46,11 +46,11 @@ function groupPositions(binance: RawPosition[], bybit: RawPosition[]): GroupedPo
   }
 
   const out: GroupedPosition[] = [];
-  for (const [symbol, legs] of bySymbol) {
+  Array.from(bySymbol.entries()).forEach(([symbol, legs]) => {
     const b = legs.binance;
     const y = legs.bybit;
     const totalQuantity = b && y ? Math.min(b.quantity, y.quantity) : (b?.quantity ?? 0) + (y?.quantity ?? 0);
-    if (totalQuantity <= 0) continue;
+    if (totalQuantity <= 0) return;
 
     const side: OrderSide = b?.side ?? y?.side ?? "Long";
     let entryPrice = 0;
@@ -94,7 +94,7 @@ function groupPositions(binance: RawPosition[], bybit: RawPosition[]): GroupedPo
       markPriceBinance: b?.markPrice ?? null,
       markPriceBybit: y?.markPrice ?? null,
     });
-  }
+  });
   return out.sort((a, b) => a.symbol.localeCompare(b.symbol));
 }
 

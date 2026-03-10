@@ -21,7 +21,7 @@ const DEFAULT_API_KEYS: ApiKeysState = {
 
 function maskValue(val: string): string {
   if (!val || val.length === 0) return "";
-  if (val.length <= 4) return "****";
+  if (val.length <= 4) return "************";
   return "************" + val.slice(-4);
 }
 
@@ -144,7 +144,7 @@ export default function SettingsPage() {
   const getDisplayValue = (key: ApiKeyField) => {
     const val = apiKeys[key];
     if (focusedField === key) return editValue;
-    return val ? maskValue(val) : "";
+    return val?.trim() ? maskValue(val) : "";
   };
 
   const handleKeyFocus = (key: ApiKeyField) => {
@@ -318,11 +318,14 @@ export default function SettingsPage() {
         <div className="glass-panel p-5 md:p-6 space-y-5">
           <h2 className="text-lg font-semibold text-white border-b border-white/[0.06] pb-3">Exchange API keys</h2>
           <div className="grid md:grid-cols-2 gap-6">
-            <div className="space-y-3">
+            <div className="space-y-3 rounded-xl border border-white/[0.08] p-4 bg-white/[0.02]">
               <div className="flex items-center gap-2 flex-wrap">
                 <h3 className="text-sm font-medium text-slate-300">Binance</h3>
                 {hasBinanceKeys && (
-                  <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">
+                    <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
                     Saved
                   </span>
                 )}
@@ -335,6 +338,7 @@ export default function SettingsPage() {
                 onBlur={() => handleKeyBlur("binanceApiKey")}
                 onChange={(e) => handleKeyChange("binanceApiKey", e.target.value)}
                 className={inputClass}
+                autoComplete="off"
               />
               <input
                 type="password"
@@ -344,21 +348,35 @@ export default function SettingsPage() {
                 onBlur={() => handleKeyBlur("binanceApiSecret")}
                 onChange={(e) => handleKeyChange("binanceApiSecret", e.target.value)}
                 className={inputClass}
+                autoComplete="off"
               />
               <button
                 type="button"
                 onClick={() => testConnection("binance")}
                 disabled={!hasBinanceKeys || testing !== null}
-                className="glass-button px-4 py-2 rounded-xl text-sm font-medium text-slate-200 disabled:opacity-50"
+                className="w-full glass-button px-4 py-3 rounded-xl text-sm font-medium text-slate-200 border border-white/[0.12] hover:border-white/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 min-h-[44px]"
               >
-                {testing === "binance" ? "Testing…" : "Test connection"}
+                {testing === "binance" ? (
+                  <>
+                    <svg className="animate-spin h-4 w-4 text-slate-400 shrink-0" fill="none" viewBox="0 0 24 24" aria-hidden>
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
+                    Checking API…
+                  </>
+                ) : (
+                  "Test connection"
+                )}
               </button>
             </div>
-            <div className="space-y-3">
+            <div className="space-y-3 rounded-xl border border-white/[0.08] p-4 bg-white/[0.02]">
               <div className="flex items-center gap-2 flex-wrap">
                 <h3 className="text-sm font-medium text-slate-300">Bybit</h3>
                 {hasBybitKeys && (
-                  <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">
+                    <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
                     Saved
                   </span>
                 )}
@@ -371,6 +389,7 @@ export default function SettingsPage() {
                 onBlur={() => handleKeyBlur("bybitApiKey")}
                 onChange={(e) => handleKeyChange("bybitApiKey", e.target.value)}
                 className={inputClass}
+                autoComplete="off"
               />
               <input
                 type="password"
@@ -380,14 +399,25 @@ export default function SettingsPage() {
                 onBlur={() => handleKeyBlur("bybitApiSecret")}
                 onChange={(e) => handleKeyChange("bybitApiSecret", e.target.value)}
                 className={inputClass}
+                autoComplete="off"
               />
               <button
                 type="button"
                 onClick={() => testConnection("bybit")}
                 disabled={!hasBybitKeys || testing !== null}
-                className="glass-button px-4 py-2 rounded-xl text-sm font-medium text-slate-200 disabled:opacity-50"
+                className="w-full glass-button px-4 py-3 rounded-xl text-sm font-medium text-slate-200 border border-white/[0.12] hover:border-white/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 min-h-[44px]"
               >
-                {testing === "bybit" ? "Testing…" : "Test connection"}
+                {testing === "bybit" ? (
+                  <>
+                    <svg className="animate-spin h-4 w-4 text-slate-400 shrink-0" fill="none" viewBox="0 0 24 24" aria-hidden>
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
+                    Checking API…
+                  </>
+                ) : (
+                  "Test connection"
+                )}
               </button>
             </div>
           </div>
