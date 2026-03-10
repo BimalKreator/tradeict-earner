@@ -17,7 +17,15 @@ type FundingFilter = "all" | "favourable";
 
 const FAV_FUNDING_STORAGE_KEY = "tradeict-earner-fav-funding";
 const BANNED_TOKENS_STORAGE_KEY = "tradeict-earner-banned-tokens";
+const API_KEYS_STORAGE_KEY = "tradeict-earner-api-keys";
 const PAGE_SIZE = 15;
+
+interface TradeRow {
+  state: SymbolState;
+  l2SpreadPct: number | null;
+  fundingSpread: number | null;
+  direction: string;
+}
 
 /** True if net funding profit for the current direction is > 0. */
 function isFavourableFunding(
@@ -93,8 +101,16 @@ export default function ScreenerPage() {
     return new Set();
   });
   const [currentPage, setCurrentPage] = useState(0);
+  const [tradeModal, setTradeModal] = useState<{ row: TradeRow } | null>(null);
+  const [balances, setBalances] = useState<{ binance: number; bybit: number } | null>(null);
+  const [balancesLoading, setBalancesLoading] = useState(false);
+  const [tradeQty, setTradeQty] = useState("");
+  const [tradeLeverage, setTradeLeverage] = useState(3);
+  const [tradeSubmitting, setTradeSubmitting] = useState(false);
+  const [tradeToast, setTradeToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
   const wsRef = useRef<WebSocket | null>(null);
+  const tradeToastRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     const hostname = window.location.hostname || "localhost";
@@ -164,6 +180,99 @@ export default function ScreenerPage() {
       next.delete(symbol);
       return next;
     });
+  };
+
+  function getApiKeysFromStorage(): {
+    binanceApiKey: string;
+    binanceApiSecret: string;
+    bybitApiKey: string;
+    bybitApiSecret: string;
+  } {
+    if (typeof window === "undefined")
+      return { binanceApiKey: "", binanceApiSecret: "", bybitApiKey: "", bybitApiSecret: "" };
+    try {
+      const raw = localStorage.getItem(API_KEYS_STORAGE_KEY);
+      if (!raw) return { binanceApiKey: "", binanceApiSecret: "", bybitApiKey: "", bybitApiSecret: "" };
+      const p = JSON.parse(raw) as Record<string, unknown>;
+      return {
+        binanceApiKey: typeof p.binanceApiKey === "string" ? p.binanceApiKey : "",
+        binanceApiSecret: typeof p.binanceApiSecret === "string" ? p.binanceApiSecret : "",
+        bybitApiKey: typeof p.bybitApiKey === "string" ? p.bybitApiKey : "",
+        bybitApiSecret: typeof p.bybitApiSecret === "string" ? p.bybitApiSecret : "",
+      };
+    } catch {
+      return { binanceApiKey: "", binanceApiSecret: "", bybitApiKey: "", bybitApiSecret: "" };
+    }
+  }
+
+  const openTradeModal = (row: TradeRow) => {
+    setTradeModal({ row });
+    setTradeQty("");
+    setTradeLeverage(3);
+    setBalances(null);
+    const keys = getApiKeysFromStorage();
+    if (keys.binanceApiKey && keys.binanceApiSecret && keys.bybitApiKey && keys.bybitApiSecret) {
+      setBalancesLoading(true);
+      fetch("/api/settings/balances", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(keys),
+      })
+        .then((r) => r.json())
+        .then((data: { binance?: number; bybit?: number; error?: string }) => {
+          if (data.error) setBalances({ binance: 0, bybit: 0 });
+          else setBalances({ binance: data.binance ?? 0, bybit: data.bybit ?? 0 });
+        })
+        .catch(() => setBalances({ binance: 0, bybit: 0 }))
+        .finally(() => setBalancesLoading(false));
+    }
+  };
+
+  const closeTradeModal = () => {
+    setTradeModal(null);
+    setBalances(null);
+  };
+
+  const showTradeToast = (message: string, type: "success" | "error") => {
+    if (tradeToastRef.current) clearTimeout(tradeToastRef.current);
+    setTradeToast({ message, type });
+    tradeToastRef.current = setTimeout(() => {
+      setTradeToast(null);
+      tradeToastRef.current = null;
+    }, 4000);
+  };
+
+  const submitTrade = async () => {
+    if (!tradeModal) return;
+    const keys = getApiKeysFromStorage();
+    if (!keys.binanceApiKey || !keys.binanceApiSecret || !keys.bybitApiKey || !keys.bybitApiSecret) {
+      showTradeToast("API keys not configured", "error");
+      return;
+    }
+    const side = tradeModal.row.direction.startsWith("Long Binance") ? "Long" : "Short";
+    setTradeSubmitting(true);
+    try {
+      const res = await fetch("/api/trade/execute", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          symbol: tradeModal.row.state.symbol,
+          side,
+          ...keys,
+        }),
+      });
+      const data = (await res.json()) as { ok?: boolean; error?: string };
+      if (data.ok) {
+        showTradeToast("Trade successfully placed via Chunk System", "success");
+        closeTradeModal();
+      } else {
+        showTradeToast(data.error ?? "Trade failed", "error");
+      }
+    } catch (e) {
+      showTradeToast(e instanceof Error ? e.message : "Trade failed", "error");
+    } finally {
+      setTradeSubmitting(false);
+    }
   };
 
   const filteredRows = useMemo(() => {
@@ -318,12 +427,13 @@ export default function ScreenerPage() {
                 <th className="p-4">Stability</th>
                 <th className="p-4">Liquidity</th>
                 <th className="p-4 w-12">Ban</th>
+                <th className="p-4">Trade</th>
               </tr>
             </thead>
             <tbody>
               {filteredRows.length === 0 ? (
                 <tr>
-                  <td colSpan={11} className="p-8 text-center text-slate-500">
+                  <td colSpan={12} className="p-8 text-center text-slate-500">
                     {states.length === 0
                       ? connected
                         ? "Waiting for data…"
@@ -400,6 +510,15 @@ export default function ScreenerPage() {
                         <BanIcon />
                       </button>
                     </td>
+                    <td className="p-4">
+                      <button
+                        type="button"
+                        onClick={() => openTradeModal({ state: s, l2SpreadPct, fundingSpread, direction })}
+                        className="glass-button px-3 py-2 rounded-xl text-sm font-medium text-slate-200"
+                      >
+                        Trade
+                      </button>
+                    </td>
                   </tr>
                 ))
               )}
@@ -458,6 +577,144 @@ export default function ScreenerPage() {
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Trade Modal */}
+      {tradeModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+          onClick={(e) => e.target === e.currentTarget && closeTradeModal()}
+        >
+          <div
+            className="glass-panel w-full max-w-lg max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-4 md:p-5 border-b border-white/[0.06] flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-semibold text-white">{tradeModal.row.state.symbol}</h2>
+                <p className="text-slate-400 text-sm mt-0.5">
+                  Binance: {tradeModal.row.state.binanceVWAP != null ? `$${tradeModal.row.state.binanceVWAP.toFixed(4)}` : "—"} · Bybit: {tradeModal.row.state.bybitVWAP != null ? `$${tradeModal.row.state.bybitVWAP.toFixed(4)}` : "—"}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={closeTradeModal}
+                className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/10"
+                aria-label="Close"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="p-4 md:p-5 space-y-4">
+              <div>
+                <h3 className="text-sm font-medium text-slate-300 mb-2">Available USDT</h3>
+                {balancesLoading ? (
+                  <p className="text-slate-500 text-sm">Loading…</p>
+                ) : balances ? (
+                  <div className="flex gap-4 text-sm">
+                    <span className="text-slate-300">Binance: <span className="text-white font-medium">{balances.binance.toFixed(2)}</span></span>
+                    <span className="text-slate-300">Bybit: <span className="text-white font-medium">{balances.bybit.toFixed(2)}</span></span>
+                  </div>
+                ) : (
+                  <p className="text-slate-500 text-sm">Save API keys in Settings to see balances</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-1.5">Qty (Tokens)</label>
+                <input
+                  type="number"
+                  min={0}
+                  step="any"
+                  value={tradeQty}
+                  onChange={(e) => setTradeQty(e.target.value)}
+                  placeholder="0"
+                  className="w-full rounded-xl border border-white/[0.1] bg-white/[0.06] px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-1.5">Leverage</label>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="range"
+                    min={1}
+                    max={125}
+                    value={tradeLeverage}
+                    onChange={(e) => setTradeLeverage(Number(e.target.value))}
+                    className="flex-1 h-2 rounded-full appearance-none bg-white/10 accent-blue-500"
+                  />
+                  <span className="text-white font-medium w-10">{tradeLeverage}x</span>
+                </div>
+                <input
+                  type="number"
+                  min={1}
+                  max={125}
+                  value={tradeLeverage}
+                  onChange={(e) => setTradeLeverage(Number(e.target.value) || 1)}
+                  className="mt-2 w-full rounded-xl border border-white/[0.1] bg-white/[0.06] px-4 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                />
+              </div>
+
+              {(() => {
+                const price =
+                  (tradeModal.row.state.binanceVWAP != null && tradeModal.row.state.bybitVWAP != null)
+                    ? (tradeModal.row.state.binanceVWAP + tradeModal.row.state.bybitVWAP) / 2
+                    : tradeModal.row.state.binanceVWAP ?? tradeModal.row.state.bybitVWAP ?? 0;
+                const qty = parseFloat(tradeQty) || 0;
+                const lev = Math.max(1, tradeLeverage);
+                const requiredMargin = price > 0 && qty > 0 ? (qty * price) / lev : 0;
+                const available = balances ? Math.min(balances.binance, balances.bybit) : 0;
+                const insufficient = requiredMargin > 0 && requiredMargin > available;
+                return (
+                  <>
+                    <div className="rounded-xl border border-white/[0.1] bg-white/[0.06] px-4 py-3">
+                      <p className="text-slate-400 text-sm">Required margin</p>
+                      <p className="text-white font-semibold">${requiredMargin.toFixed(2)}</p>
+                    </div>
+                    {insufficient && (
+                      <p className="text-red-400 text-sm font-medium">Insufficient funds</p>
+                    )}
+                    <div className="flex gap-3 pt-2">
+                      <button
+                        type="button"
+                        onClick={submitTrade}
+                        disabled={insufficient || tradeSubmitting || !balances}
+                        className="glass-button flex-1 px-4 py-3 rounded-xl text-sm font-medium text-white disabled:opacity-50 disabled:cursor-not-allowed accent-border"
+                      >
+                        {tradeSubmitting ? "Placing…" : "Submit trade"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={closeTradeModal}
+                        className="glass-button px-4 py-3 rounded-xl text-sm font-medium text-slate-400"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </>
+                );
+              })()}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Trade toast */}
+      {tradeToast && (
+        <div
+          className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] px-4 py-3 rounded-xl border shadow-lg max-w-sm ${
+            tradeToast.type === "success"
+              ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-200"
+              : "bg-red-500/20 border-red-500/40 text-red-200"
+          }`}
+          role="alert"
+        >
+          {tradeToast.message}
         </div>
       )}
     </div>

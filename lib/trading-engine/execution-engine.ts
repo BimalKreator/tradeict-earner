@@ -54,6 +54,18 @@ export interface ChunkResult {
   closedBybitAfterBinanceFail?: boolean;
 }
 
+/** Single exchange position (raw from API). */
+export interface RawPosition {
+  exchange: "binance" | "bybit";
+  symbol: string;
+  side: OrderSide;
+  quantity: number;
+  entryPrice: number;
+  markPrice: number;
+  liquidationPrice: number;
+  unrealizedPnl: number;
+}
+
 // ---------------------------------------------------------------------------
 // REST helpers: signing and base URLs
 // ---------------------------------------------------------------------------
@@ -154,6 +166,43 @@ export async function getBinanceLeverage(apiKey: string, apiSecret: string, symb
   return sym.brackets[0].initialLeverage ?? 1;
 }
 
+/** Fetch open positions from Binance USDT-M futures. */
+export async function getBinancePositions(apiKey: string, apiSecret: string): Promise<RawPosition[]> {
+  const timestamp = Date.now();
+  const query = `timestamp=${timestamp}`;
+  const signature = signBinance(apiSecret, query);
+  const res = await fetch(`${BINANCE_BASE}/fapi/v2/positionRisk?${query}&signature=${signature}`, {
+    headers: { "X-MBX-APIKEY": apiKey },
+  });
+  if (!res.ok) throw new Error(`Binance positions: ${res.status}`);
+  const arr = (await res.json()) as {
+    symbol: string;
+    positionAmt: string;
+    entryPrice: string;
+    markPrice: string;
+    liquidationPrice: string;
+    unRealizedProfit: string;
+    positionSide: string;
+  }[];
+  const out: RawPosition[] = [];
+  for (const p of arr) {
+    const amt = parseFloat(p.positionAmt);
+    if (amt === 0) continue;
+    const side: OrderSide = amt > 0 ? "Long" : "Short";
+    out.push({
+      exchange: "binance",
+      symbol: p.symbol,
+      side,
+      quantity: Math.abs(amt),
+      entryPrice: parseFloat(p.entryPrice) || 0,
+      markPrice: parseFloat(p.markPrice) || 0,
+      liquidationPrice: parseFloat(p.liquidationPrice) || 0,
+      unrealizedPnl: parseFloat(p.unRealizedProfit) || 0,
+    });
+  }
+  return out;
+}
+
 // ---------------------------------------------------------------------------
 // Bybit REST: order, balance, leverage (instruments info)
 // ---------------------------------------------------------------------------
@@ -239,6 +288,52 @@ export async function getBybitLeverage(symbol: string): Promise<number> {
   const item = list.find((l) => l.symbol === symbol);
   const max = item?.leverageFilter?.maxLeverage;
   return max ? parseFloat(max) : 1;
+}
+
+/** Fetch open positions from Bybit linear (USDT). */
+export async function getBybitPositions(apiKey: string, apiSecret: string): Promise<RawPosition[]> {
+  const timestamp = Date.now();
+  const recvWindow = "5000";
+  const params: Record<string, string | number> = {
+    category: "linear",
+    settleCoin: "USDT",
+    timestamp: String(timestamp),
+    recvWindow,
+  };
+  const sign = signBybitV5(apiSecret, params);
+  const qs = new URLSearchParams(params as Record<string, string>).toString();
+  const res = await fetch(`${BYBIT_BASE}/v5/position/list?${qs}`, {
+    headers: {
+      "X-BAPI-API-KEY": apiKey,
+      "X-BAPI-SIGN": sign,
+      "X-BAPI-TIMESTAMP": String(timestamp),
+      "X-BAPI-RECV-WINDOW": recvWindow,
+    },
+  });
+  if (!res.ok) throw new Error(`Bybit positions: ${res.status}`);
+  const data = (await res.json()) as {
+    retCode?: number;
+    result?: { list?: { symbol: string; side: string; size: string; avgPrice: string; markPrice: string; liqPrice: string; unrealisedPnl: string }[] };
+  };
+  if (data.retCode !== 0 && data.retCode != null) throw new Error("Bybit positions: " + (data as { retMsg?: string }).retMsg);
+  const list = data.result?.list ?? [];
+  const out: RawPosition[] = [];
+  for (const p of list) {
+    const size = parseFloat(p.size);
+    if (size === 0) continue;
+    const side: OrderSide = p.side === "Buy" ? "Long" : "Short";
+    out.push({
+      exchange: "bybit",
+      symbol: p.symbol,
+      side,
+      quantity: size,
+      entryPrice: parseFloat(p.avgPrice) || 0,
+      markPrice: parseFloat(p.markPrice) || 0,
+      liquidationPrice: parseFloat(p.liqPrice || "0") || 0,
+      unrealizedPnl: parseFloat(p.unrealisedPnl || "0") || 0,
+    });
+  }
+  return out;
 }
 
 // ---------------------------------------------------------------------------
@@ -601,4 +696,130 @@ export async function executeChunkTrade(
   }
 
   return results;
+}
+
+// ---------------------------------------------------------------------------
+// Close position: same chunk flow (Bybit -> confirm -> Binance) with fixed quantity
+// ---------------------------------------------------------------------------
+
+export async function executeCloseTrade(
+  symbol: string,
+  positionSide: OrderSide,
+  quantity: number,
+  orderbook: OrderbookSnapshot,
+  credentials: ExchangeCredentials,
+  privateWs: PrivateWSManager
+): Promise<ChunkResult> {
+  const closeSide: OrderSide = positionSide === "Long" ? "Short" : "Long";
+  const isBuy = closeSide === "Long";
+  const bybitSide = isBuy ? "Buy" : "Sell";
+  const binanceSide = isBuy ? "BUY" : "SELL";
+  const priceBybit = getBestPrice(orderbook, closeSide);
+  const priceBinance = getBestPrice(orderbook, closeSide);
+  if (priceBybit <= 0 || priceBinance <= 0) {
+    return { success: false, error: "No orderbook price" };
+  }
+  if (quantity <= 0) {
+    return { success: false, error: "Invalid close quantity" };
+  }
+
+  let bybitOrderId: string | null = null;
+  try {
+    const bybitRes = await placeBybitOrder(
+      credentials.bybit.apiKey,
+      credentials.bybit.apiSecret,
+      {
+        symbol,
+        side: bybitSide,
+        orderType: "Limit",
+        timeInForce: "IOC",
+        qty: quantity.toFixed(8),
+        price: priceBybit.toFixed(8),
+        category: "linear",
+      }
+    );
+    bybitOrderId = bybitRes.orderId;
+    if (!bybitOrderId || bybitRes.orderStatus === "Rejected") {
+      return {
+        success: false,
+        error: "Bybit close order rejected",
+        bybitOrder: {
+          exchange: "bybit",
+          orderId: bybitRes.orderId,
+          symbol,
+          side: closeSide,
+          quantity,
+          price: priceBybit,
+          status: "REJECTED",
+        },
+      };
+    }
+    await sleep(DEFAULT_DELAY_MS);
+    const filledBybit = await privateWs.waitForOrderConfirmation("bybit", bybitOrderId, CONFIRM_TIMEOUT_MS);
+
+    await placeBinanceOrder(
+      credentials.binance.apiKey,
+      credentials.binance.apiSecret,
+      {
+        symbol,
+        side: binanceSide,
+        type: "LIMIT",
+        timeInForce: "IOC",
+        quantity: String(filledBybit > 0 ? filledBybit : quantity),
+        price: priceBinance.toFixed(8),
+      }
+    ).catch(async (err) => {
+      await placeBybitOrder(credentials.bybit.apiKey, credentials.bybit.apiSecret, {
+        symbol,
+        side: bybitSide === "Buy" ? "Sell" : "Buy",
+        orderType: "Limit",
+        timeInForce: "IOC",
+        qty: String(filledBybit > 0 ? filledBybit : quantity),
+        price: priceBybit.toFixed(8),
+        category: "linear",
+      }).catch(() => {});
+      throw err;
+    });
+
+    return {
+      success: true,
+      bybitOrder: {
+        exchange: "bybit",
+        orderId: bybitOrderId,
+        symbol,
+        side: closeSide,
+        quantity,
+        price: priceBybit,
+        filledQty: filledBybit,
+        status: "FILLED",
+      },
+      binanceOrder: {
+        exchange: "binance",
+        orderId: "",
+        symbol,
+        side: closeSide,
+        quantity: filledBybit > 0 ? filledBybit : quantity,
+        price: priceBinance,
+        status: "FILLED",
+      },
+    };
+  } catch (e) {
+    const errMsg = e instanceof Error ? e.message : String(e);
+    return {
+      success: false,
+      error: errMsg,
+      bybitOrder: bybitOrderId
+        ? {
+            exchange: "bybit",
+            orderId: bybitOrderId,
+            symbol,
+            side: closeSide,
+            quantity,
+            price: priceBybit,
+            status: "FILLED",
+          }
+        : undefined,
+      closedBybitAfterBinanceFail: !!bybitOrderId,
+    };
+  }
 }

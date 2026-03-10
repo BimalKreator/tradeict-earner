@@ -1,8 +1,52 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 const SETTINGS_STORAGE_KEY = "tradeict-earner-settings";
+const API_KEYS_STORAGE_KEY = "tradeict-earner-api-keys";
+
+export interface ApiKeysState {
+  binanceApiKey: string;
+  binanceApiSecret: string;
+  bybitApiKey: string;
+  bybitApiSecret: string;
+}
+
+const DEFAULT_API_KEYS: ApiKeysState = {
+  binanceApiKey: "",
+  binanceApiSecret: "",
+  bybitApiKey: "",
+  bybitApiSecret: "",
+};
+
+function maskValue(val: string): string {
+  if (!val || val.length === 0) return "";
+  if (val.length <= 4) return "****";
+  return "************" + val.slice(-4);
+}
+
+function loadApiKeys(): ApiKeysState {
+  if (typeof window === "undefined") return DEFAULT_API_KEYS;
+  try {
+    const raw = localStorage.getItem(API_KEYS_STORAGE_KEY);
+    if (!raw) return DEFAULT_API_KEYS;
+    const parsed = JSON.parse(raw) as Partial<ApiKeysState>;
+    return {
+      binanceApiKey: typeof parsed.binanceApiKey === "string" ? parsed.binanceApiKey : "",
+      binanceApiSecret: typeof parsed.binanceApiSecret === "string" ? parsed.binanceApiSecret : "",
+      bybitApiKey: typeof parsed.bybitApiKey === "string" ? parsed.bybitApiKey : "",
+      bybitApiSecret: typeof parsed.bybitApiSecret === "string" ? parsed.bybitApiSecret : "",
+    };
+  } catch {
+    return DEFAULT_API_KEYS;
+  }
+}
+
+function saveApiKeys(keys: ApiKeysState): void {
+  try {
+    localStorage.setItem(API_KEYS_STORAGE_KEY, JSON.stringify(keys));
+  } catch {}
+}
 
 export interface SettingsState {
   autoTrade: boolean;
@@ -50,12 +94,21 @@ function saveSettings(s: SettingsState): void {
   } catch {}
 }
 
+type ApiKeyField = "binanceApiKey" | "binanceApiSecret" | "bybitApiKey" | "bybitApiSecret";
+
 export default function SettingsPage() {
   const [settings, setSettings] = useState<SettingsState>(DEFAULT_SETTINGS);
+  const [apiKeys, setApiKeys] = useState<ApiKeysState>(DEFAULT_API_KEYS);
   const [hydrated, setHydrated] = useState(false);
+  const [focusedField, setFocusedField] = useState<ApiKeyField | null>(null);
+  const [editValue, setEditValue] = useState("");
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+  const [testing, setTesting] = useState<"binance" | "bybit" | null>(null);
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     setSettings(loadSettings());
+    setApiKeys(loadApiKeys());
     setHydrated(true);
   }, []);
 
@@ -64,11 +117,81 @@ export default function SettingsPage() {
     saveSettings(settings);
   }, [settings, hydrated]);
 
+  useEffect(() => {
+    if (!hydrated) return;
+    saveApiKeys(apiKeys);
+  }, [apiKeys, hydrated]);
+
+  const showToast = useCallback((message: string, type: "success" | "error") => {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    setToast({ message, type });
+    toastTimerRef.current = setTimeout(() => {
+      setToast(null);
+      toastTimerRef.current = null;
+    }, 4000);
+  }, []);
+
   const update = <K extends keyof SettingsState>(key: K, value: SettingsState[K]) => {
     setSettings((prev) => ({ ...prev, [key]: value }));
   };
 
+  const updateApiKey = (key: ApiKeyField, value: string) => {
+    setApiKeys((prev) => ({ ...prev, [key]: value }));
+  };
+
   const resetToDefaults = () => setSettings(DEFAULT_SETTINGS);
+
+  const getDisplayValue = (key: ApiKeyField) => {
+    const val = apiKeys[key];
+    if (focusedField === key) return editValue;
+    return val ? maskValue(val) : "";
+  };
+
+  const handleKeyFocus = (key: ApiKeyField) => {
+    setFocusedField(key);
+    setEditValue(apiKeys[key] || "");
+  };
+
+  const handleKeyBlur = (key: ApiKeyField) => {
+    updateApiKey(key, focusedField === key ? editValue : apiKeys[key]);
+    setFocusedField(null);
+    setEditValue("");
+  };
+
+  const handleKeyChange = (key: ApiKeyField, value: string) => {
+    setEditValue(value);
+    if (focusedField === key) updateApiKey(key, value);
+  };
+
+  const testConnection = async (exchange: "binance" | "bybit") => {
+    const key = exchange === "binance" ? apiKeys.binanceApiKey : apiKeys.bybitApiKey;
+    const secret = exchange === "binance" ? apiKeys.binanceApiSecret : apiKeys.bybitApiSecret;
+    if (!key?.trim() || !secret?.trim()) {
+      showToast("Enter API key and secret first", "error");
+      return;
+    }
+    setTesting(exchange);
+    try {
+      const res = await fetch("/api/settings/test-connection", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ exchange, apiKey: key, apiSecret: secret }),
+      });
+      const data = (await res.json()) as { ok?: boolean; error?: string };
+      if (data.ok) {
+        showToast("API keys are valid", "success");
+      } else {
+        showToast(data.error ?? "Connection failed", "error");
+      }
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : "Connection failed", "error");
+    } finally {
+      setTesting(null);
+    }
+  };
+
+  const hasBinanceKeys = !!(apiKeys.binanceApiKey?.trim() && apiKeys.binanceApiSecret?.trim());
+  const hasBybitKeys = !!(apiKeys.bybitApiKey?.trim() && apiKeys.bybitApiSecret?.trim());
 
   const inputClass =
     "w-full rounded-xl border border-white/[0.1] bg-white/[0.06] px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50";
@@ -196,30 +319,76 @@ export default function SettingsPage() {
           <h2 className="text-lg font-semibold text-white border-b border-white/[0.06] pb-3">Exchange API keys</h2>
           <div className="grid md:grid-cols-2 gap-6">
             <div className="space-y-3">
-              <label className="block text-sm font-medium text-slate-300">Binance API key</label>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="text-sm font-medium text-slate-300">Binance</h3>
+                {hasBinanceKeys && (
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                    Saved
+                  </span>
+                )}
+              </div>
               <input
                 type="password"
-                placeholder="••••••••••••••••"
+                placeholder="API key"
+                value={getDisplayValue("binanceApiKey")}
+                onFocus={() => handleKeyFocus("binanceApiKey")}
+                onBlur={() => handleKeyBlur("binanceApiKey")}
+                onChange={(e) => handleKeyChange("binanceApiKey", e.target.value)}
                 className={inputClass}
               />
               <input
                 type="password"
-                placeholder="Binance API secret"
+                placeholder="API secret"
+                value={getDisplayValue("binanceApiSecret")}
+                onFocus={() => handleKeyFocus("binanceApiSecret")}
+                onBlur={() => handleKeyBlur("binanceApiSecret")}
+                onChange={(e) => handleKeyChange("binanceApiSecret", e.target.value)}
                 className={inputClass}
               />
+              <button
+                type="button"
+                onClick={() => testConnection("binance")}
+                disabled={!hasBinanceKeys || testing !== null}
+                className="glass-button px-4 py-2 rounded-xl text-sm font-medium text-slate-200 disabled:opacity-50"
+              >
+                {testing === "binance" ? "Testing…" : "Test connection"}
+              </button>
             </div>
             <div className="space-y-3">
-              <label className="block text-sm font-medium text-slate-300">Bybit API key</label>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="text-sm font-medium text-slate-300">Bybit</h3>
+                {hasBybitKeys && (
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                    Saved
+                  </span>
+                )}
+              </div>
               <input
                 type="password"
-                placeholder="••••••••••••••••"
+                placeholder="API key"
+                value={getDisplayValue("bybitApiKey")}
+                onFocus={() => handleKeyFocus("bybitApiKey")}
+                onBlur={() => handleKeyBlur("bybitApiKey")}
+                onChange={(e) => handleKeyChange("bybitApiKey", e.target.value)}
                 className={inputClass}
               />
               <input
                 type="password"
-                placeholder="Bybit API secret"
+                placeholder="API secret"
+                value={getDisplayValue("bybitApiSecret")}
+                onFocus={() => handleKeyFocus("bybitApiSecret")}
+                onBlur={() => handleKeyBlur("bybitApiSecret")}
+                onChange={(e) => handleKeyChange("bybitApiSecret", e.target.value)}
                 className={inputClass}
               />
+              <button
+                type="button"
+                onClick={() => testConnection("bybit")}
+                disabled={!hasBybitKeys || testing !== null}
+                className="glass-button px-4 py-2 rounded-xl text-sm font-medium text-slate-200 disabled:opacity-50"
+              >
+                {testing === "bybit" ? "Testing…" : "Test connection"}
+              </button>
             </div>
           </div>
         </div>
@@ -260,6 +429,20 @@ export default function SettingsPage() {
           </button>
         </div>
       </form>
+
+      {/* Toast */}
+      {toast && (
+        <div
+          className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-4 py-3 rounded-xl border shadow-lg max-w-sm ${
+            toast.type === "success"
+              ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-200"
+              : "bg-red-500/20 border-red-500/40 text-red-200"
+          }`}
+          role="alert"
+        >
+          {toast.message}
+        </div>
+      )}
     </div>
   );
 }
