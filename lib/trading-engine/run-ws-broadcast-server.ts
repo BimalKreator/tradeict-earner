@@ -34,13 +34,16 @@ import { startAutoExitMonitor } from "./auto-exit";
 const PORT = 8080;
 const BINANCE_DEPTH = "https://fapi.binance.com/fapi/v1/depth";
 
-const SETTINGS_PATH = path.join(process.cwd(), "settings.json");
+const SETTINGS_FILE = path.join(process.cwd(), "auto-exit-settings.json");
 
 /** Persistent private WS for 24/7 HFT; reused across trades, never stopped. */
 let privateWsManager: PrivateWSManager | null = null;
 
-/** Last credentials used (for auto-exit monitor). */
-let lastCredentials: ExchangeCredentials | null = null;
+/** Last credentials used (for auto-exit monitor). Initialized from env so Private WS can auto-connect on boot. */
+let lastCredentials: ExchangeCredentials | null = {
+  binance: { apiKey: process.env.BINANCE_API_KEY || "", apiSecret: process.env.BINANCE_API_SECRET || "" },
+  bybit: { apiKey: process.env.BYBIT_API_KEY || "", apiSecret: process.env.BYBIT_API_SECRET || "" },
+};
 
 /** Prevents concurrent trades (spam clicks). */
 let isTradeExecuting = false;
@@ -55,24 +58,24 @@ function loadAutoExitSettings(): Partial<ExecutionSettings> {
     targetPercent: typeof process.env.TARGET_PERCENT !== "undefined" ? parseFloat(process.env.TARGET_PERCENT) || 1.5 : 1.5,
   };
   try {
-    if (fs.existsSync(SETTINGS_PATH)) {
-      const raw = fs.readFileSync(SETTINGS_PATH, "utf-8");
+    if (fs.existsSync(SETTINGS_FILE)) {
+      const raw = fs.readFileSync(SETTINGS_FILE, "utf-8");
       const data = JSON.parse(raw) as Partial<ExecutionSettings>;
       if (typeof data.autoExit === "boolean") defaults.autoExit = data.autoExit;
       if (typeof data.stoplossPercent === "number" && data.stoplossPercent >= 0) defaults.stoplossPercent = data.stoplossPercent;
       if (typeof data.targetPercent === "number" && data.targetPercent >= 0) defaults.targetPercent = data.targetPercent;
     }
   } catch (e) {
-    console.warn("[WS Server] Could not load settings.json:", e);
+    console.warn("[WS Server] Could not load auto-exit-settings.json:", e);
   }
   return defaults;
 }
 
 function saveAutoExitSettings(): void {
   try {
-    fs.writeFileSync(SETTINGS_PATH, JSON.stringify(autoExitSettings, null, 2), "utf-8");
+    fs.writeFileSync(SETTINGS_FILE, JSON.stringify(autoExitSettings, null, 2), "utf-8");
   } catch (e) {
-    console.error("[WS Server] Could not write settings.json:", e);
+    console.error("[WS Server] Could not write auto-exit-settings.json:", e);
   }
 }
 
@@ -243,7 +246,7 @@ async function main() {
   const getSettings = (): ExecutionSettings => ({ ...DEFAULT_EXECUTION_SETTINGS, ...autoExitSettings });
   const getOrderbooks = (): Map<string, OrderbookSnapshot> => orderbookCache;
   const getContext = () => {
-    if (!privateWsManager || !lastCredentials || !privateWsManager.isConnected()) return null;
+    if (!privateWsManager || !lastCredentials || !lastCredentials.binance.apiKey || !lastCredentials.bybit.apiKey || !privateWsManager.isConnected()) return null;
     return {
       credentials: lastCredentials,
       privateWs: privateWsManager,
@@ -253,6 +256,12 @@ async function main() {
   };
   startAutoExitMonitor(getSettings, getOrderbooks, getContext);
   console.log(`[WS Server] Auto-Exit monitor started (autoExit=${!!autoExitSettings.autoExit}).`);
+
+  if (lastCredentials?.binance.apiKey && lastCredentials?.bybit.apiKey) {
+    privateWsManager = new PrivateWSManager(lastCredentials);
+    await privateWsManager.start();
+    console.log("[WS Server] Private WS Manager auto-started on boot.");
+  }
 
   wss.on("connection", (ws) => {
     clients.add(ws);
