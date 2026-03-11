@@ -56,6 +56,7 @@ export interface SettingsState {
   leverage: number;
   stoplossPercent: number;
   targetPercent: number;
+  slippagePercent: number;
 }
 
 const DEFAULT_SETTINGS: SettingsState = {
@@ -66,6 +67,7 @@ const DEFAULT_SETTINGS: SettingsState = {
   leverage: 3,
   stoplossPercent: 2,
   targetPercent: 1.5,
+  slippagePercent: 0.05,
 };
 
 function loadSettings(): SettingsState {
@@ -82,6 +84,7 @@ function loadSettings(): SettingsState {
       leverage: typeof parsed.leverage === "number" ? parsed.leverage : DEFAULT_SETTINGS.leverage,
       stoplossPercent: typeof parsed.stoplossPercent === "number" ? parsed.stoplossPercent : DEFAULT_SETTINGS.stoplossPercent,
       targetPercent: typeof parsed.targetPercent === "number" ? parsed.targetPercent : DEFAULT_SETTINGS.targetPercent,
+      slippagePercent: typeof parsed.slippagePercent === "number" ? parsed.slippagePercent : DEFAULT_SETTINGS.slippagePercent,
     };
   } catch {
     return DEFAULT_SETTINGS;
@@ -128,6 +131,7 @@ export default function SettingsPage() {
               autoExit: settings.autoExit,
               stoplossPercent: settings.stoplossPercent,
               targetPercent: settings.targetPercent,
+              slippagePercent: settings.slippagePercent,
             },
           })
         );
@@ -330,6 +334,17 @@ export default function SettingsPage() {
                 step={0.1}
                 value={settings.targetPercent}
                 onChange={(e) => update("targetPercent", Number(e.target.value) || 0)}
+                className={inputClass}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-slate-300">Slippage %</label>
+              <input
+                type="number"
+                min={0}
+                step={0.01}
+                value={settings.slippagePercent}
+                onChange={(e) => update("slippagePercent", Number(e.target.value) || 0)}
                 className={inputClass}
               />
             </div>

@@ -63,6 +63,7 @@ function loadAutoExitSettings(): Partial<ExecutionSettings> {
     autoExit: process.env.AUTO_EXIT === "1" || process.env.AUTO_EXIT === "true",
     stoplossPercent: typeof process.env.STOPLOSS_PERCENT !== "undefined" ? parseFloat(process.env.STOPLOSS_PERCENT) || 2 : 2,
     targetPercent: typeof process.env.TARGET_PERCENT !== "undefined" ? parseFloat(process.env.TARGET_PERCENT) || 1.5 : 1.5,
+    slippagePercent: typeof process.env.SLIPPAGE_PERCENT !== "undefined" ? parseFloat(process.env.SLIPPAGE_PERCENT) || 0.05 : 0.05,
   };
   try {
     if (fs.existsSync(SETTINGS_FILE)) {
@@ -71,6 +72,7 @@ function loadAutoExitSettings(): Partial<ExecutionSettings> {
       if (typeof data.autoExit === "boolean") defaults.autoExit = data.autoExit;
       if (typeof data.stoplossPercent === "number" && data.stoplossPercent >= 0) defaults.stoplossPercent = data.stoplossPercent;
       if (typeof data.targetPercent === "number" && data.targetPercent >= 0) defaults.targetPercent = data.targetPercent;
+      if (typeof data.slippagePercent === "number" && data.slippagePercent >= 0) defaults.slippagePercent = data.slippagePercent;
     }
   } catch (e) {
     console.warn("[WS Server] Could not load auto-exit-settings.json:", e);
@@ -92,6 +94,7 @@ const DEFAULT_EXECUTION_SETTINGS: ExecutionSettings = {
   minChunkNotional: 6,
   bybitToBinanceDelayMs: 10,
   chunkLiquidityFraction: 0.5,
+  slippagePercent: 0.05,
 };
 
 async function fetchOrderbookSnapshot(symbol: string): Promise<OrderbookSnapshot> {
@@ -160,6 +163,7 @@ async function runManualTrade(
         apiSecret: payload.bybitApiSecret,
       },
     };
+    (credentials as { slippagePercent?: number }).slippagePercent = autoExitSettings.slippagePercent ?? 0.05;
     lastCredentials = credentials;
 
     console.log("[CHUNK-SYSTEM] Manual trade requested via WS: symbol=" + symbol + " side=" + side + " isExit=" + !!isExit);
@@ -201,11 +205,12 @@ async function runManualTrade(
     const binanceL2 = side === "Long" ? bestAsk : bestBid;
     const bybitL2 = binanceL2;
 
+    const settings = { ...DEFAULT_EXECUTION_SETTINGS, ...autoExitSettings };
     const results = await executeChunkTrade(
       symbol,
       side as OrderSide,
       orderbook,
-      DEFAULT_EXECUTION_SETTINGS,
+      settings,
       credentials,
       privateWsManager,
       binanceBalance,
@@ -308,11 +313,12 @@ async function main() {
           }
           return;
         }
-        const payloadMsg = msg.payload as { autoExit?: boolean; stoplossPercent?: number; targetPercent?: number } | undefined;
+        const payloadMsg = msg.payload as { autoExit?: boolean; stoplossPercent?: number; targetPercent?: number; slippagePercent?: number } | undefined;
         if (msg.action === "set_auto_exit_settings" && payloadMsg) {
           if (typeof payloadMsg.autoExit === "boolean") autoExitSettings.autoExit = payloadMsg.autoExit;
           if (typeof payloadMsg.stoplossPercent === "number" && payloadMsg.stoplossPercent >= 0) autoExitSettings.stoplossPercent = payloadMsg.stoplossPercent;
           if (typeof payloadMsg.targetPercent === "number" && payloadMsg.targetPercent >= 0) autoExitSettings.targetPercent = payloadMsg.targetPercent;
+          if (typeof payloadMsg.slippagePercent === "number" && payloadMsg.slippagePercent >= 0) autoExitSettings.slippagePercent = payloadMsg.slippagePercent;
           saveAutoExitSettings();
           console.log("[WS Server] Auto-Exit settings updated from client: autoExit=" + autoExitSettings.autoExit);
           return;

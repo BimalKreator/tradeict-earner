@@ -25,6 +25,8 @@ export interface ExecutionSettings {
   stoplossPercent?: number;
   /** Take-profit as percentage of margin (e.g. 1.5 = 1.5%). */
   targetPercent?: number;
+  /** Slippage tolerance as percentage (e.g. 0.05 = 0.05%). */
+  slippagePercent?: number;
 }
 
 export interface ExchangeCredentials {
@@ -894,25 +896,35 @@ export async function executeChunkTrade(
   console.log(`${P} Starting chunk trade: symbol=${symbol} side=${side} minChunkNotional=$${minNotional} liquidityFraction=${frac} reduceOnly=${reduceOnly}`);
   onProgress?.("Starting trade…");
 
-  const [bybitStepSize, binanceStepSize] = await Promise.all([
+  const [bybitStepSize, binanceStepSize, bybitTickSize, binanceTickSize] = await Promise.all([
     getBybitStepSize(symbol),
     getBinanceStepSize(symbol),
+    getBybitTickSize(symbol),
+    getBinanceTickSize(symbol),
   ]);
   console.log(`${P} Step sizes: Bybit=${bybitStepSize} Binance=${binanceStepSize}`);
 
   const isBuy = side === "Long";
   const binanceSide = isBuy ? "BUY" : "SELL";
   const bybitSide = isBuy ? "Buy" : "Sell";
-  const priceBybit = getBestPrice(orderbook, side);
-  const priceBinance = getBestPrice(orderbook, side);
-  if (priceBybit <= 0 || priceBinance <= 0) {
-    console.log(`${P} Abort: no orderbook price (Bybit=${priceBybit} Binance=${priceBinance})`);
+  const priceBybitBase = getBestPrice(orderbook, side);
+  const priceBinanceBase = getBestPrice(orderbook, side);
+
+  if (priceBybitBase <= 0 || priceBinanceBase <= 0) {
+    console.log(`${P} Abort: no orderbook price (Bybit=${priceBybitBase} Binance=${priceBinanceBase})`);
     onProgress?.("Trade failed: No orderbook price");
     results.push({ success: false, error: "No orderbook price" });
     return results;
   }
 
-  const firstChunkQtyRaw = minNotional / priceBybit;
+  const slipPct = (settings.slippagePercent ?? 0.05) / 100;
+  const execPriceBybitRaw = isBuy ? priceBybitBase * (1 + slipPct) : priceBybitBase * (1 - slipPct);
+  const execPriceBinanceRaw = isBuy ? priceBinanceBase * (1 + slipPct) : priceBinanceBase * (1 - slipPct);
+
+  const execPriceBybit = formatPrice(execPriceBybitRaw, bybitTickSize);
+  const execPriceBinance = formatPrice(execPriceBinanceRaw, binanceTickSize);
+
+  const firstChunkQtyRaw = minNotional / priceBybitBase;
   const firstChunkQtyBybitStr = formatQuantity(firstChunkQtyRaw, bybitStepSize);
   const firstChunkQty = parseFloat(firstChunkQtyBybitStr) || 0;
   if (firstChunkQty <= 0) {
@@ -921,14 +933,14 @@ export async function executeChunkTrade(
     results.push({ success: false, error: "First chunk quantity too small after step size" });
     return results;
   }
-  console.log(`${P} First chunk: minNotional=$${minNotional} priceBybit=${priceBybit} -> qty(raw)=${firstChunkQtyRaw} qty(formatted)=${firstChunkQtyBybitStr}`);
+  console.log(`${P} First chunk: minNotional=$${minNotional} priceBybit=${priceBybitBase} -> qty(raw)=${firstChunkQtyRaw} qty(formatted)=${firstChunkQtyBybitStr}`);
 
   let bybitOrderId: string | null = null;
   let filledBybit = 0;
 
   try {
     try {
-      console.log(`${P} Sending Chunk 1 to Bybit: qty=${firstChunkQtyBybitStr} price=${priceBybit.toFixed(8)}`);
+      console.log(`${P} Sending Chunk 1 to Bybit: qty=${firstChunkQtyBybitStr} price=${execPriceBybit}`);
       let bybitRes: { orderId: string; orderStatus: string };
       try {
         bybitRes = await placeBybitOrder(
@@ -940,7 +952,7 @@ export async function executeChunkTrade(
             orderType: "Limit",
             timeInForce: "IOC",
             qty: firstChunkQtyBybitStr,
-            price: priceBybit.toFixed(8),
+            price: execPriceBybit,
             category: "linear",
             reduceOnly,
           }
@@ -965,7 +977,7 @@ export async function executeChunkTrade(
         } else {
           console.log(`${P} Bybit Chunk 1 rejected: orderId=${bybitRes.orderId} status=${bybitRes.orderStatus}`);
           onProgress?.("Trade failed: Bybit first chunk rejected");
-          results.push({ success: false, error: "Bybit first chunk rejected", bybitOrder: { exchange: "bybit", orderId: bybitRes.orderId, symbol, side, quantity: firstChunkQty, price: priceBybit, status: "REJECTED" } });
+          results.push({ success: false, error: "Bybit first chunk rejected", bybitOrder: { exchange: "bybit", orderId: bybitRes.orderId, symbol, side, quantity: firstChunkQty, price: priceBybitBase, status: "REJECTED" } });
           return results;
         }
       } else {
@@ -997,7 +1009,7 @@ export async function executeChunkTrade(
             results.push({
               success: false,
               error: "Bybit IOC filled 0",
-              bybitOrder: { exchange: "bybit", orderId: bybitOrderId!, symbol, side, quantity: firstChunkQty, price: priceBybit, status: "FILLED" },
+              bybitOrder: { exchange: "bybit", orderId: bybitOrderId!, symbol, side, quantity: firstChunkQty, price: priceBybitBase, status: "FILLED" },
             });
             return results;
           }
@@ -1017,7 +1029,7 @@ export async function executeChunkTrade(
     if (binanceTargetQty > 0) {
       try {
         const binanceQtyStr = formatQuantity(binanceTargetQty, binanceStepSize);
-        console.log(`${P} Sending Chunk 1 to Binance: qty=${binanceQtyStr} price=${priceBinance.toFixed(8)}`);
+        console.log(`${P} Sending Chunk 1 to Binance: qty=${binanceQtyStr} price=${execPriceBinance}`);
         const binanceRes = await placeBinanceOrder(
           credentials.binance.apiKey,
           credentials.binance.apiSecret,
@@ -1027,7 +1039,7 @@ export async function executeChunkTrade(
             type: "LIMIT",
             timeInForce: "IOC",
             quantity: binanceQtyStr,
-            price: priceBinance.toFixed(8),
+            price: execPriceBinance,
             reduceOnly,
           }
         ).catch(async (err) => {
@@ -1040,7 +1052,7 @@ export async function executeChunkTrade(
               orderType: "Limit",
               timeInForce: "IOC",
               qty: closeQtyStr,
-              price: priceBybit.toFixed(8),
+              price: execPriceBybit,
               category: "linear",
               reduceOnly,
             }).catch(() => {});
@@ -1052,8 +1064,8 @@ export async function executeChunkTrade(
         onProgress?.("Chunk 1 complete");
         results.push({
           success: true,
-          bybitOrder: { exchange: "bybit", orderId: bybitOrderId!, symbol, side, quantity: firstChunkQty, price: priceBybit, filledQty: filledBybit, status: "FILLED" },
-          binanceOrder: { exchange: "binance", orderId: binanceRes.orderId, symbol, side, quantity: firstChunkQty, price: priceBinance, status: binanceRes.status as PlacedOrder["status"] },
+          bybitOrder: { exchange: "bybit", orderId: bybitOrderId!, symbol, side, quantity: firstChunkQty, price: priceBybitBase, filledQty: filledBybit, status: "FILLED" },
+          binanceOrder: { exchange: "binance", orderId: binanceRes.orderId, symbol, side, quantity: firstChunkQty, price: priceBinanceBase, status: binanceRes.status as PlacedOrder["status"] },
         });
       } catch (binanceErr) {
         if (isExit) {
@@ -1074,7 +1086,7 @@ export async function executeChunkTrade(
       success: false,
       error: errMsg,
       bybitOrder: bybitOrderId
-        ? { exchange: "bybit", orderId: bybitOrderId, symbol, side, quantity: firstChunkQty, price: priceBybit, status: "FILLED" as const }
+        ? { exchange: "bybit", orderId: bybitOrderId, symbol, side, quantity: firstChunkQty, price: priceBybitBase, status: "FILLED" as const }
         : undefined,
       closedBybitAfterBinanceFail: !!bybitOrderId,
     });
@@ -1099,10 +1111,15 @@ export async function executeChunkTrade(
       console.log(`${P} Chunk ${i + 2}: no price, stopping.`);
       break;
     }
+    const slipPctNext = (settings.slippagePercent ?? 0.05) / 100;
+    const execBybitNextRaw = isBuy ? priceBybitNext * (1 + slipPctNext) : priceBybitNext * (1 - slipPctNext);
+    const execBinanceNextRaw = isBuy ? priceBinanceNext * (1 + slipPctNext) : priceBinanceNext * (1 - slipPctNext);
+    const execPriceBybitNext = formatPrice(execBybitNextRaw, bybitTickSize);
+    const execPriceBinanceNext = formatPrice(execBinanceNextRaw, binanceTickSize);
 
     let bybitId: string | null = null;
     try {
-      console.log(`${P} Sending Chunk ${i + 2} to Bybit: qty=${chunkQtyBybitStr} price=${priceBybitNext.toFixed(8)}`);
+      console.log(`${P} Sending Chunk ${i + 2} to Bybit: qty=${chunkQtyBybitStr} price=${execPriceBybitNext}`);
       onProgress?.(`Chunk ${i + 2} placed`);
       const resBybit = await placeBybitOrder(
         credentials.bybit.apiKey,
@@ -1113,7 +1130,7 @@ export async function executeChunkTrade(
           orderType: "Limit",
           timeInForce: "IOC",
           qty: chunkQtyBybitStr,
-          price: priceBybitNext.toFixed(8),
+          price: execPriceBybitNext,
           category: "linear",
           reduceOnly,
         }
@@ -1141,7 +1158,7 @@ export async function executeChunkTrade(
         type: "LIMIT",
         timeInForce: "IOC",
         quantity: binanceChunkQtyStr,
-        price: priceBinanceNext.toFixed(8),
+        price: execPriceBinanceNext,
         reduceOnly,
       });
 
@@ -1197,13 +1214,18 @@ export async function executeCloseTrade(
   ]);
   const bPos = binanceList.find((p) => normalizeSymbolForMatch(p.symbol) === symNorm && p.quantity > 0);
   const yPos = bybitList.find((p) => normalizeSymbolForMatch(p.symbol) === symNorm && p.quantity > 0);
+
   let binanceOpen = bPos?.quantity ?? 0;
   let bybitOpen = yPos?.quantity ?? 0;
-  const positionSide: OrderSide = bPos?.side ?? yPos?.side ?? "Long";
-  const closeSide: OrderSide = positionSide === "Long" ? "Short" : "Long";
-  const isBuy = closeSide === "Long";
-  const bybitSide = isBuy ? "Buy" : "Sell";
-  const binanceSide = isBuy ? "BUY" : "SELL";
+
+  const bSide = bPos?.side ?? "Long";
+  const ySide = yPos?.side ?? "Long";
+
+  const binanceCloseSide = bSide === "Long" ? "SELL" : "BUY";
+  const bybitCloseSide = ySide === "Long" ? "Sell" : "Buy";
+
+  const isBuyBinance = binanceCloseSide === "BUY";
+  const isBuyBybit = bybitCloseSide === "Buy";
 
   if (binanceOpen <= 0 && bybitOpen <= 0) {
     onProgress?.("No open position to close");
@@ -1237,12 +1259,11 @@ export async function executeCloseTrade(
       await sleep(500);
       continue;
     }
-    // Slippage: start at 0.02%, then increase by 0.1% each attempt
-    const slipPct = 0.0002 + 0.001 * (attempts - 1);
+    const slipPct = ((credentials as { slippagePercent?: number }).slippagePercent ?? 0.05) / 100 + 0.001 * (attempts - 1);
     const slipBuy = 1 + slipPct;
     const slipSell = 1 - slipPct;
-    const rawPriceBybit = isBuy ? orderbookBybit.bestAsk * slipBuy : orderbookBybit.bestBid * slipSell;
-    const rawPriceBinance = isBuy ? binanceBestAsk * slipBuy : binanceBestBid * slipSell;
+    const rawPriceBybit = isBuyBybit ? orderbookBybit.bestAsk * slipBuy : orderbookBybit.bestBid * slipSell;
+    const rawPriceBinance = isBuyBinance ? binanceBestAsk * slipBuy : binanceBestBid * slipSell;
     const priceBybitStr = formatPrice(rawPriceBybit, bybitTickSize);
     const priceBinanceStr = formatPrice(rawPriceBinance, binanceTickSize);
 
@@ -1257,7 +1278,7 @@ export async function executeCloseTrade(
             credentials.bybit.apiSecret,
             {
               symbol,
-              side: bybitSide,
+              side: bybitCloseSide,
               orderType: "Limit",
               timeInForce: "IOC",
               qty: bybitQtyStr,
@@ -1292,7 +1313,7 @@ export async function executeCloseTrade(
             credentials.binance.apiSecret,
             {
               symbol,
-              side: binanceSide,
+              side: binanceCloseSide,
               type: "LIMIT",
               timeInForce: "IOC",
               quantity: binanceQtyStr,
