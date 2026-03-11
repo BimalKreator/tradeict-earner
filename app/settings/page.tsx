@@ -115,6 +115,28 @@ export default function SettingsPage() {
   useEffect(() => {
     if (!hydrated) return;
     saveSettings(settings);
+
+    // Sync settings with the backend WS server
+    try {
+      const wsUrl = `ws://${window.location.hostname}:8080`;
+      const ws = new WebSocket(wsUrl);
+      ws.onopen = () => {
+        ws.send(
+          JSON.stringify({
+            action: "set_auto_exit_settings",
+            payload: {
+              autoExit: settings.autoExit,
+              stoplossPercent: settings.stoplossPercent,
+              targetPercent: settings.targetPercent,
+            },
+          })
+        );
+        setTimeout(() => ws.close(), 500);
+      };
+      ws.onerror = (err) => console.error("WS sync error", err);
+    } catch (e) {
+      console.error("Failed to sync settings with WS backend", e);
+    }
   }, [settings, hydrated]);
 
   useEffect(() => {
