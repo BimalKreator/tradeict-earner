@@ -16,6 +16,7 @@ process.on("unhandledRejection", (reason, promise) => {
 
 import fs from "fs";
 import path from "path";
+import dotenv from "dotenv";
 import { WebSocketServer } from "ws";
 import { WsManager } from "./ws-manager";
 import {
@@ -31,6 +32,9 @@ import {
 } from "./execution-engine";
 import { startAutoExitMonitor } from "./auto-exit";
 
+dotenv.config({ path: path.join(process.cwd(), ".env.local") });
+dotenv.config({ path: path.join(process.cwd(), ".env") }); // Fallback
+
 const PORT = 8080;
 const BINANCE_DEPTH = "https://fapi.binance.com/fapi/v1/depth";
 
@@ -39,11 +43,14 @@ const SETTINGS_FILE = path.join(process.cwd(), "auto-exit-settings.json");
 /** Persistent private WS for 24/7 HFT; reused across trades, never stopped. */
 let privateWsManager: PrivateWSManager | null = null;
 
-/** Last credentials used (for auto-exit monitor). Initialized from env so Private WS can auto-connect on boot. */
-let lastCredentials: ExchangeCredentials | null = {
-  binance: { apiKey: process.env.BINANCE_API_KEY || "", apiSecret: process.env.BINANCE_API_SECRET || "" },
-  bybit: { apiKey: process.env.BYBIT_API_KEY || "", apiSecret: process.env.BYBIT_API_SECRET || "" },
-};
+/** Last credentials used (for auto-exit monitor). Initialized from env when both API keys present. */
+let lastCredentials: ExchangeCredentials | null =
+  process.env.BINANCE_API_KEY && process.env.BYBIT_API_KEY
+    ? {
+        binance: { apiKey: process.env.BINANCE_API_KEY || "", apiSecret: process.env.BINANCE_API_SECRET || "" },
+        bybit: { apiKey: process.env.BYBIT_API_KEY || "", apiSecret: process.env.BYBIT_API_SECRET || "" },
+      }
+    : null;
 
 /** Prevents concurrent trades (spam clicks). */
 let isTradeExecuting = false;
@@ -246,7 +253,14 @@ async function main() {
   const getSettings = (): ExecutionSettings => ({ ...DEFAULT_EXECUTION_SETTINGS, ...autoExitSettings });
   const getOrderbooks = (): Map<string, OrderbookSnapshot> => orderbookCache;
   const getContext = () => {
-    if (!privateWsManager || !lastCredentials || !lastCredentials.binance.apiKey || !lastCredentials.bybit.apiKey || !privateWsManager.isConnected()) return null;
+    if (!lastCredentials) return null;
+    if (!privateWsManager || !privateWsManager.isConnected()) {
+      console.log("[CHUNK-SYSTEM] Auto-Exit: Private WS disconnected. Reconnecting...");
+      if (privateWsManager) privateWsManager.stop();
+      privateWsManager = new PrivateWSManager(lastCredentials);
+      privateWsManager.start().catch((e) => console.error("[WS Server] Reconnect error:", e));
+      return null; // Skip this 3s tick while reconnecting
+    }
     return {
       credentials: lastCredentials,
       privateWs: privateWsManager,
@@ -257,10 +271,10 @@ async function main() {
   startAutoExitMonitor(getSettings, getOrderbooks, getContext);
   console.log(`[WS Server] Auto-Exit monitor started (autoExit=${!!autoExitSettings.autoExit}).`);
 
-  if (lastCredentials?.binance.apiKey && lastCredentials?.bybit.apiKey) {
+  if (lastCredentials) {
+    console.log("[WS Server] Found API keys in ENV. Auto-starting Private WS Manager...");
     privateWsManager = new PrivateWSManager(lastCredentials);
     await privateWsManager.start();
-    console.log("[WS Server] Private WS Manager auto-started on boot.");
   }
 
   wss.on("connection", (ws) => {
