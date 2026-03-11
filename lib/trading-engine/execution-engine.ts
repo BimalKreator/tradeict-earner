@@ -690,7 +690,9 @@ export class PrivateWSManager {
   private async fetchBybitOrderStatus(orderId: string): Promise<number> {
     const timestamp = String(Date.now());
     const recvWindow = "5000";
-    const queryString = `category=linear&orderId=${encodeURIComponent(orderId)}&settleCoin=USDT&limit=1`;
+
+    // Switch to execution/list for instant fill data without indexing delays
+    const queryString = `category=linear&orderId=${encodeURIComponent(orderId)}`;
     const sign = signBybitV5Get(
       this.credentials.bybit.apiSecret,
       timestamp,
@@ -698,8 +700,8 @@ export class PrivateWSManager {
       recvWindow,
       queryString
     );
-    // IOC orders resolve instantly, so they move to 'history' immediately.
-    const res = await fetch(`${BYBIT_BASE}/v5/order/history?${queryString}`, {
+
+    const res = await fetch(`${BYBIT_BASE}/v5/execution/list?${queryString}`, {
       headers: {
         "X-BAPI-API-KEY": this.credentials.bybit.apiKey,
         "X-BAPI-SIGN": sign,
@@ -710,18 +712,18 @@ export class PrivateWSManager {
     const data = await res.json();
 
     if (!data || !data.result || !Array.isArray(data.result.list) || data.result.list.length === 0) {
-      console.log(`[CHUNK-SYSTEM] Bybit order ${orderId} not found in history endpoint. Assuming 0 fill.`);
+      console.log(`[CHUNK-SYSTEM] Bybit order ${orderId} not found in execution list. Assuming 0 fill.`);
       return 0;
     }
 
-    const order = data.result.list[0];
-
-    // Log the actual rejection reason if it didn't fill
-    if (order.orderStatus === "Rejected" || order.orderStatus === "Cancelled") {
-      console.log(`[CHUNK-SYSTEM] Bybit order ${orderId} returned Status: ${order.orderStatus}, Reason: ${order.rejectReason || "Unknown"}`);
+    // IOC orders can have multiple partial fills across different price levels; sum them up.
+    let totalFilled = 0;
+    for (const exec of data.result.list) {
+      totalFilled += Number(exec.execQty || 0);
     }
 
-    return Number(order.cumExecQty || 0);
+    console.log(`[CHUNK-SYSTEM] Bybit order ${orderId} execution list total filled: ${totalFilled}`);
+    return totalFilled;
   }
 
   private async fetchBinanceOrderStatus(symbol: string, orderId: string): Promise<number> {
