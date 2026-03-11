@@ -693,9 +693,8 @@ export class PrivateWSManager {
       result?: { list?: { cumExecQty?: string; orderStatus?: string }[] };
     };
     if (data.retCode !== 0 || !res.ok) throw new Error("Bybit order status fetch failed");
-    const list = data.result?.list ?? [];
-    const order = list[0];
-    if (!order) throw new Error(`Bybit order ${orderId} not found`);
+    if (!data.result || !data.result.list || data.result.list.length === 0) return 0;
+    const order = data.result.list[0];
     return parseFloat(order.cumExecQty ?? "0") || 0;
   }
 
@@ -707,7 +706,8 @@ export class PrivateWSManager {
       headers: { "X-MBX-APIKEY": this.credentials.binance.apiKey },
     });
     if (!res.ok) throw new Error(`Binance order status: ${res.status}`);
-    const o = (await res.json()) as { executedQty?: string };
+    const o = (await res.json()) as { executedQty?: string; code?: number; msg?: string };
+    if (o.code || o.msg === "Order does not exist.") return 0;
     return parseFloat(o.executedQty ?? "0") || 0;
   }
 
@@ -892,58 +892,52 @@ export async function executeChunkTrade(
       bybitOrderId = bybitRes.orderId;
       if (!bybitOrderId || bybitRes.orderStatus === "Rejected") {
         if (isExit) {
-          console.log(`${P} Bybit exit rejected (likely no position). Continuing to Binance for Orphan Exit.`);
-          onProgress?.("Bybit skipped, placing Binance orphan exit…");
-          await runOrphanBinanceChunk1();
+          console.log(`${P} Bybit exit failed/0 fill. Forcing Binance Orphan Exit.`);
+          onProgress?.("Bybit skipped, forcing Binance orphan exit…");
+          filledBybit = 0;
+        } else {
+          console.log(`${P} Bybit Chunk 1 rejected: orderId=${bybitRes.orderId} status=${bybitRes.orderStatus}`);
+          onProgress?.("Trade failed: Bybit first chunk rejected");
+          results.push({ success: false, error: "Bybit first chunk rejected", bybitOrder: { exchange: "bybit", orderId: bybitRes.orderId, symbol, side, quantity: firstChunkQty, price: priceBybit, status: "REJECTED" } });
           return results;
         }
-        console.log(`${P} Bybit Chunk 1 rejected: orderId=${bybitRes.orderId} status=${bybitRes.orderStatus}`);
-        onProgress?.("Trade failed: Bybit first chunk rejected");
-        results.push({ success: false, error: "Bybit first chunk rejected", bybitOrder: { exchange: "bybit", orderId: bybitRes.orderId, symbol, side, quantity: firstChunkQty, price: priceBybit, status: "REJECTED" } });
-        return results;
-      }
-      console.log(`${P} Chunk 1 Bybit order placed: orderId=${bybitOrderId}. Waiting for confirmation...`);
-      onProgress?.("Chunk 1 placed");
+      } else {
+        console.log(`${P} Chunk 1 Bybit order placed: orderId=${bybitOrderId}. Waiting for confirmation...`);
+        onProgress?.("Chunk 1 placed");
 
-      await sleep(delayMs);
-      filledBybit = await privateWs.waitForOrderConfirmation("bybit", bybitOrderId, CONFIRM_TIMEOUT_MS);
-      console.log(`${P} Confirmation from Bybit: filledQty=${filledBybit}`);
+        await sleep(delayMs);
+        filledBybit = await privateWs.waitForOrderConfirmation("bybit", bybitOrderId, CONFIRM_TIMEOUT_MS);
+        console.log(`${P} Confirmation from Bybit: filledQty=${filledBybit}`);
 
-      if (filledBybit === 0) {
-        if (isExit) {
-          console.log(`${P} Bybit exit rejected (likely no position). Continuing to Binance for Orphan Exit.`);
-          onProgress?.("Bybit filled 0, placing Binance orphan exit…");
-          await runOrphanBinanceChunk1();
-          return results;
+        if (filledBybit === 0) {
+          if (isExit) {
+            console.log(`${P} Bybit exit failed/0 fill. Forcing Binance Orphan Exit.`);
+            onProgress?.("Bybit filled 0, forcing Binance orphan exit…");
+          } else {
+            console.log(`${P} Bybit IOC filled 0. Aborting this chunk to prevent unhedged exposure.`);
+            onProgress?.("Trade failed: Bybit IOC filled 0");
+            results.push({
+              success: false,
+              error: "Bybit IOC filled 0",
+              bybitOrder: { exchange: "bybit", orderId: bybitOrderId!, symbol, side, quantity: firstChunkQty, price: priceBybit, status: "FILLED" },
+            });
+            return results;
+          }
         }
-        console.log(`${P} Bybit IOC filled 0. Aborting this chunk to prevent unhedged exposure.`);
-        onProgress?.("Trade failed: Bybit IOC filled 0");
-        results.push({
-          success: false,
-          error: "Bybit IOC filled 0",
-          bybitOrder: { exchange: "bybit", orderId: bybitOrderId!, symbol, side, quantity: firstChunkQty, price: priceBybit, status: "FILLED" },
-        });
-        return results;
       }
     } catch (bybitErr) {
       if (isExit) {
         const errMsg = bybitErr instanceof Error ? bybitErr.message : String(bybitErr);
-        console.log(`${P} Bybit exit rejected (likely no position). Continuing to Binance for Orphan Exit. Error: ${errMsg}`);
-        onProgress?.("Bybit failed, placing Binance orphan exit…");
-        try {
-          await runOrphanBinanceChunk1();
-        } catch (orphanErr) {
-          const msg = orphanErr instanceof Error ? orphanErr.message : String(orphanErr);
-          onProgress?.(`Trade failed: ${msg}`);
-          results.push({ success: false, error: msg });
-        }
-        return results;
+        console.log(`${P} Bybit exit failed/0 fill. Forcing Binance Orphan Exit. Error: ${errMsg}`);
+        onProgress?.("Bybit failed, forcing Binance orphan exit…");
+        filledBybit = 0;
+      } else {
+        throw bybitErr;
       }
-      throw bybitErr;
     }
 
-    const qtyForBinance = filledBybit > 0 ? filledBybit : firstChunkQty;
-    const binanceQtyStr = formatQuantity(qtyForBinance, binanceStepSize);
+    const binanceQtyToExecute = isExit ? firstChunkQty : (filledBybit > 0 ? filledBybit : firstChunkQty);
+    const binanceQtyStr = formatQuantity(binanceQtyToExecute, binanceStepSize);
     console.log(`${P} Sending Chunk 1 to Binance: qty=${binanceQtyStr} price=${priceBinance.toFixed(8)}`);
     try {
       const binanceRes = await placeBinanceOrder(
