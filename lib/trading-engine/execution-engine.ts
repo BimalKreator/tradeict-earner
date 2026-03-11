@@ -1117,11 +1117,8 @@ export async function executeChunkTrade(
 }
 
 // ---------------------------------------------------------------------------
-// Resilient Close: exact position size, 0.02% slippage, retry loop (max 15), ignore ReduceOnly reject
+// Resilient Close: exact position size, dynamic slippage & precision, retry loop (max 15), ignore ReduceOnly reject
 // ---------------------------------------------------------------------------
-
-const SLIPPAGE_BUY = 1.0002;   // buy to close short: pay up to 0.02% more
-const SLIPPAGE_SELL = 0.9998;  // sell to close long: accept 0.02% less
 
 function normalizeSymbolForMatch(s: string): string {
   return (s || "").toUpperCase();
@@ -1169,17 +1166,26 @@ export async function executeCloseTrade(
     attempts++;
     onProgress?.(`Close attempt ${attempts}/${maxAttempts} (Bybit: ${bybitOpen} Binance: ${binanceOpen})`);
 
-    // Step C: Fresh orderbook and limit price with 0.02% slippage
+    // Step C: Fresh orderbook, dynamic slippage & price precision
     const orderbook = await fetchOrderbook(symbol);
-    const bestAsk = orderbook.asks[0]?.[0] ? parseFloat(orderbook.asks[0][0]) : 0;
-    const bestBid = orderbook.bids[0]?.[0] ? parseFloat(orderbook.bids[0][0]) : 0;
+    const askStr = orderbook.asks[0]?.[0] || "0";
+    const bidStr = orderbook.bids[0]?.[0] || "0";
+    const bestAsk = parseFloat(askStr);
+    const bestBid = parseFloat(bidStr);
+
     if (bestAsk <= 0 || bestBid <= 0) {
       onProgress?.("No orderbook price, retrying…");
       await sleep(500);
       continue;
     }
-    const priceBybit = isBuy ? bestAsk * SLIPPAGE_BUY : bestBid * SLIPPAGE_SELL;
-    const priceBinance = priceBybit;
+    // Get precision dynamically from the orderbook string
+    const priceDecimals = askStr.includes(".") ? askStr.split(".")[1].length : 0;
+    // Dynamic Slippage: Start with 0.1% and increase by 0.1% each attempt to force fill
+    const slipPct = 0.001 * attempts;
+    const slipBuy = 1 + slipPct;
+    const slipSell = 1 - slipPct;
+    const rawPrice = isBuy ? bestAsk * slipBuy : bestBid * slipSell;
+    const priceStr = rawPrice.toFixed(priceDecimals);
 
     // Step D: Bybit leg
     if (bybitOpen > 0) {
@@ -1196,7 +1202,7 @@ export async function executeCloseTrade(
               orderType: "Limit",
               timeInForce: "IOC",
               qty: bybitQtyStr,
-              price: priceBybit.toFixed(8),
+              price: priceStr,
               category: "linear",
               reduceOnly: true,
             }
@@ -1231,7 +1237,7 @@ export async function executeCloseTrade(
               type: "LIMIT",
               timeInForce: "IOC",
               quantity: binanceQtyStr,
-              price: priceBinance.toFixed(8),
+              price: priceStr,
               reduceOnly: true,
             }
           );
