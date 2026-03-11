@@ -93,9 +93,6 @@ const DEFAULT_EXECUTION_SETTINGS: ExecutionSettings = {
   chunkLiquidityFraction: 0.5,
 };
 
-/** Orderbook cache for auto-exit (monitor fills per position symbol). */
-const orderbookCache = new Map<string, OrderbookSnapshot>();
-
 async function fetchOrderbookSnapshot(symbol: string): Promise<OrderbookSnapshot> {
   const res = await fetch(`${BINANCE_DEPTH}?symbol=${symbol}&limit=20`);
   if (!res.ok) throw new Error(`Orderbook fetch: ${res.status}`);
@@ -251,7 +248,6 @@ async function main() {
   console.log(`[WS Server] Tracking ${symbols.length} symbols: ${symbols.slice(0, 8).join(", ")}${symbols.length > 8 ? "..." : ""}`);
 
   const getSettings = (): ExecutionSettings => ({ ...DEFAULT_EXECUTION_SETTINGS, ...autoExitSettings });
-  const getOrderbooks = (): Map<string, OrderbookSnapshot> => orderbookCache;
   const getContext = () => {
     if (!lastCredentials) return null;
     if (!privateWsManager || !privateWsManager.isConnected()) {
@@ -268,7 +264,7 @@ async function main() {
       defaultSettings: getSettings(),
     };
   };
-  startAutoExitMonitor(getSettings, getOrderbooks, getContext);
+  startAutoExitMonitor(getSettings, getContext);
   console.log(`[WS Server] Auto-Exit monitor started (autoExit=${!!autoExitSettings.autoExit}).`);
 
   if (lastCredentials) {

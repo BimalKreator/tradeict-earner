@@ -17,7 +17,6 @@ import {
 
 const CHECK_INTERVAL_MS = 3000;
 const ORPHAN_EXIT_THRESHOLD_MS = 30_000;
-const MAX_ORDERBOOK_CACHE = 50;
 
 let autoExitIntervalId: ReturnType<typeof setInterval> | null = null;
 let isProcessingAutoExit = false;
@@ -80,24 +79,46 @@ function groupPositions(binance: RawPosition[], bybit: RawPosition[]): GroupedPo
   return out.sort((a, b) => a.symbol.localeCompare(b.symbol));
 }
 
-/** Combined PnL using L2 from orderbook as mark (do not use exchange PnL). */
-function combinedPnlFromL2(
-  pos: GroupedPosition,
-  orderbook: OrderbookSnapshot | undefined
-): number {
-  const bestAsk = orderbook?.asks[0]?.[0] ? parseFloat(orderbook.asks[0][0]) : null;
-  const bestBid = orderbook?.bids[0]?.[0] ? parseFloat(orderbook.bids[0][0]) : null;
-  const mark = bestAsk != null && bestBid != null ? (bestAsk + bestBid) / 2 : (bestAsk ?? bestBid ?? 0);
-  if (mark <= 0) return 0;
+function getVWAP(levels: [string, string][], targetNotional: number): number {
+  let notionalSum = 0;
+  let qtySum = 0;
+  for (const [pStr, qStr] of levels) {
+    const p = parseFloat(pStr);
+    const q = parseFloat(qStr);
+    const levelNotional = p * q;
+    if (notionalSum + levelNotional >= targetNotional) {
+      const neededNotional = targetNotional - notionalSum;
+      const neededQty = neededNotional / p;
+      notionalSum += neededNotional;
+      qtySum += neededQty;
+      break;
+    }
+    notionalSum += levelNotional;
+    qtySum += q;
+  }
+  return qtySum > 0 ? notionalSum / qtySum : 0;
+}
 
+function combinedPnlFromL2(pos: GroupedPosition, orderbook: OrderbookSnapshot): number {
+  if (!orderbook) return 0;
   let pnl = 0;
   if (pos.binance) {
     const b = pos.binance;
-    pnl += b.side === "Long" ? (mark - b.entryPrice) * b.quantity : (b.entryPrice - mark) * b.quantity;
+    const targetNotional = b.quantity * b.entryPrice;
+    const levels = b.side === "Long" ? orderbook.bids : orderbook.asks;
+    const exitVwap = getVWAP(levels, targetNotional) || parseFloat(levels[0]?.[0] || "0");
+    if (exitVwap > 0) {
+      pnl += b.side === "Long" ? (exitVwap - b.entryPrice) * b.quantity : (b.entryPrice - exitVwap) * b.quantity;
+    }
   }
   if (pos.bybit) {
     const y = pos.bybit;
-    pnl += y.side === "Long" ? (mark - y.entryPrice) * y.quantity : (y.entryPrice - mark) * y.quantity;
+    const targetNotional = y.quantity * y.entryPrice;
+    const levels = y.side === "Long" ? orderbook.bids : orderbook.asks;
+    const exitVwap = getVWAP(levels, targetNotional) || parseFloat(levels[0]?.[0] || "0");
+    if (exitVwap > 0) {
+      pnl += y.side === "Long" ? (exitVwap - y.entryPrice) * y.quantity : (y.entryPrice - exitVwap) * y.quantity;
+    }
   }
   return pnl;
 }
@@ -112,13 +133,12 @@ export interface AutoExitContext {
 /**
  * Starts the auto-exit monitor. Runs every 3s.
  * - If !settings.autoExit, skips.
- * - Fetches positions, builds orderbook map via context.fetchOrderbook, computes combined PnL from L2.
+ * - Fetches positions, fetches live orderbook per symbol, computes combined PnL from L2 VWAP.
  * - SL/TP: if combinedPnl <= -StoplossAmount or >= TargetAmount, triggers exit.
  * - Orphan: if position on one exchange only for > 30s, triggers exit.
  */
 export function startAutoExitMonitor(
   getSettings: () => ExecutionSettings,
-  getOrderbooks: () => Map<string, OrderbookSnapshot>,
   getContext: () => AutoExitContext | null
 ): () => void {
   if (autoExitIntervalId != null) {
@@ -138,8 +158,7 @@ export function startAutoExitMonitor(
       const ctx = getContext();
       if (!ctx) return;
 
-      const { credentials, privateWs, fetchOrderbook } = ctx;
-      const orderbooks = getOrderbooks();
+      const { credentials, fetchOrderbook } = ctx;
 
       const [binanceList, bybitList] = await Promise.all([
         getBinancePositions(credentials.binance.apiKey, credentials.binance.apiSecret),
@@ -149,27 +168,18 @@ export function startAutoExitMonitor(
       const activeBybit = bybitList.filter((p) => p.quantity > 0);
       const positions = groupPositions(activeBinance, activeBybit);
 
-      for (const pos of positions) {
-        if (!orderbooks.has(pos.symbol)) {
-          try {
-            orderbooks.set(pos.symbol, await fetchOrderbook(pos.symbol));
-          } catch {
-            // skip symbol if orderbook fetch fails
-          }
-        }
-      }
-      if (orderbooks.size > MAX_ORDERBOOK_CACHE) {
-        const keys = Array.from(orderbooks.keys());
-        for (let i = 0; i < keys.length - MAX_ORDERBOOK_CACHE; i++) orderbooks.delete(keys[i]);
-      }
-
       const stoplossPct = (settings.stoplossPercent ?? 2) / 100;
       const targetPct = (settings.targetPercent ?? 1.5) / 100;
 
       for (const pos of positions) {
         if (exitLocks.has(pos.symbol)) continue;
 
-        const orderbook = orderbooks.get(pos.symbol) ?? undefined;
+        let orderbook: OrderbookSnapshot;
+        try {
+          orderbook = await fetchOrderbook(pos.symbol);
+        } catch {
+          continue; // Skip this tick if we can't get live price
+        }
         const combinedPnl = combinedPnlFromL2(pos, orderbook);
         const stoplossAmount = pos.usedMargin * stoplossPct;
         const targetAmount = pos.usedMargin * targetPct;
