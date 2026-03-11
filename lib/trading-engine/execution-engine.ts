@@ -600,6 +600,58 @@ const MIN_CHUNK_NOTIONAL = 6;
 const DEFAULT_DELAY_MS = 10;
 const CONFIRM_TIMEOUT_MS = 5000;
 
+const binanceStepSizeCache = new Map<string, number>();
+const bybitStepSizeCache = new Map<string, number>();
+
+export async function getBinanceStepSize(symbol: string): Promise<number> {
+  const key = symbol.toUpperCase();
+  const cached = binanceStepSizeCache.get(key);
+  if (cached != null) return cached;
+  const res = await fetch(`${BINANCE_BASE}/fapi/v1/exchangeInfo?symbol=${encodeURIComponent(key)}`);
+  if (!res.ok) return 0.001;
+  const data = (await res.json()) as { symbols?: { symbol: string; filters?: { filterType: string; stepSize?: string }[] }[] };
+  const sym = data.symbols?.find((s) => s.symbol === key);
+  const lotSize = sym?.filters?.find((f) => f.filterType === "LOT_SIZE");
+  const step = lotSize?.stepSize ? parseFloat(lotSize.stepSize) : 0.001;
+  const stepSize = Number.isFinite(step) && step > 0 ? step : 0.001;
+  binanceStepSizeCache.set(key, stepSize);
+  return stepSize;
+}
+
+export async function getBybitStepSize(symbol: string): Promise<number> {
+  const key = symbol.toUpperCase();
+  const cached = bybitStepSizeCache.get(key);
+  if (cached != null) return cached;
+  const res = await fetch(
+    `${BYBIT_BASE}/v5/market/instruments-info?category=linear&symbol=${encodeURIComponent(key)}`
+  );
+  if (!res.ok) return 0.001;
+  const data = (await res.json()) as {
+    result?: { list?: { symbol: string; lotSizeFilter?: { qtyStep?: string } }[] };
+  };
+  const item = data.result?.list?.find((l) => l.symbol === key);
+  const qtyStep = item?.lotSizeFilter?.qtyStep ? parseFloat(item.lotSizeFilter.qtyStep) : 0.001;
+  const stepSize = Number.isFinite(qtyStep) && qtyStep > 0 ? qtyStep : 0.001;
+  bybitStepSizeCache.set(key, stepSize);
+  return stepSize;
+}
+
+/**
+ * Truncate quantity to a multiple of stepSize (round down) and return string without scientific notation.
+ */
+export function formatQuantity(qty: number, stepSize: number): string {
+  if (!Number.isFinite(qty) || qty <= 0) return "0";
+  if (!Number.isFinite(stepSize) || stepSize <= 0) stepSize = 0.001;
+  const truncated = Math.floor(qty / stepSize) * stepSize;
+  if (truncated <= 0) return "0";
+  const stepStr = stepSize.toString();
+  const decimals = stepStr.includes("e")
+    ? 8
+    : (stepStr.split(".")[1]?.length ?? 8);
+  const s = truncated.toFixed(decimals);
+  return s.includes("e") ? truncated.toLocaleString("en", { maximumFractionDigits: 8 }) : s;
+}
+
 function getBestPrice(ob: OrderbookSnapshot, side: OrderSide): number {
   if (side === "Long") {
     const ask = ob.asks[0]?.[0];
@@ -634,10 +686,19 @@ export async function executeChunkTrade(
   binanceL2Price: number,
   bybitL2Price: number
 ): Promise<ChunkResult[]> {
+  const P = "[CHUNK-SYSTEM]";
   const results: ChunkResult[] = [];
   const minNotional = Math.max(settings.minChunkNotional ?? MIN_CHUNK_NOTIONAL, MIN_CHUNK_NOTIONAL);
   const delayMs = settings.bybitToBinanceDelayMs ?? DEFAULT_DELAY_MS;
   const frac = Math.max(0.01, Math.min(1, settings.chunkLiquidityFraction ?? 0.5));
+
+  console.log(`${P} Starting chunk trade: symbol=${symbol} side=${side} minChunkNotional=$${minNotional} liquidityFraction=${frac}`);
+
+  const [bybitStepSize, binanceStepSize] = await Promise.all([
+    getBybitStepSize(symbol),
+    getBinanceStepSize(symbol),
+  ]);
+  console.log(`${P} Step sizes: Bybit=${bybitStepSize} Binance=${binanceStepSize}`);
 
   const isBuy = side === "Long";
   const binanceSide = isBuy ? "BUY" : "SELL";
@@ -645,15 +706,25 @@ export async function executeChunkTrade(
   const priceBybit = getBestPrice(orderbook, side);
   const priceBinance = getBestPrice(orderbook, side);
   if (priceBybit <= 0 || priceBinance <= 0) {
+    console.log(`${P} Abort: no orderbook price (Bybit=${priceBybit} Binance=${priceBinance})`);
     results.push({ success: false, error: "No orderbook price" });
     return results;
   }
 
-  // First chunk: min $6 notional on Bybit -> wait 10ms + confirm -> Binance
-  const firstChunkQty = minNotional / priceBybit;
+  const firstChunkQtyRaw = minNotional / priceBybit;
+  const firstChunkQtyBybitStr = formatQuantity(firstChunkQtyRaw, bybitStepSize);
+  const firstChunkQty = parseFloat(firstChunkQtyBybitStr) || 0;
+  if (firstChunkQty <= 0) {
+    console.log(`${P} Abort: first chunk qty rounded to 0 (raw=${firstChunkQtyRaw})`);
+    results.push({ success: false, error: "First chunk quantity too small after step size" });
+    return results;
+  }
+  console.log(`${P} First chunk: minNotional=$${minNotional} priceBybit=${priceBybit} -> qty(raw)=${firstChunkQtyRaw} qty(formatted)=${firstChunkQtyBybitStr}`);
+
   let bybitOrderId: string | null = null;
 
   try {
+    console.log(`${P} Sending Chunk 1 to Bybit: qty=${firstChunkQtyBybitStr} price=${priceBybit.toFixed(8)}`);
     const bybitRes = await placeBybitOrder(
       credentials.bybit.apiKey,
       credentials.bybit.apiSecret,
@@ -662,20 +733,26 @@ export async function executeChunkTrade(
         side: bybitSide,
         orderType: "Limit",
         timeInForce: "IOC",
-        qty: firstChunkQty.toFixed(8),
+        qty: firstChunkQtyBybitStr,
         price: priceBybit.toFixed(8),
         category: "linear",
       }
     );
     bybitOrderId = bybitRes.orderId;
     if (!bybitOrderId || bybitRes.orderStatus === "Rejected") {
+      console.log(`${P} Bybit Chunk 1 rejected: orderId=${bybitRes.orderId} status=${bybitRes.orderStatus}`);
       results.push({ success: false, error: "Bybit first chunk rejected", bybitOrder: { exchange: "bybit", orderId: bybitRes.orderId, symbol, side, quantity: firstChunkQty, price: priceBybit, status: "REJECTED" } });
       return results;
     }
+    console.log(`${P} Chunk 1 Bybit order placed: orderId=${bybitOrderId}. Waiting for confirmation...`);
 
     await sleep(delayMs);
     const filledBybit = await privateWs.waitForOrderConfirmation("bybit", bybitOrderId, CONFIRM_TIMEOUT_MS);
+    console.log(`${P} Confirmation from Bybit: filledQty=${filledBybit}`);
 
+    const qtyForBinance = filledBybit > 0 ? filledBybit : firstChunkQty;
+    const binanceQtyStr = formatQuantity(qtyForBinance, binanceStepSize);
+    console.log(`${P} Sending Chunk 1 to Binance: qty=${binanceQtyStr} price=${priceBinance.toFixed(8)}`);
     const binanceRes = await placeBinanceOrder(
       credentials.binance.apiKey,
       credentials.binance.apiSecret,
@@ -684,22 +761,25 @@ export async function executeChunkTrade(
         side: binanceSide,
         type: "LIMIT",
         timeInForce: "IOC",
-        quantity: String(filledBybit > 0 ? filledBybit : firstChunkQty),
+        quantity: binanceQtyStr,
         price: priceBinance.toFixed(8),
       }
     ).catch(async (err) => {
+      console.log(`${P} Binance Chunk 1 failed: ${err}. Closing Bybit leg...`);
+      const closeQtyStr = formatQuantity(filledBybit > 0 ? filledBybit : firstChunkQty, bybitStepSize);
       await placeBybitOrder(credentials.bybit.apiKey, credentials.bybit.apiSecret, {
         symbol,
         side: bybitSide === "Buy" ? "Sell" : "Buy",
         orderType: "Limit",
         timeInForce: "IOC",
-        qty: String(filledBybit > 0 ? filledBybit : firstChunkQty),
+        qty: closeQtyStr,
         price: priceBybit.toFixed(8),
         category: "linear",
       }).catch(() => {});
       throw err;
     });
 
+    console.log(`${P} Chunk 1 complete. Bybit orderId=${bybitOrderId} Binance orderId=${binanceRes.orderId}`);
     results.push({
       success: true,
       bybitOrder: { exchange: "bybit", orderId: bybitOrderId!, symbol, side, quantity: firstChunkQty, price: priceBybit, filledQty: filledBybit, status: "FILLED" },
@@ -707,6 +787,7 @@ export async function executeChunkTrade(
     });
   } catch (e) {
     const errMsg = e instanceof Error ? e.message : String(e);
+    console.log(`${P} Chunk 1 error/abort: ${errMsg} closedBybitAfterBinanceFail=${!!bybitOrderId}`);
     results.push({
       success: false,
       error: errMsg,
@@ -718,18 +799,27 @@ export async function executeChunkTrade(
     return results;
   }
 
-  // Remaining chunks: 50% of orderbook first row each; same flow (Bybit -> delay+confirm -> Binance)
   const firstRowQty = getFirstRowQty(orderbook, side);
-  const chunkQty = firstRowQty * frac;
-  if (chunkQty <= 0) return results;
+  const chunkQtyRaw = firstRowQty * frac;
+  const chunkQtyBybitStr = formatQuantity(chunkQtyRaw, bybitStepSize);
+  const chunkQty = parseFloat(chunkQtyBybitStr) || 0;
+  console.log(`${P} Calculating remaining quantity: firstRowQty=${firstRowQty} frac=${frac} -> chunkQty(raw)=${chunkQtyRaw} chunkQty(formatted)=${chunkQtyBybitStr} (50% of first row liquidity for Chunk 2+)`);
+  if (chunkQty <= 0) {
+    console.log(`${P} No further chunks: chunkQty <= 0. Final completion.`);
+    return results;
+  }
 
   for (let i = 0; i < 10; i++) {
     const priceBybitNext = getBestPrice(orderbook, side);
     const priceBinanceNext = getBestPrice(orderbook, side);
-    if (priceBybitNext <= 0 || priceBinanceNext <= 0) break;
+    if (priceBybitNext <= 0 || priceBinanceNext <= 0) {
+      console.log(`${P} Chunk ${i + 2}: no price, stopping.`);
+      break;
+    }
 
     let bybitId: string | null = null;
     try {
+      console.log(`${P} Sending Chunk ${i + 2} to Bybit: qty=${chunkQtyBybitStr} price=${priceBybitNext.toFixed(8)}`);
       const resBybit = await placeBybitOrder(
         credentials.bybit.apiKey,
         credentials.bybit.apiSecret,
@@ -738,28 +828,31 @@ export async function executeChunkTrade(
           side: bybitSide,
           orderType: "Limit",
           timeInForce: "IOC",
-          qty: chunkQty.toFixed(8),
+          qty: chunkQtyBybitStr,
           price: priceBybitNext.toFixed(8),
           category: "linear",
         }
       );
       bybitId = resBybit.orderId;
       if (!bybitId || resBybit.orderStatus === "Rejected") {
+        console.log(`${P} Chunk ${i + 2} Bybit rejected. Aborting remaining chunks.`);
         results.push({ success: false, error: "Bybit chunk rejected", abortedBybit: true });
         break;
       }
       await sleep(delayMs);
       const filled = await privateWs.waitForOrderConfirmation("bybit", bybitId, CONFIRM_TIMEOUT_MS);
-
+      console.log(`${P} Chunk ${i + 2} Bybit confirmed: filledQty=${filled}. Sending to Binance...`);
+      const binanceChunkQtyStr = formatQuantity(filled > 0 ? filled : chunkQty, binanceStepSize);
       await placeBinanceOrder(credentials.binance.apiKey, credentials.binance.apiSecret, {
         symbol,
         side: binanceSide,
         type: "LIMIT",
         timeInForce: "IOC",
-        quantity: String(filled > 0 ? filled : chunkQty),
+        quantity: binanceChunkQtyStr,
         price: priceBinanceNext.toFixed(8),
       });
 
+      console.log(`${P} Chunk ${i + 2} complete.`);
       results.push({
         success: true,
         bybitOrder: { exchange: "bybit", orderId: bybitId, symbol, side, quantity: chunkQty, price: priceBybitNext, filledQty: filled, status: "FILLED" },
@@ -767,6 +860,7 @@ export async function executeChunkTrade(
       });
     } catch (e) {
       const errMsg = e instanceof Error ? e.message : String(e);
+      console.log(`${P} Chunk ${i + 2} error: ${errMsg}. Abort reason: ${bybitId ? "Binance failed, closed Bybit leg" : "Bybit failed"}.`);
       results.push({
         success: false,
         error: errMsg,
@@ -776,6 +870,7 @@ export async function executeChunkTrade(
     }
   }
 
+  console.log(`${P} Final completion: ${results.length} chunk(s) executed.`);
   return results;
 }
 
@@ -804,6 +899,15 @@ export async function executeCloseTrade(
     return { success: false, error: "Invalid close quantity" };
   }
 
+  const [bybitStepSize, binanceStepSize] = await Promise.all([
+    getBybitStepSize(symbol),
+    getBinanceStepSize(symbol),
+  ]);
+  const bybitQtyStr = formatQuantity(quantity, bybitStepSize);
+  if (parseFloat(bybitQtyStr) <= 0) {
+    return { success: false, error: "Close quantity too small after step size" };
+  }
+
   let bybitOrderId: string | null = null;
   try {
     const bybitRes = await placeBybitOrder(
@@ -814,7 +918,7 @@ export async function executeCloseTrade(
         side: bybitSide,
         orderType: "Limit",
         timeInForce: "IOC",
-        qty: quantity.toFixed(8),
+        qty: bybitQtyStr,
         price: priceBybit.toFixed(8),
         category: "linear",
       }
@@ -837,6 +941,7 @@ export async function executeCloseTrade(
     }
     await sleep(DEFAULT_DELAY_MS);
     const filledBybit = await privateWs.waitForOrderConfirmation("bybit", bybitOrderId, CONFIRM_TIMEOUT_MS);
+    const binanceQtyStr = formatQuantity(filledBybit > 0 ? filledBybit : quantity, binanceStepSize);
 
     await placeBinanceOrder(
       credentials.binance.apiKey,
@@ -846,16 +951,17 @@ export async function executeCloseTrade(
         side: binanceSide,
         type: "LIMIT",
         timeInForce: "IOC",
-        quantity: String(filledBybit > 0 ? filledBybit : quantity),
+        quantity: binanceQtyStr,
         price: priceBinance.toFixed(8),
       }
     ).catch(async (err) => {
+      const closeQtyStr = formatQuantity(filledBybit > 0 ? filledBybit : quantity, bybitStepSize);
       await placeBybitOrder(credentials.bybit.apiKey, credentials.bybit.apiSecret, {
         symbol,
         side: bybitSide === "Buy" ? "Sell" : "Buy",
         orderType: "Limit",
         timeInForce: "IOC",
-        qty: String(filledBybit > 0 ? filledBybit : quantity),
+        qty: closeQtyStr,
         price: priceBybit.toFixed(8),
         category: "linear",
       }).catch(() => {});
