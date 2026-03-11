@@ -12,6 +12,7 @@ import { WsManager } from "./ws-manager";
 import {
   PrivateWSManager,
   executeChunkTrade,
+  executeCloseTrade,
   getBinanceBalance,
   getBybitBalance,
   type ExchangeCredentials,
@@ -25,6 +26,9 @@ const BINANCE_DEPTH = "https://fapi.binance.com/fapi/v1/depth";
 
 /** Persistent private WS for 24/7 HFT; reused across trades, never stopped. */
 let privateWsManager: PrivateWSManager | null = null;
+
+/** Prevents concurrent trades (spam clicks). */
+let isTradeExecuting = false;
 
 const DEFAULT_EXECUTION_SETTINGS: ExecutionSettings = {
   capitalPercent: 10,
@@ -82,62 +86,106 @@ async function runManualTrade(
     binanceApiSecret: string;
     bybitApiKey: string;
     bybitApiSecret: string;
+    isExit?: boolean;
+    quantity?: number;
   }
 ) {
-  const { symbol, side } = payload;
-  const credentials: ExchangeCredentials = {
-    binance: {
-      apiKey: payload.binanceApiKey,
-      apiSecret: payload.binanceApiSecret,
-    },
-    bybit: {
-      apiKey: payload.bybitApiKey,
-      apiSecret: payload.bybitApiSecret,
-    },
-  };
+  isTradeExecuting = true;
+  try {
+    const { symbol, side, isExit, quantity } = payload;
+    const credentials: ExchangeCredentials = {
+      binance: {
+        apiKey: payload.binanceApiKey,
+        apiSecret: payload.binanceApiSecret,
+      },
+      bybit: {
+        apiKey: payload.bybitApiKey,
+        apiSecret: payload.bybitApiSecret,
+      },
+    };
 
-  console.log("[CHUNK-SYSTEM] Manual trade requested via WS: symbol=" + symbol + " side=" + side);
+    console.log("[CHUNK-SYSTEM] Manual trade requested via WS: symbol=" + symbol + " side=" + side + " isExit=" + !!isExit);
 
-  const [orderbook, binanceData, bybitData] = await Promise.all([
-    fetchOrderbookSnapshot(symbol),
-    getBinanceBalance(payload.binanceApiKey, payload.binanceApiSecret),
-    getBybitBalance(payload.bybitApiKey, payload.bybitApiSecret),
-  ]);
-  const binanceBalance = binanceData.available;
-  const bybitBalance = bybitData.available;
+    const isCloseFlow = !!isExit && typeof quantity === "number" && quantity > 0;
+    let orderbook: OrderbookSnapshot;
+    let binanceBalance: number;
+    let bybitBalance: number;
+    let binanceL2: number;
+    let bybitL2: number;
 
-  const bestAsk = orderbook.asks[0]?.[0] ? parseFloat(orderbook.asks[0][0]) : 0;
-  const bestBid = orderbook.bids[0]?.[0] ? parseFloat(orderbook.bids[0][0]) : 0;
-  const binanceL2 = side === "Long" ? bestAsk : bestBid;
-  const bybitL2 = binanceL2;
+    if (isCloseFlow) {
+      orderbook = await fetchOrderbookSnapshot(symbol);
+      binanceBalance = 0;
+      bybitBalance = 0;
+      const bestAsk = orderbook.asks[0]?.[0] ? parseFloat(orderbook.asks[0][0]) : 0;
+      const bestBid = orderbook.bids[0]?.[0] ? parseFloat(orderbook.bids[0][0]) : 0;
+      const closeSide = side === "Long" ? "Short" : "Long";
+      binanceL2 = closeSide === "Long" ? bestAsk : bestBid;
+      bybitL2 = binanceL2;
+    } else {
+      const [ob, binanceData, bybitData] = await Promise.all([
+        fetchOrderbookSnapshot(symbol),
+        getBinanceBalance(payload.binanceApiKey, payload.binanceApiSecret),
+        getBybitBalance(payload.bybitApiKey, payload.bybitApiSecret),
+      ]);
+      orderbook = ob;
+      binanceBalance = binanceData.available;
+      bybitBalance = bybitData.available;
+      const bestAsk = orderbook.asks[0]?.[0] ? parseFloat(orderbook.asks[0][0]) : 0;
+      const bestBid = orderbook.bids[0]?.[0] ? parseFloat(orderbook.bids[0][0]) : 0;
+      binanceL2 = side === "Long" ? bestAsk : bestBid;
+      bybitL2 = binanceL2;
+    }
 
-  if (!privateWsManager || !privateWsManager.isConnected()) {
-    console.log("[CHUNK-SYSTEM] Private WS not connected; creating and starting persistent connection.");
-    privateWsManager = new PrivateWSManager(credentials);
-    await privateWsManager.start();
+    if (!privateWsManager || !privateWsManager.isConnected()) {
+      console.log("[CHUNK-SYSTEM] Private WS not connected; creating and starting persistent connection.");
+      privateWsManager = new PrivateWSManager(credentials);
+      await privateWsManager.start();
+      await new Promise((r) => setTimeout(r, 1500));
+    }
+
+    if (isCloseFlow) {
+      sendTradeUpdate(ws, "Exiting…");
+      const result = await executeCloseTrade(
+        symbol,
+        side as OrderSide,
+        quantity!,
+        orderbook,
+        credentials,
+        privateWsManager
+      );
+      if (result.success) {
+        sendTradeUpdate(ws, "Trade completed", true);
+      } else {
+        sendTradeUpdate(ws, `Trade failed: ${result.error ?? "Execution failed"}`, true);
+      }
+      return;
+    }
+
+    const results = await executeChunkTrade(
+      symbol,
+      side as OrderSide,
+      orderbook,
+      DEFAULT_EXECUTION_SETTINGS,
+      credentials,
+      privateWsManager,
+      binanceBalance,
+      bybitBalance,
+      binanceL2,
+      bybitL2,
+      (message) => sendTradeUpdate(ws, message),
+      isExit
+    );
+    const success = results.length > 0 && results.some((r) => r.success);
+    if (success) {
+      sendTradeUpdate(ws, "Trade completed", true);
+    } else {
+      const err = results[0]?.error ?? "Execution failed";
+      sendTradeUpdate(ws, `Trade failed: ${err}`, true);
+    }
+  } finally {
+    isTradeExecuting = false;
   }
-
-  const results = await executeChunkTrade(
-    symbol,
-    side as OrderSide,
-    orderbook,
-    DEFAULT_EXECUTION_SETTINGS,
-    credentials,
-    privateWsManager,
-    binanceBalance,
-    bybitBalance,
-    binanceL2,
-    bybitL2,
-    (message) => sendTradeUpdate(ws, message)
-  );
-  const success = results.length > 0 && results.some((r) => r.success);
-  if (success) {
-    sendTradeUpdate(ws, "Trade completed", true);
-  } else {
-    const err = results[0]?.error ?? "Execution failed";
-    sendTradeUpdate(ws, `Trade failed: ${err}`, true);
-  }
-  // Do not call stop() — connection stays alive 24/7 for 0ms overhead on future trades.
 }
 
 async function main() {
@@ -187,7 +235,21 @@ async function main() {
           return;
         }
         if (msg.action === "EXECUTE_MANUAL_TRADE") {
-          const payload = msg.payload;
+          if (isTradeExecuting) {
+            sendTradeUpdate(ws, "Trade in progress, please wait", true);
+            return;
+          }
+          const payload = msg.payload as {
+            symbol: string;
+            side: string;
+            binanceApiKey: string;
+            binanceApiSecret: string;
+            bybitApiKey: string;
+            bybitApiSecret: string;
+            isExit?: boolean;
+            quantity?: number;
+            leverage?: number;
+          } | undefined;
           if (
             !payload?.symbol ||
             !payload.side ||
@@ -200,7 +262,12 @@ async function main() {
             sendTradeUpdate(ws, "Trade failed: Invalid symbol, side, or missing API credentials", true);
             return;
           }
-          runManualTrade(ws, payload as { symbol: string; side: string; binanceApiKey: string; binanceApiSecret: string; bybitApiKey: string; bybitApiSecret: string }).catch((e) => {
+          if (payload.isExit === true && (typeof payload.quantity !== "number" || payload.quantity <= 0)) {
+            sendTradeUpdate(ws, "Trade failed: Exit requires quantity", true);
+            return;
+          }
+          if (!payload) return;
+          runManualTrade(ws, payload).catch((e) => {
             const errMsg = e instanceof Error ? e.message : String(e);
             console.error("[WS Server] [CHUNK-SYSTEM] Manual trade error:", errMsg);
             sendTradeUpdate(ws, `Trade failed: ${errMsg}`, true);

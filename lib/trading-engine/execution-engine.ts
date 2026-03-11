@@ -132,6 +132,7 @@ export async function placeBinanceOrder(
     timeInForce: "IOC";
     quantity: string;
     price: string;
+    reduceOnly?: boolean;
   }
 ): Promise<{ orderId: string; status: string }> {
   const timestamp = Date.now();
@@ -144,6 +145,7 @@ export async function placeBinanceOrder(
     price: params.price,
     timestamp: String(timestamp),
   });
+  if (params.reduceOnly === true) body.append("reduceOnly", "true");
   const signature = signBinance(apiSecret, body.toString());
   body.append("signature", signature);
   const res = await fetch(`${BINANCE_BASE}/fapi/v1/order`, {
@@ -260,11 +262,12 @@ export async function placeBybitOrder(
     qty: string;
     price: string;
     category: "linear";
+    reduceOnly?: boolean;
   }
 ): Promise<{ orderId: string; orderStatus: string }> {
   const timestamp = String(Date.now());
   const recvWindow = "5000";
-  const body: Record<string, string> = {
+  const body: Record<string, string | boolean> = {
     category: params.category,
     symbol: params.symbol,
     side: params.side,
@@ -273,6 +276,7 @@ export async function placeBybitOrder(
     price: params.price,
     timeInForce: params.timeInForce,
   };
+  if (params.reduceOnly === true) body.reduceOnly = true;
   const payloadString = JSON.stringify(body);
   const signString = timestamp + apiKey + recvWindow + payloadString;
   const sign = crypto.createHmac("sha256", apiSecret).update(signString).digest("hex");
@@ -805,15 +809,17 @@ export async function executeChunkTrade(
   bybitBalance: number,
   binanceL2Price: number,
   bybitL2Price: number,
-  onProgress?: (message: string) => void
+  onProgress?: (message: string) => void,
+  isExit?: boolean
 ): Promise<ChunkResult[]> {
   const P = "[CHUNK-SYSTEM]";
+  const reduceOnly = !!isExit;
   const results: ChunkResult[] = [];
   const minNotional = Math.max(settings.minChunkNotional ?? MIN_CHUNK_NOTIONAL, MIN_CHUNK_NOTIONAL);
   const delayMs = settings.bybitToBinanceDelayMs ?? DEFAULT_DELAY_MS;
   const frac = Math.max(0.01, Math.min(1, settings.chunkLiquidityFraction ?? 0.5));
 
-  console.log(`${P} Starting chunk trade: symbol=${symbol} side=${side} minChunkNotional=$${minNotional} liquidityFraction=${frac}`);
+  console.log(`${P} Starting chunk trade: symbol=${symbol} side=${side} minChunkNotional=$${minNotional} liquidityFraction=${frac} reduceOnly=${reduceOnly}`);
   onProgress?.("Starting trade…");
 
   const [bybitStepSize, binanceStepSize] = await Promise.all([
@@ -860,6 +866,7 @@ export async function executeChunkTrade(
         qty: firstChunkQtyBybitStr,
         price: priceBybit.toFixed(8),
         category: "linear",
+        reduceOnly,
       }
     );
     bybitOrderId = bybitRes.orderId;
@@ -900,6 +907,7 @@ export async function executeChunkTrade(
         timeInForce: "IOC",
         quantity: binanceQtyStr,
         price: priceBinance.toFixed(8),
+        reduceOnly,
       }
     ).catch(async (err) => {
       console.log(`${P} Binance Chunk 1 failed: ${err}. Closing Bybit leg...`);
@@ -912,6 +920,7 @@ export async function executeChunkTrade(
         qty: closeQtyStr,
         price: priceBybit.toFixed(8),
         category: "linear",
+        reduceOnly,
       }).catch(() => {});
       throw err;
     });
@@ -972,6 +981,7 @@ export async function executeChunkTrade(
           qty: chunkQtyBybitStr,
           price: priceBybitNext.toFixed(8),
           category: "linear",
+          reduceOnly,
         }
       );
       bybitId = resBybit.orderId;
@@ -998,6 +1008,7 @@ export async function executeChunkTrade(
         timeInForce: "IOC",
         quantity: binanceChunkQtyStr,
         price: priceBinanceNext.toFixed(8),
+        reduceOnly,
       });
 
       console.log(`${P} Chunk ${i + 2} complete.`);
@@ -1074,6 +1085,7 @@ export async function executeCloseTrade(
         qty: bybitQtyStr,
         price: priceBybit.toFixed(8),
         category: "linear",
+        reduceOnly: true,
       }
     );
     bybitOrderId = bybitRes.orderId;
@@ -1106,6 +1118,7 @@ export async function executeCloseTrade(
         timeInForce: "IOC",
         quantity: binanceQtyStr,
         price: priceBinance.toFixed(8),
+        reduceOnly: true,
       }
     ).catch(async (err) => {
       const closeQtyStr = formatQuantity(filledBybit > 0 ? filledBybit : quantity, bybitStepSize);
@@ -1117,6 +1130,7 @@ export async function executeCloseTrade(
         qty: closeQtyStr,
         price: priceBybit.toFixed(8),
         category: "linear",
+        reduceOnly: true,
       }).catch(() => {});
       throw err;
     });

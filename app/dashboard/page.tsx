@@ -185,15 +185,40 @@ export default function DashboardPage() {
     ws.onerror = () => setConnected(false);
     ws.onmessage = (event) => {
       try {
-        const msg = JSON.parse(event.data as string) as { type?: string; states?: SymbolState[] };
+        const msg = JSON.parse(event.data as string) as {
+          type?: string;
+          states?: SymbolState[];
+          action?: string;
+          status?: string;
+          done?: boolean;
+        };
         if (msg.type === "state" && Array.isArray(msg.states)) setStates(msg.states);
+        if (msg.action === "TRADE_UPDATE" && msg.done) {
+          setClosingId(null);
+          if (msg.status?.startsWith("Trade failed")) {
+            setToast({ message: msg.status, type: "error" });
+            if (toastRef.current) clearTimeout(toastRef.current);
+            toastRef.current = setTimeout(() => {
+              setToast(null);
+              toastRef.current = null;
+            }, 4000);
+          } else {
+            setToast({ message: "Trade closed successfully", type: "success" });
+            if (toastRef.current) clearTimeout(toastRef.current);
+            toastRef.current = setTimeout(() => {
+              setToast(null);
+              toastRef.current = null;
+            }, 4000);
+            fetchPositions();
+          }
+        }
       } catch {}
     };
     return () => {
       wsRef.current = null;
       ws.close();
     };
-  }, []);
+  }, [fetchPositions]);
 
   const showToast = useCallback((message: string, type: "success" | "error") => {
     if (toastRef.current) clearTimeout(toastRef.current);
@@ -205,38 +230,37 @@ export default function DashboardPage() {
   }, []);
 
   const exitPosition = useCallback(
-    async (pos: GroupedPosition) => {
+    (pos: GroupedPosition) => {
       const keys = getApiKeysFromStorage();
       if (!keys.binanceApiKey || !keys.binanceApiSecret || !keys.bybitApiKey || !keys.bybitApiSecret) {
         showToast("API keys not configured", "error");
         return;
       }
+      const ws = wsRef.current;
+      if (!ws || ws.readyState !== WebSocket.OPEN) {
+        showToast("Not connected to trade server", "error");
+        return;
+      }
       setClosingId(pos.symbol);
       try {
-        const res = await fetch("/api/trade/close", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            symbol: pos.symbol,
-            side: pos.side,
-            quantity: pos.totalQuantity,
-            ...keys,
-          }),
-        });
-        const data = (await res.json()) as { ok?: boolean; error?: string };
-        if (data.ok) {
-          showToast("Trade closed successfully via Chunk System", "success");
-          fetchPositions();
-        } else {
-          showToast(data.error ?? "Close failed", "error");
-        }
+        ws.send(
+          JSON.stringify({
+            action: "EXECUTE_MANUAL_TRADE",
+            payload: {
+              symbol: pos.symbol,
+              side: pos.side,
+              quantity: pos.totalQuantity,
+              isExit: true,
+              ...keys,
+            },
+          })
+        );
       } catch (e) {
         showToast(e instanceof Error ? e.message : "Close failed", "error");
-      } finally {
         setClosingId(null);
       }
     },
-    [fetchPositions, showToast]
+    [showToast]
   );
 
   const stateBySymbol = useCallback(
@@ -367,10 +391,10 @@ export default function DashboardPage() {
                           <button
                             type="button"
                             onClick={() => exitPosition(pos)}
-                            disabled={closingId === pos.symbol}
+                            disabled={!!closingId}
                             className="glass-button px-3 py-2 rounded-xl text-sm font-medium text-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
                           >
-                            {closingId === pos.symbol ? "Closing…" : "Exit"}
+                            {closingId === pos.symbol ? "Exiting…" : "Exit"}
                           </button>
                         </td>
                       </tr>
