@@ -631,6 +631,18 @@ export class PrivateWSManager {
     }
 
     return new Promise((resolve, reject) => {
+      let settled = false;
+      const safeResolve = (value: number) => {
+        if (settled) return;
+        settled = true;
+        resolve(value);
+      };
+      const safeReject = (err: Error) => {
+        if (settled) return;
+        settled = true;
+        reject(err);
+      };
+
       const t = setTimeout(async () => {
         if (!this.orderConfirmations.has(key)) return;
         this.orderConfirmations.delete(key);
@@ -639,30 +651,34 @@ export class PrivateWSManager {
           if (exchange === "bybit") {
             const filled = await this.fetchBybitOrderStatus(orderId);
             console.log(`[CHUNK-SYSTEM] Order ${orderId} confirmed in ${elapsed}ms (REST-Fallback)`);
-            resolve(filled);
+            safeResolve(Number(filled) || 0);
           } else {
             if (!symbol) {
-              reject(new Error(`Order ${orderId} confirmation timeout (REST fallback requires symbol)`));
+              safeReject(new Error(`Order ${orderId} confirmation timeout (REST fallback requires symbol)`));
               return;
             }
             const filled = await this.fetchBinanceOrderStatus(symbol, orderId);
             console.log(`[CHUNK-SYSTEM] Order ${orderId} confirmed in ${elapsed}ms (REST-Fallback)`);
-            resolve(filled);
+            safeResolve(Number(filled) || 0);
           }
         } catch (e) {
-          reject(e instanceof Error ? e : new Error(String(e)));
+          safeReject(e instanceof Error ? e : new Error(String(e)));
         }
       }, timeoutMs);
 
       this.orderConfirmations.set(key, {
         resolve: (filledQty) => {
           clearTimeout(t);
+          if (settled) return;
+          settled = true;
           const elapsed = Date.now() - start;
           console.log(`[CHUNK-SYSTEM] Order ${orderId} confirmed in ${elapsed}ms (WS-Live)`);
           resolve(filledQty);
         },
         reject: (err) => {
           clearTimeout(t);
+          if (settled) return;
+          settled = true;
           reject(err);
         },
       });
@@ -688,14 +704,9 @@ export class PrivateWSManager {
         "X-BAPI-RECV-WINDOW": recvWindow,
       },
     });
-    const data = (await res.json()) as {
-      retCode?: number;
-      result?: { list?: { cumExecQty?: string; orderStatus?: string }[] };
-    };
-    if (data.retCode !== 0 || !res.ok) throw new Error("Bybit order status fetch failed");
-    if (!data.result || !data.result.list || data.result.list.length === 0) return 0;
-    const order = data.result.list[0];
-    return parseFloat(order.cumExecQty ?? "0") || 0;
+    const data = await res.json();
+    if (!data || !data.result || !Array.isArray(data.result.list) || data.result.list.length === 0) return 0;
+    return Number(data.result.list[0].cumExecQty || 0);
   }
 
   private async fetchBinanceOrderStatus(symbol: string, orderId: string): Promise<number> {
@@ -705,10 +716,9 @@ export class PrivateWSManager {
     const res = await fetch(`${BINANCE_BASE}/fapi/v1/order?${query}&signature=${signature}`, {
       headers: { "X-MBX-APIKEY": this.credentials.binance.apiKey },
     });
-    if (!res.ok) throw new Error(`Binance order status: ${res.status}`);
-    const o = (await res.json()) as { executedQty?: string; code?: number; msg?: string };
-    if (o.code || o.msg === "Order does not exist.") return 0;
-    return parseFloat(o.executedQty ?? "0") || 0;
+    const data = await res.json();
+    if (!data || data.code || data.msg || data.executedQty == null) return 0;
+    return Number(data.executedQty);
   }
 
   stop(): void {
@@ -863,20 +873,33 @@ export async function executeChunkTrade(
   try {
     try {
       console.log(`${P} Sending Chunk 1 to Bybit: qty=${firstChunkQtyBybitStr} price=${priceBybit.toFixed(8)}`);
-      const bybitRes = await placeBybitOrder(
-        credentials.bybit.apiKey,
-        credentials.bybit.apiSecret,
-        {
-          symbol,
-          side: bybitSide,
-          orderType: "Limit",
-          timeInForce: "IOC",
-          qty: firstChunkQtyBybitStr,
-          price: priceBybit.toFixed(8),
-          category: "linear",
-          reduceOnly,
+      let bybitRes: { orderId: string; orderStatus: string };
+      try {
+        bybitRes = await placeBybitOrder(
+          credentials.bybit.apiKey,
+          credentials.bybit.apiSecret,
+          {
+            symbol,
+            side: bybitSide,
+            orderType: "Limit",
+            timeInForce: "IOC",
+            qty: firstChunkQtyBybitStr,
+            price: priceBybit.toFixed(8),
+            category: "linear",
+            reduceOnly,
+          }
+        );
+      } catch (orderErr) {
+        if (isExit) {
+          const msg = orderErr instanceof Error ? orderErr.message : String(orderErr);
+          console.log(`${P} Bybit exit failed (order rejected): ${msg}. Forcing Binance Orphan Exit.`);
+          onProgress?.("Bybit failed, forcing Binance orphan exit…");
+          filledBybit = 0;
+          bybitOrderId = null;
+          throw orderErr;
         }
-      );
+        throw orderErr;
+      }
       bybitOrderId = bybitRes.orderId;
       if (!bybitOrderId || bybitRes.orderStatus === "Rejected") {
         if (isExit) {
@@ -894,7 +917,18 @@ export async function executeChunkTrade(
         onProgress?.("Chunk 1 placed");
 
         await sleep(delayMs);
-        filledBybit = await privateWs.waitForOrderConfirmation("bybit", bybitOrderId, CONFIRM_TIMEOUT_MS);
+        if (isExit) {
+          try {
+            filledBybit = await privateWs.waitForOrderConfirmation("bybit", bybitOrderId, CONFIRM_TIMEOUT_MS);
+          } catch (e) {
+            const msg = e instanceof Error ? e.message : String(e);
+            console.log(`${P} Bybit exit failed (confirmation error): ${msg}. Forcing Binance Orphan Exit.`);
+            onProgress?.("Bybit failed, forcing Binance orphan exit…");
+            filledBybit = 0;
+          }
+        } else {
+          filledBybit = await privateWs.waitForOrderConfirmation("bybit", bybitOrderId, CONFIRM_TIMEOUT_MS);
+        }
         console.log(`${P} Confirmation from Bybit: filledQty=${filledBybit}`);
 
         if (filledBybit === 0) {

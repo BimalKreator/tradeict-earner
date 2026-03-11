@@ -8,11 +8,10 @@
  */
 
 process.on("uncaughtException", (err) => {
-  console.error("[WS Server] uncaughtException:", err);
+  console.error("[FATAL] Uncaught Exception:", err);
 });
-
 process.on("unhandledRejection", (reason, promise) => {
-  console.error("[WS Server] unhandledRejection:", reason, promise);
+  console.error("[FATAL] Unhandled Rejection:", reason);
 });
 
 import { WebSocketServer } from "ws";
