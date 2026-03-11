@@ -23,6 +23,9 @@ import {
 const PORT = 8080;
 const BINANCE_DEPTH = "https://fapi.binance.com/fapi/v1/depth";
 
+/** Persistent private WS for 24/7 HFT; reused across trades, never stopped. */
+let privateWsManager: PrivateWSManager | null = null;
+
 const DEFAULT_EXECUTION_SETTINGS: ExecutionSettings = {
   capitalPercent: 10,
   minChunkNotional: 6,
@@ -108,33 +111,33 @@ async function runManualTrade(
   const binanceL2 = side === "Long" ? bestAsk : bestBid;
   const bybitL2 = binanceL2;
 
-  const privateWs = new PrivateWSManager(credentials);
-  await privateWs.start();
-
-  try {
-    const results = await executeChunkTrade(
-      symbol,
-      side as OrderSide,
-      orderbook,
-      DEFAULT_EXECUTION_SETTINGS,
-      credentials,
-      privateWs,
-      binanceBalance,
-      bybitBalance,
-      binanceL2,
-      bybitL2,
-      (message) => sendTradeUpdate(ws, message)
-    );
-    const success = results.length > 0 && results.some((r) => r.success);
-    if (success) {
-      sendTradeUpdate(ws, "Trade completed", true);
-    } else {
-      const err = results[0]?.error ?? "Execution failed";
-      sendTradeUpdate(ws, `Trade failed: ${err}`, true);
-    }
-  } finally {
-    privateWs.stop();
+  if (!privateWsManager || !privateWsManager.isConnected()) {
+    console.log("[CHUNK-SYSTEM] Private WS not connected; creating and starting persistent connection.");
+    privateWsManager = new PrivateWSManager(credentials);
+    await privateWsManager.start();
   }
+
+  const results = await executeChunkTrade(
+    symbol,
+    side as OrderSide,
+    orderbook,
+    DEFAULT_EXECUTION_SETTINGS,
+    credentials,
+    privateWsManager,
+    binanceBalance,
+    bybitBalance,
+    binanceL2,
+    bybitL2,
+    (message) => sendTradeUpdate(ws, message)
+  );
+  const success = results.length > 0 && results.some((r) => r.success);
+  if (success) {
+    sendTradeUpdate(ws, "Trade completed", true);
+  } else {
+    const err = results[0]?.error ?? "Execution failed";
+    sendTradeUpdate(ws, `Trade failed: ${err}`, true);
+  }
+  // Do not call stop() — connection stays alive 24/7 for 0ms overhead on future trades.
 }
 
 async function main() {

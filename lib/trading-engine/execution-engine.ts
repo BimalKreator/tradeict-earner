@@ -503,6 +503,11 @@ export class PrivateWSManager {
     if (callbacks) this.callbacks = callbacks;
   }
 
+  /** True if both Binance and Bybit private WebSockets are open (for persistent HFT use). */
+  isConnected(): boolean {
+    return this.binanceWs?.readyState === 1 && this.bybitWs?.readyState === 1;
+  }
+
   private pushToOrderBuffer(
     exchange: "binance" | "bybit",
     orderId: string,
@@ -871,6 +876,17 @@ export async function executeChunkTrade(
     const filledBybit = await privateWs.waitForOrderConfirmation("bybit", bybitOrderId, CONFIRM_TIMEOUT_MS);
     console.log(`${P} Confirmation from Bybit: filledQty=${filledBybit}`);
 
+    if (filledBybit === 0) {
+      console.log(`${P} Bybit IOC filled 0. Aborting this chunk to prevent unhedged exposure.`);
+      onProgress?.("Trade failed: Bybit IOC filled 0");
+      results.push({
+        success: false,
+        error: "Bybit IOC filled 0",
+        bybitOrder: { exchange: "bybit", orderId: bybitOrderId!, symbol, side, quantity: firstChunkQty, price: priceBybit, status: "FILLED" },
+      });
+      return results;
+    }
+
     const qtyForBinance = filledBybit > 0 ? filledBybit : firstChunkQty;
     const binanceQtyStr = formatQuantity(qtyForBinance, binanceStepSize);
     console.log(`${P} Sending Chunk 1 to Binance: qty=${binanceQtyStr} price=${priceBinance.toFixed(8)}`);
@@ -968,6 +984,12 @@ export async function executeChunkTrade(
       await sleep(delayMs);
       const filled = await privateWs.waitForOrderConfirmation("bybit", bybitId, CONFIRM_TIMEOUT_MS);
       console.log(`${P} Chunk ${i + 2} Bybit confirmed: filledQty=${filled}. Sending to Binance...`);
+      if (filled === 0) {
+        console.log(`${P} Bybit IOC filled 0. Aborting this chunk to prevent unhedged exposure.`);
+        onProgress?.("Trade failed: Bybit IOC filled 0");
+        results.push({ success: false, error: "Bybit IOC filled 0", abortedBybit: true });
+        break;
+      }
       const binanceChunkQtyStr = formatQuantity(filled > 0 ? filled : chunkQty, binanceStepSize);
       await placeBinanceOrder(credentials.binance.apiKey, credentials.binance.apiSecret, {
         symbol,
