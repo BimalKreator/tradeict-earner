@@ -357,8 +357,8 @@ export function startAutoExitMonitor(
       }
 
       // Dynamic subscriptions: SUBSCRIBE for active, UNSUBSCRIBE for inactive
-      const toAdd = [...activeSymbols].filter((s) => !subscribedSymbols.has(s));
-      const toRemove = [...subscribedSymbols].filter((s) => !activeSymbols.has(s));
+      const toAdd = Array.from(activeSymbols).filter((s) => !subscribedSymbols.has(s));
+      const toRemove = Array.from(subscribedSymbols).filter((s) => !activeSymbols.has(s));
 
       for (const s of toRemove) {
         subscribedSymbols.delete(s);
@@ -382,7 +382,7 @@ export function startAutoExitMonitor(
         bybitWs.send(JSON.stringify({ op: "subscribe", args: toAdd.map((s) => `orderbook.50.${s}`) }));
       }
 
-      connectBinance([...subscribedSymbols]);
+      connectBinance(Array.from(subscribedSymbols));
       if (subscribedSymbols.size > 0 && !bybitWs) {
         connectBybit();
       }
