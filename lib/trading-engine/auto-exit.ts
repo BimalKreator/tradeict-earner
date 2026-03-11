@@ -275,6 +275,7 @@ export function startAutoExitMonitor(
         }
         applyDepthDelta(ob, b, "bids");
         applyDepthDelta(ob, a, "asks");
+        onDepthUpdate(symbol, true);
       } catch (e) {
         console.error("[CHUNK-SYSTEM] Auto-Exit Bybit message error:", e);
       }
@@ -293,7 +294,7 @@ export function startAutoExitMonitor(
     }
   };
 
-  const onDepthUpdate = (symbol: string) => {
+  const onDepthUpdate = (symbol: string, useBybitBook = false) => {
     const ctx = getContext();
     if (!ctx) return;
     const settings = getSettings();
@@ -302,7 +303,7 @@ export function startAutoExitMonitor(
     const pos = cachedPositions.find((p) => normalizeSymbol(p.symbol) === symbol);
     if (!pos || exitLocks.has(pos.symbol)) return;
 
-    const ob = binanceOrderbooks.get(symbol);
+    const ob = useBybitBook ? bybitOrderbooks.get(symbol) : binanceOrderbooks.get(symbol);
     if (!ob || ob.bids.size === 0 || ob.asks.size === 0) return;
 
     const snapshot = orderbookToSnapshot(symbol, ob);
@@ -382,7 +383,9 @@ export function startAutoExitMonitor(
         bybitWs.send(JSON.stringify({ op: "subscribe", args: toAdd.map((s) => `orderbook.50.${s}`) }));
       }
 
-      connectBinance(Array.from(subscribedSymbols));
+      if (toAdd.length > 0 || toRemove.length > 0) {
+        connectBinance(Array.from(subscribedSymbols));
+      }
       if (subscribedSymbols.size > 0 && !bybitWs) {
         connectBybit();
       }
