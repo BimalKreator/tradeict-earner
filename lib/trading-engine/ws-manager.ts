@@ -361,10 +361,11 @@ export class WsManager {
 
   /** Returns instant in-memory Binance orderbook for Auto-Exit L2 VWAP. */
   getLiveOrderbook(symbol: string): OrderbookSnapshot | null {
-    const ob = this.binanceOrderbooks.get(symbol);
+    const key = (symbol || "").toUpperCase();
+    const ob = this.binanceOrderbooks.get(key);
     if (!ob || (ob.bids.size === 0 && ob.asks.size === 0)) return null;
     const book = orderbookFromMaps(ob);
-    return { symbol, bids: book.bids, asks: book.asks };
+    return { symbol: key, bids: book.bids, asks: book.asks };
   }
 
   getVwapTargetAmount(): number {

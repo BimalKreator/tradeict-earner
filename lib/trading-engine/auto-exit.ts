@@ -1,8 +1,10 @@
 /**
  * Phase 3.6: Auto-Exit Engine.
- * Monitors positions for stoploss/take-profit (combined PnL vs L2) and orphan exit (>30s).
+ * Event-driven: 3s position poller + dynamic Binance/Bybit WebSocket subscriptions.
+ * L2 depth updates trigger immediate PnL check and exit (no polling, no REST).
  */
 
+import WebSocket from "ws";
 import {
   getBinancePositions,
   getBybitPositions,
@@ -15,12 +17,15 @@ import {
   type PrivateWSManager,
 } from "./execution-engine";
 
+const BINANCE_FUTURES_WS = "wss://fstream.binance.com/stream";
+const BYBIT_LINEAR_WS = "wss://stream.bybit.com/v5/public/linear";
 const ORPHAN_EXIT_THRESHOLD_MS = 30_000;
+const POS_POLL_MS = 3000;
+const MAX_ORDERBOOK_LEVELS = 20;
 
 let cachedPositions: GroupedPosition[] = [];
 let isFetchingPositions = false;
 let posIntervalId: ReturnType<typeof setInterval> | null = null;
-let priceIntervalId: ReturnType<typeof setInterval> | null = null;
 
 interface GroupedPosition {
   symbol: string;
@@ -32,8 +37,51 @@ interface GroupedPosition {
   usedMargin: number;
 }
 
+interface OrderbookState {
+  bids: Map<number, number>;
+  asks: Map<number, number>;
+}
+
 function normalizeSymbol(s: string): string {
   return (s || "").toUpperCase();
+}
+
+function applyDepthDelta(
+  ob: OrderbookState,
+  levels: [string, string][],
+  side: "bids" | "asks"
+): void {
+  const map = side === "bids" ? ob.bids : ob.asks;
+  for (const [p, q] of levels) {
+    const price = parseFloat(p);
+    const qty = parseFloat(q);
+    if (qty === 0) map.delete(price);
+    else map.set(price, qty);
+  }
+  if (ob.bids.size > MAX_ORDERBOOK_LEVELS) {
+    const sorted = Array.from(ob.bids.entries()).sort((a, b) => b[0] - a[0]);
+    ob.bids.clear();
+    sorted.slice(0, MAX_ORDERBOOK_LEVELS).forEach(([k, v]) => ob.bids.set(k, v));
+  }
+  if (ob.asks.size > MAX_ORDERBOOK_LEVELS) {
+    const sorted = Array.from(ob.asks.entries()).sort((a, b) => a[0] - b[0]);
+    ob.asks.clear();
+    sorted.slice(0, MAX_ORDERBOOK_LEVELS).forEach(([k, v]) => ob.asks.set(k, v));
+  }
+}
+
+function orderbookToSnapshot(symbol: string, ob: OrderbookState): OrderbookSnapshot {
+  const bids: [string, string][] = Array.from(ob.bids.entries())
+    .filter(([, q]) => q > 0)
+    .sort((a, b) => b[0] - a[0])
+    .slice(0, MAX_ORDERBOOK_LEVELS)
+    .map(([p, q]) => [String(p), String(q)]);
+  const asks: [string, string][] = Array.from(ob.asks.entries())
+    .filter(([, q]) => q > 0)
+    .sort((a, b) => a[0] - b[0])
+    .slice(0, MAX_ORDERBOOK_LEVELS)
+    .map(([p, q]) => [String(p), String(q)]);
+  return { symbol, bids, asks };
 }
 
 function groupPositions(binance: RawPosition[], bybit: RawPosition[]): GroupedPosition[] {
@@ -128,24 +176,151 @@ export interface AutoExitContext {
   credentials: ExchangeCredentials;
   privateWs: PrivateWSManager;
   fetchOrderbook: (symbol: string) => Promise<OrderbookSnapshot>;
-  getLiveOrderbook: (symbol: string) => OrderbookSnapshot | null;
+  getLiveOrderbook?: (symbol: string) => OrderbookSnapshot | null;
   defaultSettings: ExecutionSettings;
 }
 
 /**
- * Dual-loop Auto-Exit: position poller (3s, avoids rate limits) + HFT price monitor (200ms, live WS orderbook).
+ * Event-driven Auto-Exit: 3s position poller + dynamic WS subscriptions.
+ * Depth updates trigger immediate L2 VWAP PnL check and exit (zero polling latency).
  */
 export function startAutoExitMonitor(
   getSettings: () => ExecutionSettings,
   getContext: () => AutoExitContext | null
 ): () => void {
-  if (posIntervalId) clearInterval(posIntervalId);
-  if (priceIntervalId) clearInterval(priceIntervalId);
   const exitLocks = new Set<string>();
   const orphanFirstSeen = new Map<string, number>();
+  const subscribedSymbols = new Set<string>();
+  const binanceOrderbooks = new Map<string, OrderbookState>();
+  const bybitOrderbooks = new Map<string, OrderbookState>();
 
-  // Loop 1: Position Poller (Every 3s) - Avoids API Rate Limits
-  posIntervalId = setInterval(async () => {
+  let binanceWs: WebSocket | null = null;
+  let bybitWs: WebSocket | null = null;
+
+  const connectBinance = (symbols: string[]) => {
+    if (binanceWs) {
+      binanceWs.removeAllListeners();
+      binanceWs.close();
+      binanceWs = null;
+    }
+    if (symbols.length === 0) return;
+    const streams = symbols.map((s) => `${s.toLowerCase()}@depth20@100ms`);
+    const url = `${BINANCE_FUTURES_WS}?streams=${streams.join("/")}`;
+    binanceWs = new WebSocket(url);
+
+    binanceWs.on("open", () => {
+      console.log("[CHUNK-SYSTEM] Auto-Exit Binance depth WS connected.");
+    });
+
+    binanceWs.on("message", (data: WebSocket.RawData) => {
+      try {
+        const msg = JSON.parse(data.toString()) as { stream?: string; data?: unknown };
+        const d = msg.data as Record<string, unknown> | undefined;
+        if (!d) return;
+        const symbol = String(d.s ?? "").toUpperCase();
+        if (!symbol || !subscribedSymbols.has(symbol)) return;
+
+        const stream = msg.stream ?? "";
+        if (!stream.endsWith("@depth20@100ms")) return;
+
+        const b = (d.b as [string, string][] | undefined) ?? [];
+        const a = (d.a as [string, string][] | undefined) ?? [];
+        let ob = binanceOrderbooks.get(symbol);
+        if (!ob) {
+          ob = { bids: new Map(), asks: new Map() };
+          binanceOrderbooks.set(symbol, ob);
+        }
+        applyDepthDelta(ob, b, "bids");
+        applyDepthDelta(ob, a, "asks");
+
+        onDepthUpdate(symbol);
+      } catch (e) {
+        console.error("[CHUNK-SYSTEM] Auto-Exit Binance message error:", e);
+      }
+    });
+
+    binanceWs.on("error", (err) => console.error("[CHUNK-SYSTEM] Auto-Exit Binance WS error:", err));
+    binanceWs.on("close", () => {
+      console.log("[CHUNK-SYSTEM] Auto-Exit Binance depth WS closed.");
+    });
+  };
+
+  const connectBybit = () => {
+    if (bybitWs) return;
+    bybitWs = new WebSocket(BYBIT_LINEAR_WS);
+    bybitWs.on("open", () => {
+      console.log("[CHUNK-SYSTEM] Auto-Exit Bybit depth WS connected.");
+      syncBybitSubscriptions();
+    });
+    bybitWs.on("message", (data: WebSocket.RawData) => {
+      try {
+        const msg = JSON.parse(data.toString()) as { topic?: string; type?: string; data?: Record<string, unknown> };
+        const topic = msg.topic ?? "";
+        if (!topic.startsWith("orderbook.")) return;
+        const symbol = topic.split(".").pop() as string;
+        if (!symbol || !subscribedSymbols.has(symbol)) return;
+        const d = msg.data;
+        if (!d) return;
+
+        const b = (d.b as [string, string][] | undefined) ?? [];
+        const a = (d.a as [string, string][] | undefined) ?? [];
+        let ob = bybitOrderbooks.get(symbol);
+        if (!ob) {
+          ob = { bids: new Map(), asks: new Map() };
+          bybitOrderbooks.set(symbol, ob);
+        }
+        if (msg.type === "snapshot") {
+          ob.bids.clear();
+          ob.asks.clear();
+        }
+        applyDepthDelta(ob, b, "bids");
+        applyDepthDelta(ob, a, "asks");
+      } catch (e) {
+        console.error("[CHUNK-SYSTEM] Auto-Exit Bybit message error:", e);
+      }
+    });
+    bybitWs.on("error", (err) => console.error("[CHUNK-SYSTEM] Auto-Exit Bybit WS error:", err));
+    bybitWs.on("close", () => {
+      console.log("[CHUNK-SYSTEM] Auto-Exit Bybit depth WS closed.");
+    });
+  };
+
+  const syncBybitSubscriptions = () => {
+    if (!bybitWs || bybitWs.readyState !== WebSocket.OPEN) return;
+    const args = Array.from(subscribedSymbols).map((s) => `orderbook.50.${s}`);
+    if (args.length > 0) {
+      bybitWs.send(JSON.stringify({ op: "subscribe", args }));
+    }
+  };
+
+  const onDepthUpdate = (symbol: string) => {
+    const ctx = getContext();
+    if (!ctx) return;
+    const settings = getSettings();
+    if (!settings.autoExit) return;
+
+    const pos = cachedPositions.find((p) => normalizeSymbol(p.symbol) === symbol);
+    if (!pos || exitLocks.has(pos.symbol)) return;
+
+    const ob = binanceOrderbooks.get(symbol);
+    if (!ob || ob.bids.size === 0 || ob.asks.size === 0) return;
+
+    const snapshot = orderbookToSnapshot(symbol, ob);
+    const combinedPnl = combinedPnlFromL2(pos, snapshot);
+    const stoplossPct = (settings.stoplossPercent ?? 2) / 100;
+    const targetPct = (settings.targetPercent ?? 1.5) / 100;
+    const stoplossAmount = pos.usedMargin * stoplossPct;
+    const targetAmount = pos.usedMargin * targetPct;
+
+    if (combinedPnl <= -stoplossAmount || combinedPnl >= targetAmount) {
+      exitLocks.add(pos.symbol);
+      const reason = combinedPnl <= -stoplossAmount ? "stoploss" : "target";
+      console.log(`[CHUNK-SYSTEM] Auto-Exit: ${pos.symbol} ${reason} (PnL=$${combinedPnl.toFixed(2)}). Triggering exit.`);
+      triggerExit(pos, ctx).finally(() => exitLocks.delete(pos.symbol));
+    }
+  };
+
+  const fetchPositionsIntoCache = async () => {
     const settings = getSettings();
     if (!settings.autoExit || isFetchingPositions) return;
     isFetchingPositions = true;
@@ -156,65 +331,90 @@ export function startAutoExitMonitor(
         getBinancePositions(ctx.credentials.binance.apiKey, ctx.credentials.binance.apiSecret),
         getBybitPositions(ctx.credentials.bybit.apiKey, ctx.credentials.bybit.apiSecret),
       ]);
-      cachedPositions = groupPositions(
-        binanceList.filter((p) => p.quantity > 0),
-        bybitList.filter((p) => p.quantity > 0)
-      );
+      const activeBinance = binanceList.filter((p) => p.quantity > 0);
+      const activeBybit = bybitList.filter((p) => p.quantity > 0);
+      cachedPositions = groupPositions(activeBinance, activeBybit);
+
+      const activeSymbols = new Set(cachedPositions.map((p) => normalizeSymbol(p.symbol)));
+
+      // Orphan check (in 3s loop)
+      for (const pos of cachedPositions) {
+        if (exitLocks.has(pos.symbol)) continue;
+        const isOrphan = !pos.binance || !pos.bybit;
+        if (isOrphan) {
+          const now = Date.now();
+          const firstSeen = orphanFirstSeen.get(pos.symbol) ?? now;
+          orphanFirstSeen.set(pos.symbol, firstSeen);
+          if (now - firstSeen > ORPHAN_EXIT_THRESHOLD_MS) {
+            orphanFirstSeen.delete(pos.symbol);
+            exitLocks.add(pos.symbol);
+            console.log(`[CHUNK-SYSTEM] Auto-Exit: orphan ${pos.symbol} (one leg > 30s). Triggering exit.`);
+            triggerExit(pos, ctx).finally(() => exitLocks.delete(pos.symbol));
+          }
+          continue;
+        }
+        orphanFirstSeen.delete(pos.symbol);
+      }
+
+      // Dynamic subscriptions: SUBSCRIBE for active, UNSUBSCRIBE for inactive
+      const toAdd = [...activeSymbols].filter((s) => !subscribedSymbols.has(s));
+      const toRemove = [...subscribedSymbols].filter((s) => !activeSymbols.has(s));
+
+      for (const s of toRemove) {
+        subscribedSymbols.delete(s);
+        binanceOrderbooks.delete(s);
+        bybitOrderbooks.delete(s);
+      }
+      for (const s of toAdd) {
+        subscribedSymbols.add(s);
+        if (!binanceOrderbooks.has(s)) {
+          binanceOrderbooks.set(s, { bids: new Map(), asks: new Map() });
+        }
+        if (!bybitOrderbooks.has(s)) {
+          bybitOrderbooks.set(s, { bids: new Map(), asks: new Map() });
+        }
+      }
+
+      if (toRemove.length > 0 && bybitWs?.readyState === WebSocket.OPEN) {
+        bybitWs.send(JSON.stringify({ op: "unsubscribe", args: toRemove.map((s) => `orderbook.50.${s}`) }));
+      }
+      if (toAdd.length > 0 && bybitWs?.readyState === WebSocket.OPEN) {
+        bybitWs.send(JSON.stringify({ op: "subscribe", args: toAdd.map((s) => `orderbook.50.${s}`) }));
+      }
+
+      connectBinance([...subscribedSymbols]);
+      if (subscribedSymbols.size > 0 && !bybitWs) {
+        connectBybit();
+      }
     } catch {
-      // suppress position fetch errors to avoid log spam
+      // suppress position fetch errors
     } finally {
       isFetchingPositions = false;
     }
-  }, 3000);
+  };
 
-  // Loop 2: HFT Price Monitor (Every 200ms) - Reads RAM Orderbook 0ms delay
-  priceIntervalId = setInterval(() => {
-    const settings = getSettings();
-    if (!settings.autoExit) return;
-    const ctx = getContext();
-    if (!ctx) return;
-    const stoplossPct = (settings.stoplossPercent ?? 2) / 100;
-    const targetPct = (settings.targetPercent ?? 1.5) / 100;
-
-    for (const pos of cachedPositions) {
-      if (exitLocks.has(pos.symbol)) continue;
-
-      // 1. Orphan Check
-      const isOrphan = !pos.binance || !pos.bybit;
-      if (isOrphan) {
-        const now = Date.now();
-        const firstSeen = orphanFirstSeen.get(pos.symbol) ?? now;
-        orphanFirstSeen.set(pos.symbol, firstSeen);
-        if (now - firstSeen > ORPHAN_EXIT_THRESHOLD_MS) {
-          orphanFirstSeen.delete(pos.symbol);
-          exitLocks.add(pos.symbol);
-          console.log(`[CHUNK-SYSTEM] Auto-Exit: orphan ${pos.symbol} (one leg > 30s). Triggering exit.`);
-          triggerExit(pos, ctx).finally(() => exitLocks.delete(pos.symbol));
-        }
-        continue;
-      }
-      orphanFirstSeen.delete(pos.symbol);
-
-      // 2. Ultra-Fast L2 VWAP PnL Check
-      const liveOrderbook = ctx.getLiveOrderbook(pos.symbol);
-      if (!liveOrderbook || liveOrderbook.asks.length === 0 || liveOrderbook.bids.length === 0) continue;
-      const combinedPnl = combinedPnlFromL2(pos, liveOrderbook);
-      const stoplossAmount = pos.usedMargin * stoplossPct;
-      const targetAmount = pos.usedMargin * targetPct;
-      if (combinedPnl <= -stoplossAmount || combinedPnl >= targetAmount) {
-        exitLocks.add(pos.symbol);
-        const reason = combinedPnl <= -stoplossAmount ? "stoploss" : "target";
-        console.log(`[CHUNK-SYSTEM] Auto-Exit: ${pos.symbol} ${reason} (PnL=$${combinedPnl.toFixed(2)}). Triggering exit.`);
-        triggerExit(pos, ctx).finally(() => exitLocks.delete(pos.symbol));
-      }
-    }
-  }, 200);
+  if (posIntervalId) clearInterval(posIntervalId);
+  posIntervalId = setInterval(fetchPositionsIntoCache, POS_POLL_MS);
+  void fetchPositionsIntoCache();
 
   return () => {
-    if (posIntervalId) clearInterval(posIntervalId);
-    if (priceIntervalId) clearInterval(priceIntervalId);
-    posIntervalId = null;
-    priceIntervalId = null;
+    if (posIntervalId) {
+      clearInterval(posIntervalId);
+      posIntervalId = null;
+    }
+    if (binanceWs) {
+      binanceWs.removeAllListeners();
+      binanceWs.close();
+      binanceWs = null;
+    }
+    if (bybitWs) {
+      bybitWs.removeAllListeners();
+      bybitWs.close();
+      bybitWs = null;
+    }
+    subscribedSymbols.clear();
+    binanceOrderbooks.clear();
+    bybitOrderbooks.clear();
   };
 }
 
