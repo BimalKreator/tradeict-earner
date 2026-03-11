@@ -1,0 +1,5 @@
+{
+  "autoExit": true,
+  "stoplossPercent": 5,
+  "targetPercent": 0.5
+}

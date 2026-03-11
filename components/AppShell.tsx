@@ -1,7 +1,45 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
+
+const SETTINGS_STORAGE_KEY = "tradeict-earner-settings";
+
+/** Sync auto-exit settings from localStorage to WS backend once on app load (any page). */
+function useSyncAutoExitOnLoad() {
+  const synced = useRef(false);
+  useEffect(() => {
+    if (synced.current || typeof window === "undefined") return;
+    synced.current = true;
+    try {
+      const raw = localStorage.getItem(SETTINGS_STORAGE_KEY);
+      let autoExit = false;
+      let stoplossPercent = 2;
+      let targetPercent = 1.5;
+      if (raw) {
+        const parsed = JSON.parse(raw) as { autoExit?: boolean; stoplossPercent?: number; targetPercent?: number };
+        if (typeof parsed.autoExit === "boolean") autoExit = parsed.autoExit;
+        if (typeof parsed.stoplossPercent === "number" && parsed.stoplossPercent >= 0) stoplossPercent = parsed.stoplossPercent;
+        if (typeof parsed.targetPercent === "number" && parsed.targetPercent >= 0) targetPercent = parsed.targetPercent;
+      }
+      const wsUrl = `ws://${window.location.hostname}:8080`;
+      const ws = new WebSocket(wsUrl);
+      ws.onopen = () => {
+        ws.send(
+          JSON.stringify({
+            action: "set_auto_exit_settings",
+            payload: { autoExit, stoplossPercent, targetPercent },
+          })
+        );
+        setTimeout(() => ws.close(), 500);
+      };
+      ws.onerror = () => {};
+    } catch {
+      // ignore
+    }
+  }, []);
+}
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: DashboardIcon },
@@ -100,6 +138,7 @@ function BottomNavLink({
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  useSyncAutoExitOnLoad();
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row">

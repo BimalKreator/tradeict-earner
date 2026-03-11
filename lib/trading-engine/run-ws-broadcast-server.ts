@@ -75,6 +75,7 @@ function loadAutoExitSettings(): Partial<ExecutionSettings> {
   } catch (e) {
     console.warn("[WS Server] Could not load auto-exit-settings.json:", e);
   }
+  console.log("[WS Server] Auto-Exit settings loaded: autoExit=" + defaults.autoExit);
   return defaults;
 }
 
@@ -313,6 +314,7 @@ async function main() {
           if (typeof payloadMsg.stoplossPercent === "number" && payloadMsg.stoplossPercent >= 0) autoExitSettings.stoplossPercent = payloadMsg.stoplossPercent;
           if (typeof payloadMsg.targetPercent === "number" && payloadMsg.targetPercent >= 0) autoExitSettings.targetPercent = payloadMsg.targetPercent;
           saveAutoExitSettings();
+          console.log("[WS Server] Auto-Exit settings updated from client: autoExit=" + autoExitSettings.autoExit);
           return;
         }
         if (msg.action === "EXECUTE_MANUAL_TRADE") {
