@@ -7,6 +7,14 @@
  * Or:  npm run ws-server
  */
 
+process.on("uncaughtException", (err) => {
+  console.error("[WS Server] uncaughtException:", err);
+});
+
+process.on("unhandledRejection", (reason, promise) => {
+  console.error("[WS Server] unhandledRejection:", reason, promise);
+});
+
 import { WebSocketServer } from "ws";
 import { WsManager } from "./ws-manager";
 import {
@@ -20,6 +28,7 @@ import {
   type OrderbookSnapshot,
   type OrderSide,
 } from "./execution-engine";
+import { startAutoExitMonitor } from "./auto-exit";
 
 const PORT = 8080;
 const BINANCE_DEPTH = "https://fapi.binance.com/fapi/v1/depth";
@@ -27,8 +36,18 @@ const BINANCE_DEPTH = "https://fapi.binance.com/fapi/v1/depth";
 /** Persistent private WS for 24/7 HFT; reused across trades, never stopped. */
 let privateWsManager: PrivateWSManager | null = null;
 
+/** Last credentials used (for auto-exit monitor). */
+let lastCredentials: ExchangeCredentials | null = null;
+
 /** Prevents concurrent trades (spam clicks). */
 let isTradeExecuting = false;
+
+/** Dynamic settings for auto-exit (read in real-time by monitor). */
+const autoExitSettings: Partial<ExecutionSettings> = {
+  autoExit: process.env.AUTO_EXIT === "1" || process.env.AUTO_EXIT === "true",
+  stoplossPercent: typeof process.env.STOPLOSS_PERCENT !== "undefined" ? parseFloat(process.env.STOPLOSS_PERCENT) || 2 : 2,
+  targetPercent: typeof process.env.TARGET_PERCENT !== "undefined" ? parseFloat(process.env.TARGET_PERCENT) || 1.5 : 1.5,
+};
 
 const DEFAULT_EXECUTION_SETTINGS: ExecutionSettings = {
   capitalPercent: 10,
@@ -36,6 +55,9 @@ const DEFAULT_EXECUTION_SETTINGS: ExecutionSettings = {
   bybitToBinanceDelayMs: 10,
   chunkLiquidityFraction: 0.5,
 };
+
+/** Orderbook cache for auto-exit (monitor fills per position symbol). */
+const orderbookCache = new Map<string, OrderbookSnapshot>();
 
 async function fetchOrderbookSnapshot(symbol: string): Promise<OrderbookSnapshot> {
   const res = await fetch(`${BINANCE_DEPTH}?symbol=${symbol}&limit=20`);
@@ -103,6 +125,7 @@ async function runManualTrade(
         apiSecret: payload.bybitApiSecret,
       },
     };
+    lastCredentials = credentials;
 
     console.log("[CHUNK-SYSTEM] Manual trade requested via WS: symbol=" + symbol + " side=" + side + " isExit=" + !!isExit);
 
@@ -146,9 +169,10 @@ async function runManualTrade(
 
     if (isCloseFlow) {
       sendTradeUpdate(ws, "Exiting…");
+      const positionSide = (side === "Short" ? "Long" : "Short") as OrderSide;
       const result = await executeCloseTrade(
         symbol,
-        side as OrderSide,
+        positionSide,
         quantity!,
         orderbook,
         credentials,
@@ -183,6 +207,14 @@ async function runManualTrade(
       const err = results[0]?.error ?? "Execution failed";
       sendTradeUpdate(ws, `Trade failed: ${err}`, true);
     }
+  } catch (e) {
+    const errMsg = e instanceof Error ? e.message : String(e);
+    console.error("[WS Server] [CHUNK-SYSTEM] runManualTrade error:", errMsg);
+    try {
+      sendTradeUpdate(ws, `Trade failed: ${errMsg}`, true);
+    } catch (sendErr) {
+      console.error("[WS Server] sendTradeUpdate after error:", sendErr);
+    }
   } finally {
     isTradeExecuting = false;
   }
@@ -200,6 +232,20 @@ async function main() {
   const symbols = await manager.start();
   console.log(`[WS Server] Listening on ws://0.0.0.0:${PORT}`);
   console.log(`[WS Server] Tracking ${symbols.length} symbols: ${symbols.slice(0, 8).join(", ")}${symbols.length > 8 ? "..." : ""}`);
+
+  const getSettings = (): ExecutionSettings => ({ ...DEFAULT_EXECUTION_SETTINGS, ...autoExitSettings });
+  const getOrderbooks = (): Map<string, OrderbookSnapshot> => orderbookCache;
+  const getContext = () => {
+    if (!privateWsManager || !lastCredentials || !privateWsManager.isConnected()) return null;
+    return {
+      credentials: lastCredentials,
+      privateWs: privateWsManager,
+      fetchOrderbook: fetchOrderbookSnapshot,
+      defaultSettings: getSettings(),
+    };
+  };
+  startAutoExitMonitor(getSettings, getOrderbooks, getContext);
+  console.log(`[WS Server] Auto-Exit monitor started (autoExit=${!!autoExitSettings.autoExit}).`);
 
   wss.on("connection", (ws) => {
     clients.add(ws);
@@ -232,6 +278,13 @@ async function main() {
           if (Number.isFinite(amount) && amount > 0) {
             manager.setVwapTargetAmount(amount);
           }
+          return;
+        }
+        const payloadMsg = msg.payload as { autoExit?: boolean; stoplossPercent?: number; targetPercent?: number } | undefined;
+        if (msg.action === "set_auto_exit_settings" && payloadMsg) {
+          if (typeof payloadMsg.autoExit === "boolean") autoExitSettings.autoExit = payloadMsg.autoExit;
+          if (typeof payloadMsg.stoplossPercent === "number" && payloadMsg.stoplossPercent >= 0) autoExitSettings.stoplossPercent = payloadMsg.stoplossPercent;
+          if (typeof payloadMsg.targetPercent === "number" && payloadMsg.targetPercent >= 0) autoExitSettings.targetPercent = payloadMsg.targetPercent;
           return;
         }
         if (msg.action === "EXECUTE_MANUAL_TRADE") {

@@ -243,12 +243,13 @@ export default function DashboardPage() {
       }
       setClosingId(pos.symbol);
       try {
+        const exitSide = pos.side === "Long" ? "Short" : "Long";
         ws.send(
           JSON.stringify({
             action: "EXECUTE_MANUAL_TRADE",
             payload: {
               symbol: pos.symbol,
-              side: pos.side,
+              side: exitSide,
               quantity: pos.totalQuantity,
               isExit: true,
               ...keys,
