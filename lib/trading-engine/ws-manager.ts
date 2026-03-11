@@ -12,6 +12,7 @@ const BINANCE_FUTURES_WS = "wss://fstream.binance.com/stream";
 const BYBIT_LINEAR_WS = "wss://stream.bybit.com/v5/public/linear";
 const BINANCE_EXCHANGE_INFO = "https://fapi.binance.com/fapi/v1/exchangeInfo";
 const BYBIT_INSTRUMENTS = "https://api.bybit.com/v5/market/instruments-info?category=linear";
+const MAX_ORDERBOOK_LEVELS = 20;
 
 /** Default trade amount (in quote/USDT) used for VWAP calculation */
 const DEFAULT_VWAP_TARGET_AMOUNT = 10_000;
@@ -47,12 +48,12 @@ function orderbookFromMaps(ob: OrderbookState): Orderbook {
     .filter(([, q]) => q > 0)
     .map(([p, q]) => [String(p), String(q)] as OrderbookLevel)
     .sort(sortBidsDesc)
-    .slice(0, 20);
+    .slice(0, MAX_ORDERBOOK_LEVELS);
   const asks: OrderbookLevel[] = Array.from(ob.asks.entries())
     .filter(([, q]) => q > 0)
     .map(([p, q]) => [String(p), String(q)] as OrderbookLevel)
     .sort(sortAsksAsc)
-    .slice(0, 20);
+    .slice(0, MAX_ORDERBOOK_LEVELS);
   return { bids, asks };
 }
 
@@ -63,6 +64,21 @@ function applyDepthDelta(ob: OrderbookState, levels: OrderbookLevel[], side: "bi
     const qty = parseFloat(q);
     if (qty === 0) map.delete(price);
     else map.set(price, qty);
+  }
+  trimOrderbookState(ob, MAX_ORDERBOOK_LEVELS);
+}
+
+/** Keep only top N levels per side to prevent unbounded memory growth. */
+function trimOrderbookState(ob: OrderbookState, maxLevels: number) {
+  if (ob.bids.size > maxLevels) {
+    const sorted = Array.from(ob.bids.entries()).sort((a, b) => b[0] - a[0]);
+    ob.bids.clear();
+    sorted.slice(0, maxLevels).forEach(([p, q]) => ob.bids.set(p, q));
+  }
+  if (ob.asks.size > maxLevels) {
+    const sorted = Array.from(ob.asks.entries()).sort((a, b) => a[0] - b[0]);
+    ob.asks.clear();
+    sorted.slice(0, maxLevels).forEach(([p, q]) => ob.asks.set(p, q));
   }
 }
 

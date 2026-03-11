@@ -19,6 +19,9 @@ import {
 
 const CHECK_INTERVAL_MS = 3000;
 const ORPHAN_EXIT_THRESHOLD_MS = 30_000;
+const MAX_ORDERBOOK_CACHE = 50;
+
+let autoExitIntervalId: ReturnType<typeof setInterval> | null = null;
 
 interface GroupedPosition {
   symbol: string;
@@ -119,10 +122,14 @@ export function startAutoExitMonitor(
   getOrderbooks: () => Map<string, OrderbookSnapshot>,
   getContext: () => AutoExitContext | null
 ): () => void {
+  if (autoExitIntervalId != null) {
+    clearInterval(autoExitIntervalId);
+    autoExitIntervalId = null;
+  }
   const exitLocks = new Set<string>();
   const orphanFirstSeen = new Map<string, number>();
 
-  const intervalId = setInterval(async () => {
+  autoExitIntervalId = setInterval(async () => {
     const settings = getSettings();
     if (!settings.autoExit) return;
 
@@ -149,6 +156,10 @@ export function startAutoExitMonitor(
             // skip symbol if orderbook fetch fails
           }
         }
+      }
+      if (orderbooks.size > MAX_ORDERBOOK_CACHE) {
+        const keys = Array.from(orderbooks.keys());
+        for (let i = 0; i < keys.length - MAX_ORDERBOOK_CACHE; i++) orderbooks.delete(keys[i]);
       }
 
       const stoplossPct = (settings.stoplossPercent ?? 2) / 100;
@@ -189,7 +200,12 @@ export function startAutoExitMonitor(
     }
   }, CHECK_INTERVAL_MS);
 
-  return () => clearInterval(intervalId);
+  return () => {
+    if (autoExitIntervalId != null) {
+      clearInterval(autoExitIntervalId);
+      autoExitIntervalId = null;
+    }
+  };
 }
 
 async function triggerExit(
