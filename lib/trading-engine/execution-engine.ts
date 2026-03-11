@@ -740,7 +740,7 @@ export class PrivateWSManager {
 
 const MIN_CHUNK_NOTIONAL = 6;
 const DEFAULT_DELAY_MS = 10;
-const CONFIRM_TIMEOUT_MS = 100;
+const CONFIRM_TIMEOUT_MS = 400;
 
 const binanceStepSizeCache = new Map<string, number>();
 const bybitStepSizeCache = new Map<string, number>();

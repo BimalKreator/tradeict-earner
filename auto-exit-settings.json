@@ -1,5 +1,6 @@
 {
   "autoExit": true,
   "stoplossPercent": 5,
-  "targetPercent": 0.5
+  "targetPercent": 0.5,
+  "slippagePercent": 0.5
 }
