@@ -1117,118 +1117,152 @@ export async function executeChunkTrade(
 }
 
 // ---------------------------------------------------------------------------
-// Close position: Bybit then Binance with orphan-exit bypass (never crash on ReduceOnly/reject)
+// Resilient Close: exact position size, 0.02% slippage, retry loop (max 15), ignore ReduceOnly reject
 // ---------------------------------------------------------------------------
+
+const SLIPPAGE_BUY = 1.0002;   // buy to close short: pay up to 0.02% more
+const SLIPPAGE_SELL = 0.9998;  // sell to close long: accept 0.02% less
+
+function normalizeSymbolForMatch(s: string): string {
+  return (s || "").toUpperCase();
+}
 
 export async function executeCloseTrade(
   symbol: string,
-  positionSide: OrderSide,
-  quantity: number,
-  orderbook: OrderbookSnapshot,
   credentials: ExchangeCredentials,
-  privateWs: PrivateWSManager
-): Promise<ChunkResult> {
+  privateWs: PrivateWSManager,
+  fetchOrderbook: (symbol: string) => Promise<OrderbookSnapshot>,
+  onProgress?: (msg: string) => void
+): Promise<boolean> {
+  const P = "[CHUNK-SYSTEM]";
+  const symNorm = normalizeSymbolForMatch(symbol);
+
+  // Step A: Exact position size from APIs
+  const [binanceList, bybitList] = await Promise.all([
+    getBinancePositions(credentials.binance.apiKey, credentials.binance.apiSecret),
+    getBybitPositions(credentials.bybit.apiKey, credentials.bybit.apiSecret),
+  ]);
+  const bPos = binanceList.find((p) => normalizeSymbolForMatch(p.symbol) === symNorm && p.quantity > 0);
+  const yPos = bybitList.find((p) => normalizeSymbolForMatch(p.symbol) === symNorm && p.quantity > 0);
+  let binanceOpen = bPos?.quantity ?? 0;
+  let bybitOpen = yPos?.quantity ?? 0;
+  const positionSide: OrderSide = bPos?.side ?? yPos?.side ?? "Long";
   const closeSide: OrderSide = positionSide === "Long" ? "Short" : "Long";
   const isBuy = closeSide === "Long";
   const bybitSide = isBuy ? "Buy" : "Sell";
   const binanceSide = isBuy ? "BUY" : "SELL";
-  const priceBybit = getBestPrice(orderbook, closeSide);
-  const priceBinance = getBestPrice(orderbook, closeSide);
-  if (priceBybit <= 0 || priceBinance <= 0) {
-    return { success: false, error: "No orderbook price" };
-  }
-  if (quantity <= 0) {
-    return { success: false, error: "Invalid close quantity" };
+
+  if (binanceOpen <= 0 && bybitOpen <= 0) {
+    onProgress?.("No open position to close");
+    return true;
   }
 
   const [bybitStepSize, binanceStepSize] = await Promise.all([
     getBybitStepSize(symbol),
     getBinanceStepSize(symbol),
   ]);
-  const bybitQtyStr = formatQuantity(quantity, bybitStepSize);
-  if (parseFloat(bybitQtyStr) <= 0) {
-    return { success: false, error: "Close quantity too small after step size" };
-  }
 
-  let bybitOrderId: string | null = null;
-  let filledBybit = 0;
-  let bybitError = "";
+  let attempts = 0;
+  const maxAttempts = 15;
 
-  // 1. Bybit Execution with Bypass
-  try {
-    const bybitRes = await placeBybitOrder(
-      credentials.bybit.apiKey,
-      credentials.bybit.apiSecret,
-      {
-        symbol,
-        side: bybitSide,
-        orderType: "Limit",
-        timeInForce: "IOC",
-        qty: bybitQtyStr,
-        price: priceBybit.toFixed(8),
-        category: "linear",
-        reduceOnly: true,
-      }
-    );
-    bybitOrderId = bybitRes.orderId;
-    if (!bybitOrderId || bybitRes.orderStatus === "Rejected") {
-      bybitError = "Bybit close order rejected";
-      console.log(`[CHUNK-SYSTEM] Bybit close rejected. Proceeding to Binance for Orphan Exit.`);
-    } else {
-      await sleep(DEFAULT_DELAY_MS);
-      filledBybit = await privateWs.waitForOrderConfirmation("bybit", bybitOrderId, CONFIRM_TIMEOUT_MS);
+  while ((binanceOpen > 0 || bybitOpen > 0) && attempts < maxAttempts) {
+    attempts++;
+    onProgress?.(`Close attempt ${attempts}/${maxAttempts} (Bybit: ${bybitOpen} Binance: ${binanceOpen})`);
+
+    // Step C: Fresh orderbook and limit price with 0.02% slippage
+    const orderbook = await fetchOrderbook(symbol);
+    const bestAsk = orderbook.asks[0]?.[0] ? parseFloat(orderbook.asks[0][0]) : 0;
+    const bestBid = orderbook.bids[0]?.[0] ? parseFloat(orderbook.bids[0][0]) : 0;
+    if (bestAsk <= 0 || bestBid <= 0) {
+      onProgress?.("No orderbook price, retrying…");
+      await sleep(500);
+      continue;
     }
-  } catch (e) {
-    bybitError = e instanceof Error ? e.message : String(e);
-    console.log(`[CHUNK-SYSTEM] Bybit close error (${bybitError}). Bypassing to Binance for Orphan Exit.`);
-  }
+    const priceBybit = isBuy ? bestAsk * SLIPPAGE_BUY : bestBid * SLIPPAGE_SELL;
+    const priceBinance = priceBybit;
 
-  // 2. Binance Execution (Always runs even if Bybit fails to catch orphans)
-  let binanceOrderId = "";
-  let binanceStatus = "UNKNOWN";
-  let binanceError = "";
-
-  const binanceTargetQty = filledBybit > 0 ? filledBybit : quantity;
-  const binanceQtyStr = formatQuantity(binanceTargetQty, binanceStepSize);
-
-  if (parseFloat(binanceQtyStr) > 0) {
-    try {
-      const binanceRes = await placeBinanceOrder(
-        credentials.binance.apiKey,
-        credentials.binance.apiSecret,
-        {
-          symbol,
-          side: binanceSide,
-          type: "LIMIT",
-          timeInForce: "IOC",
-          quantity: binanceQtyStr,
-          price: priceBinance.toFixed(8),
-          reduceOnly: true,
+    // Step D: Bybit leg
+    if (bybitOpen > 0) {
+      const bybitQtyStr = formatQuantity(bybitOpen, bybitStepSize);
+      const qtyNum = parseFloat(bybitQtyStr) || 0;
+      if (qtyNum > 0) {
+        try {
+          const bybitRes = await placeBybitOrder(
+            credentials.bybit.apiKey,
+            credentials.bybit.apiSecret,
+            {
+              symbol,
+              side: bybitSide,
+              orderType: "Limit",
+              timeInForce: "IOC",
+              qty: bybitQtyStr,
+              price: priceBybit.toFixed(8),
+              category: "linear",
+              reduceOnly: true,
+            }
+          );
+          if (bybitRes.orderId && bybitRes.orderStatus !== "Rejected") {
+            await sleep(DEFAULT_DELAY_MS);
+            const filled = await privateWs.waitForOrderConfirmation("bybit", bybitRes.orderId, CONFIRM_TIMEOUT_MS);
+            bybitOpen = Math.max(0, bybitOpen - filled);
+          }
+        } catch (e) {
+          const msg = e instanceof Error ? e.message : String(e);
+          if (!msg.toLowerCase().includes("reduceonly")) {
+            console.log(`${P} Bybit close error: ${msg}`);
+          }
+          // Treat as 0 fill (don't subtract)
         }
-      );
-      binanceOrderId = binanceRes.orderId ?? "";
-      binanceStatus = binanceRes.status ?? "UNKNOWN";
-    } catch (err) {
-      binanceError = err instanceof Error ? err.message : String(err);
-      console.log(`[CHUNK-SYSTEM] Binance close error: ${binanceError}`);
-      // DO NOT revert Bybit here. A partial exit is still an exit.
+      }
+    }
+
+    // Step D: Binance leg
+    if (binanceOpen > 0) {
+      const binanceQtyStr = formatQuantity(binanceOpen, binanceStepSize);
+      const qtyNum = parseFloat(binanceQtyStr) || 0;
+      if (qtyNum > 0) {
+        try {
+          const binanceRes = await placeBinanceOrder(
+            credentials.binance.apiKey,
+            credentials.binance.apiSecret,
+            {
+              symbol,
+              side: binanceSide,
+              type: "LIMIT",
+              timeInForce: "IOC",
+              quantity: binanceQtyStr,
+              price: priceBinance.toFixed(8),
+              reduceOnly: true,
+            }
+          );
+          await sleep(DEFAULT_DELAY_MS);
+          const filled = await privateWs.waitForOrderConfirmation(
+            "binance",
+            binanceRes.orderId ?? "",
+            CONFIRM_TIMEOUT_MS,
+            symbol
+          );
+          binanceOpen = Math.max(0, binanceOpen - filled);
+        } catch (e) {
+          const msg = e instanceof Error ? e.message : String(e);
+          if (!msg.toLowerCase().includes("reduceonly")) {
+            console.log(`${P} Binance close error: ${msg}`);
+          }
+        }
+      }
+    }
+
+    // Step E: Pause before next iteration if still not fully closed
+    if (binanceOpen > 0 || bybitOpen > 0) {
+      await sleep(500);
     }
   }
 
-  if (!bybitOrderId && !binanceOrderId) {
-    return {
-      success: false,
-      error: `Bybit: ${bybitError} | Binance: ${binanceError}`,
-    };
+  const fullyClosed = binanceOpen <= 0 && bybitOpen <= 0;
+  if (fullyClosed) {
+    onProgress?.("Position fully closed.");
+  } else {
+    onProgress?.(`Exit incomplete after ${maxAttempts} attempts (Bybit: ${bybitOpen} Binance: ${binanceOpen}).`);
   }
-
-  return {
-    success: true,
-    bybitOrder: bybitOrderId
-      ? { exchange: "bybit", orderId: bybitOrderId, symbol, side: closeSide, quantity, price: priceBybit, filledQty: filledBybit, status: "FILLED" }
-      : undefined,
-    binanceOrder: binanceOrderId
-      ? { exchange: "binance", orderId: binanceOrderId, symbol, side: closeSide, quantity: binanceTargetQty, price: priceBinance, status: binanceStatus as PlacedOrder["status"] }
-      : undefined,
-  };
+  return fullyClosed;
 }

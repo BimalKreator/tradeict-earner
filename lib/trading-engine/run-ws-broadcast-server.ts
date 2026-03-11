@@ -14,6 +14,8 @@ process.on("unhandledRejection", (reason, promise) => {
   console.error("[FATAL] Unhandled Rejection:", reason);
 });
 
+import fs from "fs";
+import path from "path";
 import { WebSocketServer } from "ws";
 import { WsManager } from "./ws-manager";
 import {
@@ -32,6 +34,8 @@ import { startAutoExitMonitor } from "./auto-exit";
 const PORT = 8080;
 const BINANCE_DEPTH = "https://fapi.binance.com/fapi/v1/depth";
 
+const SETTINGS_PATH = path.join(process.cwd(), "settings.json");
+
 /** Persistent private WS for 24/7 HFT; reused across trades, never stopped. */
 let privateWsManager: PrivateWSManager | null = null;
 
@@ -41,12 +45,36 @@ let lastCredentials: ExchangeCredentials | null = null;
 /** Prevents concurrent trades (spam clicks). */
 let isTradeExecuting = false;
 
-/** Dynamic settings for auto-exit (read in real-time by monitor). */
-const autoExitSettings: Partial<ExecutionSettings> = {
-  autoExit: process.env.AUTO_EXIT === "1" || process.env.AUTO_EXIT === "true",
-  stoplossPercent: typeof process.env.STOPLOSS_PERCENT !== "undefined" ? parseFloat(process.env.STOPLOSS_PERCENT) || 2 : 2,
-  targetPercent: typeof process.env.TARGET_PERCENT !== "undefined" ? parseFloat(process.env.TARGET_PERCENT) || 1.5 : 1.5,
-};
+/** Dynamic settings for auto-exit (persisted to SETTINGS_PATH, read on startup). */
+let autoExitSettings: Partial<ExecutionSettings> = loadAutoExitSettings();
+
+function loadAutoExitSettings(): Partial<ExecutionSettings> {
+  const defaults: Partial<ExecutionSettings> = {
+    autoExit: process.env.AUTO_EXIT === "1" || process.env.AUTO_EXIT === "true",
+    stoplossPercent: typeof process.env.STOPLOSS_PERCENT !== "undefined" ? parseFloat(process.env.STOPLOSS_PERCENT) || 2 : 2,
+    targetPercent: typeof process.env.TARGET_PERCENT !== "undefined" ? parseFloat(process.env.TARGET_PERCENT) || 1.5 : 1.5,
+  };
+  try {
+    if (fs.existsSync(SETTINGS_PATH)) {
+      const raw = fs.readFileSync(SETTINGS_PATH, "utf-8");
+      const data = JSON.parse(raw) as Partial<ExecutionSettings>;
+      if (typeof data.autoExit === "boolean") defaults.autoExit = data.autoExit;
+      if (typeof data.stoplossPercent === "number" && data.stoplossPercent >= 0) defaults.stoplossPercent = data.stoplossPercent;
+      if (typeof data.targetPercent === "number" && data.targetPercent >= 0) defaults.targetPercent = data.targetPercent;
+    }
+  } catch (e) {
+    console.warn("[WS Server] Could not load settings.json:", e);
+  }
+  return defaults;
+}
+
+function saveAutoExitSettings(): void {
+  try {
+    fs.writeFileSync(SETTINGS_PATH, JSON.stringify(autoExitSettings, null, 2), "utf-8");
+  } catch (e) {
+    console.error("[WS Server] Could not write settings.json:", e);
+  }
+}
 
 const DEFAULT_EXECUTION_SETTINGS: ExecutionSettings = {
   capitalPercent: 10,
@@ -128,38 +156,14 @@ async function runManualTrade(
 
     console.log("[CHUNK-SYSTEM] Manual trade requested via WS: symbol=" + symbol + " side=" + side + " isExit=" + !!isExit);
 
-    const isCloseFlow = !!isExit && typeof quantity === "number" && quantity > 0;
-    let orderbook: OrderbookSnapshot;
-    let binanceBalance: number;
-    let bybitBalance: number;
-    let binanceL2: number;
-    let bybitL2: number;
-
-    if (isCloseFlow) {
-      orderbook = await fetchOrderbookSnapshot(symbol);
-      binanceBalance = 0;
-      bybitBalance = 0;
-      const bestAsk = orderbook.asks[0]?.[0] ? parseFloat(orderbook.asks[0][0]) : 0;
-      const bestBid = orderbook.bids[0]?.[0] ? parseFloat(orderbook.bids[0][0]) : 0;
-      const closeSide = side === "Long" ? "Short" : "Long";
-      binanceL2 = closeSide === "Long" ? bestAsk : bestBid;
-      bybitL2 = binanceL2;
-    } else {
-      const [ob, binanceData, bybitData] = await Promise.all([
-        fetchOrderbookSnapshot(symbol),
-        getBinanceBalance(payload.binanceApiKey, payload.binanceApiSecret),
-        getBybitBalance(payload.bybitApiKey, payload.bybitApiSecret),
-      ]);
-      orderbook = ob;
-      binanceBalance = binanceData.available;
-      bybitBalance = bybitData.available;
-      const bestAsk = orderbook.asks[0]?.[0] ? parseFloat(orderbook.asks[0][0]) : 0;
-      const bestBid = orderbook.bids[0]?.[0] ? parseFloat(orderbook.bids[0][0]) : 0;
-      binanceL2 = side === "Long" ? bestAsk : bestBid;
-      bybitL2 = binanceL2;
-    }
+    const isCloseFlow = !!isExit;
 
     if (!privateWsManager || !privateWsManager.isConnected()) {
+      if (privateWsManager) {
+        console.log("[CHUNK-SYSTEM] Private WS disconnected; stopping before reconnecting.");
+        privateWsManager.stop();
+        privateWsManager = null;
+      }
       console.log("[CHUNK-SYSTEM] Private WS not connected; creating and starting persistent connection.");
       privateWsManager = new PrivateWSManager(credentials);
       await privateWsManager.start();
@@ -168,22 +172,26 @@ async function runManualTrade(
 
     if (isCloseFlow) {
       sendTradeUpdate(ws, "Exiting…");
-      const positionSide = (side === "Short" ? "Long" : "Short") as OrderSide;
-      const result = await executeCloseTrade(
-        symbol,
-        positionSide,
-        quantity!,
-        orderbook,
-        credentials,
-        privateWsManager
-      );
-      if (result.success) {
+      const ok = await executeCloseTrade(symbol, credentials, privateWsManager, fetchOrderbookSnapshot, (msg) => sendTradeUpdate(ws, msg));
+      if (ok) {
         sendTradeUpdate(ws, "Trade completed", true);
       } else {
-        sendTradeUpdate(ws, `Trade failed: ${result.error ?? "Execution failed"}`, true);
+        sendTradeUpdate(ws, "Trade failed: exit did not complete fully", true);
       }
       return;
     }
+
+    const [orderbook, binanceData, bybitData] = await Promise.all([
+      fetchOrderbookSnapshot(symbol),
+      getBinanceBalance(payload.binanceApiKey, payload.binanceApiSecret),
+      getBybitBalance(payload.bybitApiKey, payload.bybitApiSecret),
+    ]);
+    const binanceBalance = binanceData.available;
+    const bybitBalance = bybitData.available;
+    const bestAsk = orderbook.asks[0]?.[0] ? parseFloat(orderbook.asks[0][0]) : 0;
+    const bestBid = orderbook.bids[0]?.[0] ? parseFloat(orderbook.bids[0][0]) : 0;
+    const binanceL2 = side === "Long" ? bestAsk : bestBid;
+    const bybitL2 = binanceL2;
 
     const results = await executeChunkTrade(
       symbol,
@@ -284,6 +292,7 @@ async function main() {
           if (typeof payloadMsg.autoExit === "boolean") autoExitSettings.autoExit = payloadMsg.autoExit;
           if (typeof payloadMsg.stoplossPercent === "number" && payloadMsg.stoplossPercent >= 0) autoExitSettings.stoplossPercent = payloadMsg.stoplossPercent;
           if (typeof payloadMsg.targetPercent === "number" && payloadMsg.targetPercent >= 0) autoExitSettings.targetPercent = payloadMsg.targetPercent;
+          saveAutoExitSettings();
           return;
         }
         if (msg.action === "EXECUTE_MANUAL_TRADE") {
@@ -314,10 +323,7 @@ async function main() {
             sendTradeUpdate(ws, "Trade failed: Invalid symbol, side, or missing API credentials", true);
             return;
           }
-          if (payload.isExit === true && (typeof payload.quantity !== "number" || payload.quantity <= 0)) {
-            sendTradeUpdate(ws, "Trade failed: Exit requires quantity", true);
-            return;
-          }
+          // Exit flow: quantity not required; executeCloseTrade fetches exact positions
           if (!payload) return;
           runManualTrade(ws, payload).catch((e) => {
             const errMsg = e instanceof Error ? e.message : String(e);

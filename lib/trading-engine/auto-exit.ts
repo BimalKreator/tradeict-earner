@@ -6,9 +6,7 @@
 import {
   getBinancePositions,
   getBybitPositions,
-  executeChunkTrade,
-  getBinanceBalance,
-  getBybitBalance,
+  executeCloseTrade,
   type ExecutionSettings,
   type OrderbookSnapshot,
   type OrderSide,
@@ -22,6 +20,7 @@ const ORPHAN_EXIT_THRESHOLD_MS = 30_000;
 const MAX_ORDERBOOK_CACHE = 50;
 
 let autoExitIntervalId: ReturnType<typeof setInterval> | null = null;
+let isProcessingAutoExit = false;
 
 interface GroupedPosition {
   symbol: string;
@@ -132,14 +131,16 @@ export function startAutoExitMonitor(
   autoExitIntervalId = setInterval(async () => {
     const settings = getSettings();
     if (!settings.autoExit) return;
-
-    const ctx = getContext();
-    if (!ctx) return;
-
-    const { credentials, privateWs, fetchOrderbook, defaultSettings } = ctx;
-    const orderbooks = getOrderbooks();
+    if (isProcessingAutoExit) return;
+    isProcessingAutoExit = true;
 
     try {
+      const ctx = getContext();
+      if (!ctx) return;
+
+      const { credentials, privateWs, fetchOrderbook } = ctx;
+      const orderbooks = getOrderbooks();
+
       const [binanceList, bybitList] = await Promise.all([
         getBinancePositions(credentials.binance.apiKey, credentials.binance.apiSecret),
         getBybitPositions(credentials.bybit.apiKey, credentials.bybit.apiSecret),
@@ -182,7 +183,7 @@ export function startAutoExitMonitor(
             orphanFirstSeen.delete(pos.symbol);
             exitLocks.add(pos.symbol);
             console.log(`[CHUNK-SYSTEM] Auto-Exit: orphan ${pos.symbol} (one leg > 30s). Triggering exit.`);
-            triggerExit(pos, ctx, defaultSettings).finally(() => exitLocks.delete(pos.symbol));
+            triggerExit(pos, ctx).finally(() => exitLocks.delete(pos.symbol));
           }
           continue;
         }
@@ -192,11 +193,13 @@ export function startAutoExitMonitor(
           exitLocks.add(pos.symbol);
           const reason = combinedPnl <= -stoplossAmount ? "stoploss" : "target";
           console.log(`[CHUNK-SYSTEM] Auto-Exit: ${pos.symbol} ${reason} (PnL=$${combinedPnl.toFixed(2)}). Triggering exit.`);
-          triggerExit(pos, ctx, defaultSettings).finally(() => exitLocks.delete(pos.symbol));
+          triggerExit(pos, ctx).finally(() => exitLocks.delete(pos.symbol));
         }
       }
     } catch (e) {
       console.error("[CHUNK-SYSTEM] Auto-Exit monitor error:", e);
+    } finally {
+      isProcessingAutoExit = false;
     }
   }, CHECK_INTERVAL_MS);
 
@@ -208,34 +211,6 @@ export function startAutoExitMonitor(
   };
 }
 
-async function triggerExit(
-  pos: GroupedPosition,
-  ctx: AutoExitContext,
-  defaultSettings: ExecutionSettings
-): Promise<void> {
-  const { credentials, privateWs, fetchOrderbook } = ctx;
-  const orderbook = await fetchOrderbook(pos.symbol);
-  const [binanceData, bybitData] = await Promise.all([
-    getBinanceBalance(credentials.binance.apiKey, credentials.binance.apiSecret),
-    getBybitBalance(credentials.bybit.apiKey, credentials.bybit.apiSecret),
-  ]);
-  const bestAsk = orderbook.asks[0]?.[0] ? parseFloat(orderbook.asks[0][0]) : 0;
-  const bestBid = orderbook.bids[0]?.[0] ? parseFloat(orderbook.bids[0][0]) : 0;
-  const closeSide: OrderSide = pos.side === "Long" ? "Short" : "Long";
-  const l2 = closeSide === "Long" ? bestAsk : bestBid;
-
-  await executeChunkTrade(
-    pos.symbol,
-    closeSide,
-    orderbook,
-    defaultSettings,
-    credentials,
-    privateWs,
-    binanceData.available,
-    bybitData.available,
-    l2,
-    l2,
-    undefined,
-    true
-  );
+async function triggerExit(pos: GroupedPosition, ctx: AutoExitContext): Promise<void> {
+  await executeCloseTrade(pos.symbol, ctx.credentials, ctx.privateWs, ctx.fetchOrderbook);
 }
