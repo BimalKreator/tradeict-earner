@@ -462,9 +462,28 @@ export function calculateQuantity(
 const BINANCE_WS_BASE = "wss://fstream.binance.com/ws";
 const BYBIT_WS_PRIVATE = "wss://stream.bybit.com/v5/private";
 
+const MAX_ORDER_BUFFER = 100;
+
+function isTerminalStatus(exchange: "binance" | "bybit", status: string): boolean {
+  if (exchange === "binance") {
+    return status === "FILLED" || status === "PARTIALLY_FILLED" || status === "CANCELED" || status === "REJECTED";
+  }
+  return status === "Filled" || status === "PartiallyFilled" || status === "Cancelled" || status === "Rejected";
+}
+
 export interface PrivateWSManagerCallbacks {
   onBinanceOrderUpdate?: (orderId: string, status: string, filledQty: number) => void;
   onBybitOrderUpdate?: (orderId: string, status: string, filledQty: number) => void;
+}
+
+interface OrderBufferEntry {
+  key: string;
+  exchange: "binance" | "bybit";
+  orderId: string;
+  symbol?: string;
+  status: string;
+  filledQty: number;
+  ts: number;
 }
 
 export class PrivateWSManager {
@@ -477,10 +496,23 @@ export class PrivateWSManager {
     string,
     { resolve: (filledQty: number) => void; reject: (err: Error) => void }
   >();
+  private orderBuffer: OrderBufferEntry[] = [];
 
   constructor(credentials: ExchangeCredentials, callbacks?: PrivateWSManagerCallbacks) {
     this.credentials = credentials;
     if (callbacks) this.callbacks = callbacks;
+  }
+
+  private pushToOrderBuffer(
+    exchange: "binance" | "bybit",
+    orderId: string,
+    symbol: string | undefined,
+    status: string,
+    filledQty: number
+  ): void {
+    const key = `${exchange}:${orderId}`;
+    this.orderBuffer.push({ key, exchange, orderId, symbol, status, filledQty, ts: Date.now() });
+    if (this.orderBuffer.length > MAX_ORDER_BUFFER) this.orderBuffer.shift();
   }
 
   async start(): Promise<void> {
@@ -517,15 +549,20 @@ export class PrivateWSManager {
 
   private handleBinanceMessage(data: WebSocket.RawData): void {
     try {
-      const msg = JSON.parse(data.toString()) as { e?: string; o?: { i?: number; X?: string; z?: string } };
+      const msg = JSON.parse(data.toString()) as {
+        e?: string;
+        o?: { i?: number; X?: string; z?: string; s?: string };
+      };
       if (msg.e === "ORDER_TRADE_UPDATE" && msg.o) {
         const o = msg.o;
         const orderId = String(o.i);
         const status = o.X ?? "";
         const filledQty = parseFloat(o.z ?? "0");
+        const symbol = o.s;
+        this.pushToOrderBuffer("binance", orderId, symbol, status, filledQty);
         this.callbacks.onBinanceOrderUpdate?.(orderId, status, filledQty);
         const pending = this.orderConfirmations.get(`binance:${orderId}`);
-        if (pending && (status === "FILLED" || status === "PARTIALLY_FILLED" || status === "CANCELED" || status === "REJECTED")) {
+        if (pending && isTerminalStatus("binance", status)) {
           this.orderConfirmations.delete(`binance:${orderId}`);
           pending.resolve(filledQty);
         }
@@ -539,16 +576,18 @@ export class PrivateWSManager {
     try {
       const msg = JSON.parse(data.toString()) as {
         topic?: string;
-        data?: { orderId?: string; orderStatus?: string; cumExecQty?: string };
+        data?: { orderId?: string; orderStatus?: string; cumExecQty?: string; symbol?: string };
       };
       if (msg.topic === "order" && msg.data) {
         const d = msg.data;
         const orderId = d.orderId ?? "";
         const status = d.orderStatus ?? "";
         const filledQty = parseFloat(d.cumExecQty ?? "0");
+        const symbol = d.symbol;
+        this.pushToOrderBuffer("bybit", orderId, symbol, status, filledQty);
         this.callbacks.onBybitOrderUpdate?.(orderId, status, filledQty);
         const pending = this.orderConfirmations.get(`bybit:${orderId}`);
-        if (pending && (status === "Filled" || status === "PartiallyFilled" || status === "Cancelled" || status === "Rejected")) {
+        if (pending && isTerminalStatus("bybit", status)) {
           this.orderConfirmations.delete(`bybit:${orderId}`);
           pending.resolve(filledQty);
         }
@@ -558,19 +597,53 @@ export class PrivateWSManager {
     }
   }
 
-  /** Wait for order confirmation (fill or terminal state) with timeout. */
-  waitForOrderConfirmation(exchange: "binance" | "bybit", orderId: string, timeoutMs: number): Promise<number> {
+  /** Wait for order confirmation (fill or terminal state). Checks buffer first (0ms), then waits up to timeoutMs, then REST fallback. */
+  waitForOrderConfirmation(
+    exchange: "binance" | "bybit",
+    orderId: string,
+    timeoutMs: number,
+    symbol?: string
+  ): Promise<number> {
+    const key = `${exchange}:${orderId}`;
+    const start = Date.now();
+
+    // Instant buffer check (0ms)
+    const buf = this.orderBuffer.find((e) => e.key === key);
+    if (buf && isTerminalStatus(buf.exchange, buf.status)) {
+      const elapsed = Date.now() - start;
+      console.log(`[CHUNK-SYSTEM] Order ${orderId} confirmed in ${elapsed}ms (WS-Buffer)`);
+      return Promise.resolve(buf.filledQty);
+    }
+
     return new Promise((resolve, reject) => {
-      const key = `${exchange}:${orderId}`;
-      const t = setTimeout(() => {
-        if (this.orderConfirmations.has(key)) {
-          this.orderConfirmations.delete(key);
-          reject(new Error(`Order ${orderId} confirmation timeout`));
+      const t = setTimeout(async () => {
+        if (!this.orderConfirmations.has(key)) return;
+        this.orderConfirmations.delete(key);
+        const elapsed = Date.now() - start;
+        try {
+          if (exchange === "bybit") {
+            const filled = await this.fetchBybitOrderStatus(orderId);
+            console.log(`[CHUNK-SYSTEM] Order ${orderId} confirmed in ${elapsed}ms (REST-Fallback)`);
+            resolve(filled);
+          } else {
+            if (!symbol) {
+              reject(new Error(`Order ${orderId} confirmation timeout (REST fallback requires symbol)`));
+              return;
+            }
+            const filled = await this.fetchBinanceOrderStatus(symbol, orderId);
+            console.log(`[CHUNK-SYSTEM] Order ${orderId} confirmed in ${elapsed}ms (REST-Fallback)`);
+            resolve(filled);
+          }
+        } catch (e) {
+          reject(e instanceof Error ? e : new Error(String(e)));
         }
       }, timeoutMs);
+
       this.orderConfirmations.set(key, {
         resolve: (filledQty) => {
           clearTimeout(t);
+          const elapsed = Date.now() - start;
+          console.log(`[CHUNK-SYSTEM] Order ${orderId} confirmed in ${elapsed}ms (WS-Live)`);
           resolve(filledQty);
         },
         reject: (err) => {
@@ -579,6 +652,48 @@ export class PrivateWSManager {
         },
       });
     });
+  }
+
+  private async fetchBybitOrderStatus(orderId: string): Promise<number> {
+    const timestamp = String(Date.now());
+    const recvWindow = "5000";
+    const queryString = `category=linear&orderId=${encodeURIComponent(orderId)}&settleCoin=USDT&limit=1`;
+    const sign = signBybitV5Get(
+      this.credentials.bybit.apiSecret,
+      timestamp,
+      this.credentials.bybit.apiKey,
+      recvWindow,
+      queryString
+    );
+    const res = await fetch(`${BYBIT_BASE}/v5/order/realtime?${queryString}`, {
+      headers: {
+        "X-BAPI-API-KEY": this.credentials.bybit.apiKey,
+        "X-BAPI-SIGN": sign,
+        "X-BAPI-TIMESTAMP": timestamp,
+        "X-BAPI-RECV-WINDOW": recvWindow,
+      },
+    });
+    const data = (await res.json()) as {
+      retCode?: number;
+      result?: { list?: { cumExecQty?: string; orderStatus?: string }[] };
+    };
+    if (data.retCode !== 0 || !res.ok) throw new Error("Bybit order status fetch failed");
+    const list = data.result?.list ?? [];
+    const order = list[0];
+    if (!order) throw new Error(`Bybit order ${orderId} not found`);
+    return parseFloat(order.cumExecQty ?? "0") || 0;
+  }
+
+  private async fetchBinanceOrderStatus(symbol: string, orderId: string): Promise<number> {
+    const timestamp = Date.now();
+    const query = `symbol=${encodeURIComponent(symbol)}&orderId=${orderId}&timestamp=${timestamp}`;
+    const signature = signBinance(this.credentials.binance.apiSecret, query);
+    const res = await fetch(`${BINANCE_BASE}/fapi/v1/order?${query}&signature=${signature}`, {
+      headers: { "X-MBX-APIKEY": this.credentials.binance.apiKey },
+    });
+    if (!res.ok) throw new Error(`Binance order status: ${res.status}`);
+    const o = (await res.json()) as { executedQty?: string };
+    return parseFloat(o.executedQty ?? "0") || 0;
   }
 
   stop(): void {
@@ -598,7 +713,7 @@ export class PrivateWSManager {
 
 const MIN_CHUNK_NOTIONAL = 6;
 const DEFAULT_DELAY_MS = 10;
-const CONFIRM_TIMEOUT_MS = 5000;
+const CONFIRM_TIMEOUT_MS = 100;
 
 const binanceStepSizeCache = new Map<string, number>();
 const bybitStepSizeCache = new Map<string, number>();
