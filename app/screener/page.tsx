@@ -123,9 +123,23 @@ export default function ScreenerPage() {
 
     ws.onmessage = (event) => {
       try {
-        const msg = JSON.parse(event.data as string) as { type?: string; states?: SymbolState[] };
+        const msg = JSON.parse(event.data as string) as {
+          type?: string;
+          states?: SymbolState[];
+          action?: string;
+          status?: string;
+          done?: boolean;
+        };
         if (msg.type === "state" && Array.isArray(msg.states)) {
           setStates(msg.states);
+        }
+        if (msg.action === "TRADE_UPDATE" && msg.status != null) {
+          const isError = msg.status.startsWith("Trade failed");
+          showTradeToast(msg.status, isError ? "error" : "success");
+          if (msg.done) {
+            setTradeSubmitting(false);
+            setTradeModal(null);
+          }
         }
       } catch {
         // ignore parse errors
@@ -245,35 +259,33 @@ export default function ScreenerPage() {
     }, 4000);
   };
 
-  const submitTrade = async () => {
+  const submitTrade = () => {
     if (!tradeModal) return;
     const keys = getApiKeysFromStorage();
     if (!keys.binanceApiKey || !keys.binanceApiSecret || !keys.bybitApiKey || !keys.bybitApiSecret) {
       showTradeToast("API keys not configured", "error");
       return;
     }
+    const ws = wsRef.current;
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+      showTradeToast("Not connected to trade server", "error");
+      return;
+    }
     const side = tradeModal.row.direction.startsWith("Long Binance") ? "Long" : "Short";
     setTradeSubmitting(true);
     try {
-      const res = await fetch("/api/trade/execute", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          symbol: tradeModal.row.state.symbol,
-          side,
-          ...keys,
-        }),
-      });
-      const data = (await res.json()) as { ok?: boolean; error?: string };
-      if (data.ok) {
-        showTradeToast("Trade successfully placed via Chunk System", "success");
-        closeTradeModal();
-      } else {
-        showTradeToast(data.error ?? "Trade failed", "error");
-      }
+      ws.send(
+        JSON.stringify({
+          action: "EXECUTE_MANUAL_TRADE",
+          payload: {
+            symbol: tradeModal.row.state.symbol,
+            side,
+            ...keys,
+          },
+        })
+      );
     } catch (e) {
       showTradeToast(e instanceof Error ? e.message : "Trade failed", "error");
-    } finally {
       setTradeSubmitting(false);
     }
   };

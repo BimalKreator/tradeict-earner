@@ -684,7 +684,8 @@ export async function executeChunkTrade(
   binanceBalance: number,
   bybitBalance: number,
   binanceL2Price: number,
-  bybitL2Price: number
+  bybitL2Price: number,
+  onProgress?: (message: string) => void
 ): Promise<ChunkResult[]> {
   const P = "[CHUNK-SYSTEM]";
   const results: ChunkResult[] = [];
@@ -693,6 +694,7 @@ export async function executeChunkTrade(
   const frac = Math.max(0.01, Math.min(1, settings.chunkLiquidityFraction ?? 0.5));
 
   console.log(`${P} Starting chunk trade: symbol=${symbol} side=${side} minChunkNotional=$${minNotional} liquidityFraction=${frac}`);
+  onProgress?.("Starting trade…");
 
   const [bybitStepSize, binanceStepSize] = await Promise.all([
     getBybitStepSize(symbol),
@@ -707,6 +709,7 @@ export async function executeChunkTrade(
   const priceBinance = getBestPrice(orderbook, side);
   if (priceBybit <= 0 || priceBinance <= 0) {
     console.log(`${P} Abort: no orderbook price (Bybit=${priceBybit} Binance=${priceBinance})`);
+    onProgress?.("Trade failed: No orderbook price");
     results.push({ success: false, error: "No orderbook price" });
     return results;
   }
@@ -716,6 +719,7 @@ export async function executeChunkTrade(
   const firstChunkQty = parseFloat(firstChunkQtyBybitStr) || 0;
   if (firstChunkQty <= 0) {
     console.log(`${P} Abort: first chunk qty rounded to 0 (raw=${firstChunkQtyRaw})`);
+    onProgress?.("Trade failed: First chunk quantity too small");
     results.push({ success: false, error: "First chunk quantity too small after step size" });
     return results;
   }
@@ -741,10 +745,12 @@ export async function executeChunkTrade(
     bybitOrderId = bybitRes.orderId;
     if (!bybitOrderId || bybitRes.orderStatus === "Rejected") {
       console.log(`${P} Bybit Chunk 1 rejected: orderId=${bybitRes.orderId} status=${bybitRes.orderStatus}`);
+      onProgress?.("Trade failed: Bybit first chunk rejected");
       results.push({ success: false, error: "Bybit first chunk rejected", bybitOrder: { exchange: "bybit", orderId: bybitRes.orderId, symbol, side, quantity: firstChunkQty, price: priceBybit, status: "REJECTED" } });
       return results;
     }
     console.log(`${P} Chunk 1 Bybit order placed: orderId=${bybitOrderId}. Waiting for confirmation...`);
+    onProgress?.("Chunk 1 placed");
 
     await sleep(delayMs);
     const filledBybit = await privateWs.waitForOrderConfirmation("bybit", bybitOrderId, CONFIRM_TIMEOUT_MS);
@@ -780,6 +786,7 @@ export async function executeChunkTrade(
     });
 
     console.log(`${P} Chunk 1 complete. Bybit orderId=${bybitOrderId} Binance orderId=${binanceRes.orderId}`);
+    onProgress?.("Chunk 1 complete");
     results.push({
       success: true,
       bybitOrder: { exchange: "bybit", orderId: bybitOrderId!, symbol, side, quantity: firstChunkQty, price: priceBybit, filledQty: filledBybit, status: "FILLED" },
@@ -788,6 +795,7 @@ export async function executeChunkTrade(
   } catch (e) {
     const errMsg = e instanceof Error ? e.message : String(e);
     console.log(`${P} Chunk 1 error/abort: ${errMsg} closedBybitAfterBinanceFail=${!!bybitOrderId}`);
+    onProgress?.(`Trade failed: ${errMsg}`);
     results.push({
       success: false,
       error: errMsg,
@@ -806,6 +814,7 @@ export async function executeChunkTrade(
   console.log(`${P} Calculating remaining quantity: firstRowQty=${firstRowQty} frac=${frac} -> chunkQty(raw)=${chunkQtyRaw} chunkQty(formatted)=${chunkQtyBybitStr} (50% of first row liquidity for Chunk 2+)`);
   if (chunkQty <= 0) {
     console.log(`${P} No further chunks: chunkQty <= 0. Final completion.`);
+    onProgress?.("Trade completed");
     return results;
   }
 
@@ -820,6 +829,7 @@ export async function executeChunkTrade(
     let bybitId: string | null = null;
     try {
       console.log(`${P} Sending Chunk ${i + 2} to Bybit: qty=${chunkQtyBybitStr} price=${priceBybitNext.toFixed(8)}`);
+      onProgress?.(`Chunk ${i + 2} placed`);
       const resBybit = await placeBybitOrder(
         credentials.bybit.apiKey,
         credentials.bybit.apiSecret,
@@ -836,6 +846,7 @@ export async function executeChunkTrade(
       bybitId = resBybit.orderId;
       if (!bybitId || resBybit.orderStatus === "Rejected") {
         console.log(`${P} Chunk ${i + 2} Bybit rejected. Aborting remaining chunks.`);
+        onProgress?.("Trade failed: Bybit chunk rejected");
         results.push({ success: false, error: "Bybit chunk rejected", abortedBybit: true });
         break;
       }
@@ -853,6 +864,7 @@ export async function executeChunkTrade(
       });
 
       console.log(`${P} Chunk ${i + 2} complete.`);
+      onProgress?.(`Chunk ${i + 2} complete`);
       results.push({
         success: true,
         bybitOrder: { exchange: "bybit", orderId: bybitId, symbol, side, quantity: chunkQty, price: priceBybitNext, filledQty: filled, status: "FILLED" },
@@ -861,6 +873,7 @@ export async function executeChunkTrade(
     } catch (e) {
       const errMsg = e instanceof Error ? e.message : String(e);
       console.log(`${P} Chunk ${i + 2} error: ${errMsg}. Abort reason: ${bybitId ? "Binance failed, closed Bybit leg" : "Bybit failed"}.`);
+      onProgress?.(`Trade failed: ${errMsg}`);
       results.push({
         success: false,
         error: errMsg,
@@ -871,6 +884,9 @@ export async function executeChunkTrade(
   }
 
   console.log(`${P} Final completion: ${results.length} chunk(s) executed.`);
+  if (results.length > 0 && results[results.length - 1]?.success) {
+    onProgress?.("Trade completed");
+  }
   return results;
 }
 
