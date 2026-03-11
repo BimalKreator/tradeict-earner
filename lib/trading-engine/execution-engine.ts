@@ -698,7 +698,8 @@ export class PrivateWSManager {
       recvWindow,
       queryString
     );
-    const res = await fetch(`${BYBIT_BASE}/v5/order/realtime?${queryString}`, {
+    // IOC orders resolve instantly, so they move to 'history' immediately.
+    const res = await fetch(`${BYBIT_BASE}/v5/order/history?${queryString}`, {
       headers: {
         "X-BAPI-API-KEY": this.credentials.bybit.apiKey,
         "X-BAPI-SIGN": sign,
@@ -707,8 +708,20 @@ export class PrivateWSManager {
       },
     });
     const data = await res.json();
-    if (!data || !data.result || !Array.isArray(data.result.list) || data.result.list.length === 0) return 0;
-    return Number(data.result.list[0].cumExecQty || 0);
+
+    if (!data || !data.result || !Array.isArray(data.result.list) || data.result.list.length === 0) {
+      console.log(`[CHUNK-SYSTEM] Bybit order ${orderId} not found in history endpoint. Assuming 0 fill.`);
+      return 0;
+    }
+
+    const order = data.result.list[0];
+
+    // Log the actual rejection reason if it didn't fill
+    if (order.orderStatus === "Rejected" || order.orderStatus === "Cancelled") {
+      console.log(`[CHUNK-SYSTEM] Bybit order ${orderId} returned Status: ${order.orderStatus}, Reason: ${order.rejectReason || "Unknown"}`);
+    }
+
+    return Number(order.cumExecQty || 0);
   }
 
   private async fetchBinanceOrderStatus(symbol: string, orderId: string): Promise<number> {
