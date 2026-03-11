@@ -742,6 +742,8 @@ const CONFIRM_TIMEOUT_MS = 100;
 
 const binanceStepSizeCache = new Map<string, number>();
 const bybitStepSizeCache = new Map<string, number>();
+const binanceTickSizeCache = new Map<string, number>();
+const bybitTickSizeCache = new Map<string, number>();
 
 export async function getBinanceStepSize(symbol: string): Promise<number> {
   const key = symbol.toUpperCase();
@@ -749,7 +751,7 @@ export async function getBinanceStepSize(symbol: string): Promise<number> {
   if (cached != null) return cached;
   const res = await fetch(`${BINANCE_BASE}/fapi/v1/exchangeInfo?symbol=${encodeURIComponent(key)}`);
   if (!res.ok) return 0.001;
-  const data = (await res.json()) as { symbols?: { symbol: string; filters?: { filterType: string; stepSize?: string }[] }[] };
+  const data = (await res.json()) as { symbols?: { symbol: string; filters?: { filterType: string; stepSize?: string; tickSize?: string }[] }[] };
   const sym = data.symbols?.find((s) => s.symbol === key);
   const lotSize = sym?.filters?.find((f) => f.filterType === "LOT_SIZE");
   const step = lotSize?.stepSize ? parseFloat(lotSize.stepSize) : 0.001;
@@ -767,13 +769,60 @@ export async function getBybitStepSize(symbol: string): Promise<number> {
   );
   if (!res.ok) return 0.001;
   const data = (await res.json()) as {
-    result?: { list?: { symbol: string; lotSizeFilter?: { qtyStep?: string } }[] };
+    result?: { list?: { symbol: string; lotSizeFilter?: { qtyStep?: string }; priceFilter?: { tickSize?: string } }[] };
   };
   const item = data.result?.list?.find((l) => l.symbol === key);
   const qtyStep = item?.lotSizeFilter?.qtyStep ? parseFloat(item.lotSizeFilter.qtyStep) : 0.001;
   const stepSize = Number.isFinite(qtyStep) && qtyStep > 0 ? qtyStep : 0.001;
   bybitStepSizeCache.set(key, stepSize);
   return stepSize;
+}
+
+export async function getBinanceTickSize(symbol: string): Promise<number> {
+  const key = symbol.toUpperCase();
+  const cached = binanceTickSizeCache.get(key);
+  if (cached != null) return cached;
+  const res = await fetch(`${BINANCE_BASE}/fapi/v1/exchangeInfo?symbol=${encodeURIComponent(key)}`);
+  if (!res.ok) return 0.01;
+  const data = (await res.json()) as { symbols?: { symbol: string; filters?: { filterType: string; tickSize?: string }[] }[] };
+  const sym = data.symbols?.find((s) => s.symbol === key);
+  const priceFilter = sym?.filters?.find((f) => f.filterType === "PRICE_FILTER");
+  const tick = priceFilter?.tickSize ? parseFloat(priceFilter.tickSize) : 0.01;
+  const tickSize = Number.isFinite(tick) && tick > 0 ? tick : 0.01;
+  binanceTickSizeCache.set(key, tickSize);
+  return tickSize;
+}
+
+export async function getBybitTickSize(symbol: string): Promise<number> {
+  const key = symbol.toUpperCase();
+  const cached = bybitTickSizeCache.get(key);
+  if (cached != null) return cached;
+  const res = await fetch(
+    `${BYBIT_BASE}/v5/market/instruments-info?category=linear&symbol=${encodeURIComponent(key)}`
+  );
+  if (!res.ok) return 0.01;
+  const data = (await res.json()) as {
+    result?: { list?: { symbol: string; priceFilter?: { tickSize?: string } }[] };
+  };
+  const item = data.result?.list?.find((l) => l.symbol === key);
+  const tick = item?.priceFilter?.tickSize ? parseFloat(item.priceFilter.tickSize) : 0.01;
+  const tickSize = Number.isFinite(tick) && tick > 0 ? tick : 0.01;
+  bybitTickSizeCache.set(key, tickSize);
+  return tickSize;
+}
+
+export async function getBybitOrderbookFast(symbol: string): Promise<{ bestBid: number; bestAsk: number }> {
+  try {
+    const res = await fetch(
+      `${BYBIT_BASE}/v5/market/orderbook?category=linear&symbol=${encodeURIComponent(symbol)}&limit=1`
+    );
+    const data = await res.json();
+    const b = data.result?.b?.[0]?.[0];
+    const a = data.result?.a?.[0]?.[0];
+    return { bestBid: b ? parseFloat(b) : 0, bestAsk: a ? parseFloat(a) : 0 };
+  } catch {
+    return { bestBid: 0, bestAsk: 0 };
+  }
 }
 
 /**
@@ -790,6 +839,13 @@ export function formatQuantity(qty: number, stepSize: number): string {
     : (stepStr.split(".")[1]?.length ?? 8);
   const s = truncated.toFixed(decimals);
   return s.includes("e") ? truncated.toLocaleString("en", { maximumFractionDigits: 8 }) : s;
+}
+
+function formatPrice(price: number, tickSize: number): string {
+  if (!tickSize || tickSize <= 0) return price.toString();
+  const rounded = Math.round(price / tickSize) * tickSize;
+  const decimals = tickSize.toString().includes(".") ? tickSize.toString().split(".")[1].length : 0;
+  return rounded.toFixed(decimals);
 }
 
 function getBestPrice(ob: OrderbookSnapshot, side: OrderSide): number {
@@ -1154,9 +1210,11 @@ export async function executeCloseTrade(
     return true;
   }
 
-  const [bybitStepSize, binanceStepSize] = await Promise.all([
+  const [bybitStepSize, binanceStepSize, bybitTickSize, binanceTickSize] = await Promise.all([
     getBybitStepSize(symbol),
     getBinanceStepSize(symbol),
+    getBybitTickSize(symbol),
+    getBinanceTickSize(symbol),
   ]);
 
   let attempts = 0;
@@ -1166,26 +1224,27 @@ export async function executeCloseTrade(
     attempts++;
     onProgress?.(`Close attempt ${attempts}/${maxAttempts} (Bybit: ${bybitOpen} Binance: ${binanceOpen})`);
 
-    // Step C: Fresh orderbook, dynamic slippage & price precision
-    const orderbook = await fetchOrderbook(symbol);
-    const askStr = orderbook.asks[0]?.[0] || "0";
-    const bidStr = orderbook.bids[0]?.[0] || "0";
-    const bestAsk = parseFloat(askStr);
-    const bestBid = parseFloat(bidStr);
+    // Fetch both orderbooks separately
+    const [orderbookBinance, orderbookBybit] = await Promise.all([
+      fetchOrderbook(symbol),
+      getBybitOrderbookFast(symbol),
+    ]);
+    const binanceBestAsk = orderbookBinance.asks[0]?.[0] ? parseFloat(orderbookBinance.asks[0][0]) : 0;
+    const binanceBestBid = orderbookBinance.bids[0]?.[0] ? parseFloat(orderbookBinance.bids[0][0]) : 0;
 
-    if (bestAsk <= 0 || bestBid <= 0) {
+    if (binanceBestAsk <= 0 || binanceBestBid <= 0 || orderbookBybit.bestAsk <= 0 || orderbookBybit.bestBid <= 0) {
       onProgress?.("No orderbook price, retrying…");
       await sleep(500);
       continue;
     }
-    // Get precision dynamically from the orderbook string
-    const priceDecimals = askStr.includes(".") ? askStr.split(".")[1].length : 0;
-    // Dynamic Slippage: Start with 0.1% and increase by 0.1% each attempt to force fill
-    const slipPct = 0.001 * attempts;
+    // Slippage: start at 0.02%, then increase by 0.1% each attempt
+    const slipPct = 0.0002 + 0.001 * (attempts - 1);
     const slipBuy = 1 + slipPct;
     const slipSell = 1 - slipPct;
-    const rawPrice = isBuy ? bestAsk * slipBuy : bestBid * slipSell;
-    const priceStr = rawPrice.toFixed(priceDecimals);
+    const rawPriceBybit = isBuy ? orderbookBybit.bestAsk * slipBuy : orderbookBybit.bestBid * slipSell;
+    const rawPriceBinance = isBuy ? binanceBestAsk * slipBuy : binanceBestBid * slipSell;
+    const priceBybitStr = formatPrice(rawPriceBybit, bybitTickSize);
+    const priceBinanceStr = formatPrice(rawPriceBinance, binanceTickSize);
 
     // Step D: Bybit leg
     if (bybitOpen > 0) {
@@ -1202,7 +1261,7 @@ export async function executeCloseTrade(
               orderType: "Limit",
               timeInForce: "IOC",
               qty: bybitQtyStr,
-              price: priceStr,
+              price: priceBybitStr,
               category: "linear",
               reduceOnly: true,
             }
@@ -1237,7 +1296,7 @@ export async function executeCloseTrade(
               type: "LIMIT",
               timeInForce: "IOC",
               quantity: binanceQtyStr,
-              price: priceStr,
+              price: priceBinanceStr,
               reduceOnly: true,
             }
           );
