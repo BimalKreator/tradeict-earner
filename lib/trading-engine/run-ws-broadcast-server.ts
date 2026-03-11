@@ -261,6 +261,7 @@ async function main() {
       credentials: lastCredentials,
       privateWs: privateWsManager,
       fetchOrderbook: fetchOrderbookSnapshot,
+      getLiveOrderbook: (sym: string) => manager.getLiveOrderbook(sym),
       defaultSettings: getSettings(),
     };
   };

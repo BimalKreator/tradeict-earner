@@ -1,5 +1,6 @@
 import WebSocket from "ws";
 import type { Orderbook, OrderbookLevel, SymbolState, VWAPResult } from "./types";
+import type { OrderbookSnapshot } from "./execution-engine";
 import { calculateVWAP as calcVWAP } from "./vwap";
 
 /** Calculate VWAP for buy side; checks 3x liquidity. */
@@ -356,6 +357,14 @@ export class WsManager {
 
   getSymbols(): string[] {
     return [...this.symbols];
+  }
+
+  /** Returns instant in-memory Binance orderbook for Auto-Exit L2 VWAP. */
+  getLiveOrderbook(symbol: string): OrderbookSnapshot | null {
+    const ob = this.binanceOrderbooks.get(symbol);
+    if (!ob || (ob.bids.size === 0 && ob.asks.size === 0)) return null;
+    const book = orderbookFromMaps(ob);
+    return { symbol, bids: book.bids, asks: book.asks };
   }
 
   getVwapTargetAmount(): number {

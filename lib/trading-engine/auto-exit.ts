@@ -15,11 +15,12 @@ import {
   type PrivateWSManager,
 } from "./execution-engine";
 
-const CHECK_INTERVAL_MS = 3000;
 const ORPHAN_EXIT_THRESHOLD_MS = 30_000;
 
-let autoExitIntervalId: ReturnType<typeof setInterval> | null = null;
-let isProcessingAutoExit = false;
+let cachedPositions: GroupedPosition[] = [];
+let isFetchingPositions = false;
+let posIntervalId: ReturnType<typeof setInterval> | null = null;
+let priceIntervalId: ReturnType<typeof setInterval> | null = null;
 
 interface GroupedPosition {
   symbol: string;
@@ -127,97 +128,93 @@ export interface AutoExitContext {
   credentials: ExchangeCredentials;
   privateWs: PrivateWSManager;
   fetchOrderbook: (symbol: string) => Promise<OrderbookSnapshot>;
+  getLiveOrderbook: (symbol: string) => OrderbookSnapshot | null;
   defaultSettings: ExecutionSettings;
 }
 
 /**
- * Starts the auto-exit monitor. Runs every 3s.
- * - If !settings.autoExit, skips.
- * - Fetches positions, fetches live orderbook per symbol, computes combined PnL from L2 VWAP.
- * - SL/TP: if combinedPnl <= -StoplossAmount or >= TargetAmount, triggers exit.
- * - Orphan: if position on one exchange only for > 30s, triggers exit.
+ * Dual-loop Auto-Exit: position poller (3s, avoids rate limits) + HFT price monitor (200ms, live WS orderbook).
  */
 export function startAutoExitMonitor(
   getSettings: () => ExecutionSettings,
   getContext: () => AutoExitContext | null
 ): () => void {
-  if (autoExitIntervalId != null) {
-    clearInterval(autoExitIntervalId);
-    autoExitIntervalId = null;
-  }
+  if (posIntervalId) clearInterval(posIntervalId);
+  if (priceIntervalId) clearInterval(priceIntervalId);
   const exitLocks = new Set<string>();
   const orphanFirstSeen = new Map<string, number>();
 
-  autoExitIntervalId = setInterval(async () => {
+  // Loop 1: Position Poller (Every 3s) - Avoids API Rate Limits
+  posIntervalId = setInterval(async () => {
     const settings = getSettings();
-    if (!settings.autoExit) return;
-    if (isProcessingAutoExit) return;
-    isProcessingAutoExit = true;
-
+    if (!settings.autoExit || isFetchingPositions) return;
+    isFetchingPositions = true;
     try {
       const ctx = getContext();
       if (!ctx) return;
-
-      const { credentials, fetchOrderbook } = ctx;
-
       const [binanceList, bybitList] = await Promise.all([
-        getBinancePositions(credentials.binance.apiKey, credentials.binance.apiSecret),
-        getBybitPositions(credentials.bybit.apiKey, credentials.bybit.apiSecret),
+        getBinancePositions(ctx.credentials.binance.apiKey, ctx.credentials.binance.apiSecret),
+        getBybitPositions(ctx.credentials.bybit.apiKey, ctx.credentials.bybit.apiSecret),
       ]);
-      const activeBinance = binanceList.filter((p) => p.quantity > 0);
-      const activeBybit = bybitList.filter((p) => p.quantity > 0);
-      const positions = groupPositions(activeBinance, activeBybit);
+      cachedPositions = groupPositions(
+        binanceList.filter((p) => p.quantity > 0),
+        bybitList.filter((p) => p.quantity > 0)
+      );
+    } catch {
+      // suppress position fetch errors to avoid log spam
+    } finally {
+      isFetchingPositions = false;
+    }
+  }, 3000);
 
-      const stoplossPct = (settings.stoplossPercent ?? 2) / 100;
-      const targetPct = (settings.targetPercent ?? 1.5) / 100;
+  // Loop 2: HFT Price Monitor (Every 200ms) - Reads RAM Orderbook 0ms delay
+  priceIntervalId = setInterval(() => {
+    const settings = getSettings();
+    if (!settings.autoExit) return;
+    const ctx = getContext();
+    if (!ctx) return;
+    const stoplossPct = (settings.stoplossPercent ?? 2) / 100;
+    const targetPct = (settings.targetPercent ?? 1.5) / 100;
 
-      for (const pos of positions) {
-        if (exitLocks.has(pos.symbol)) continue;
+    for (const pos of cachedPositions) {
+      if (exitLocks.has(pos.symbol)) continue;
 
-        let orderbook: OrderbookSnapshot;
-        try {
-          orderbook = await fetchOrderbook(pos.symbol);
-        } catch {
-          continue; // Skip this tick if we can't get live price
-        }
-        const combinedPnl = combinedPnlFromL2(pos, orderbook);
-        const stoplossAmount = pos.usedMargin * stoplossPct;
-        const targetAmount = pos.usedMargin * targetPct;
-
-        const isOrphan = !pos.binance || !pos.bybit;
-        if (isOrphan) {
-          const now = Date.now();
-          const firstSeen = orphanFirstSeen.get(pos.symbol);
-          if (firstSeen == null) orphanFirstSeen.set(pos.symbol, now);
-          else if (now - firstSeen > ORPHAN_EXIT_THRESHOLD_MS) {
-            orphanFirstSeen.delete(pos.symbol);
-            exitLocks.add(pos.symbol);
-            console.log(`[CHUNK-SYSTEM] Auto-Exit: orphan ${pos.symbol} (one leg > 30s). Triggering exit.`);
-            triggerExit(pos, ctx).finally(() => exitLocks.delete(pos.symbol));
-          }
-          continue;
-        }
-        orphanFirstSeen.delete(pos.symbol);
-
-        if (combinedPnl <= -stoplossAmount || combinedPnl >= targetAmount) {
+      // 1. Orphan Check
+      const isOrphan = !pos.binance || !pos.bybit;
+      if (isOrphan) {
+        const now = Date.now();
+        const firstSeen = orphanFirstSeen.get(pos.symbol) ?? now;
+        orphanFirstSeen.set(pos.symbol, firstSeen);
+        if (now - firstSeen > ORPHAN_EXIT_THRESHOLD_MS) {
+          orphanFirstSeen.delete(pos.symbol);
           exitLocks.add(pos.symbol);
-          const reason = combinedPnl <= -stoplossAmount ? "stoploss" : "target";
-          console.log(`[CHUNK-SYSTEM] Auto-Exit: ${pos.symbol} ${reason} (PnL=$${combinedPnl.toFixed(2)}). Triggering exit.`);
+          console.log(`[CHUNK-SYSTEM] Auto-Exit: orphan ${pos.symbol} (one leg > 30s). Triggering exit.`);
           triggerExit(pos, ctx).finally(() => exitLocks.delete(pos.symbol));
         }
+        continue;
       }
-    } catch (e) {
-      console.error("[CHUNK-SYSTEM] Auto-Exit monitor error:", e);
-    } finally {
-      isProcessingAutoExit = false;
+      orphanFirstSeen.delete(pos.symbol);
+
+      // 2. Ultra-Fast L2 VWAP PnL Check
+      const liveOrderbook = ctx.getLiveOrderbook(pos.symbol);
+      if (!liveOrderbook || liveOrderbook.asks.length === 0 || liveOrderbook.bids.length === 0) continue;
+      const combinedPnl = combinedPnlFromL2(pos, liveOrderbook);
+      const stoplossAmount = pos.usedMargin * stoplossPct;
+      const targetAmount = pos.usedMargin * targetPct;
+      if (combinedPnl <= -stoplossAmount || combinedPnl >= targetAmount) {
+        exitLocks.add(pos.symbol);
+        const reason = combinedPnl <= -stoplossAmount ? "stoploss" : "target";
+        console.log(`[CHUNK-SYSTEM] Auto-Exit: ${pos.symbol} ${reason} (PnL=$${combinedPnl.toFixed(2)}). Triggering exit.`);
+        triggerExit(pos, ctx).finally(() => exitLocks.delete(pos.symbol));
+      }
     }
-  }, CHECK_INTERVAL_MS);
+  }, 200);
 
   return () => {
-    if (autoExitIntervalId != null) {
-      clearInterval(autoExitIntervalId);
-      autoExitIntervalId = null;
-    }
+    if (posIntervalId) clearInterval(posIntervalId);
+    if (priceIntervalId) clearInterval(priceIntervalId);
+    posIntervalId = null;
+    priceIntervalId = null;
   };
 }
 
