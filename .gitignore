@@ -29,6 +29,9 @@ yarn-error.log*
 # persisted user data (contains hashed passwords and API keys)
 users.json
 
+# persisted bot config (auto-exit, leverage, etc.)
+auto-exit-settings.json
+
 # vercel
 .vercel
 

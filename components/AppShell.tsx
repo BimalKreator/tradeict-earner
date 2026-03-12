@@ -6,52 +6,35 @@ import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 
-const SETTINGS_STORAGE_KEY = "tradeict-earner-settings";
-
-/** Sync auto-exit settings from localStorage to WS backend once on app load (any page). */
+/** Sync auto-exit settings from backend config file to WS engine once on app load (any page). */
 function useSyncAutoExitOnLoad() {
   const synced = useRef(false);
   useEffect(() => {
     if (synced.current || typeof window === "undefined") return;
     synced.current = true;
-    try {
-      const raw = localStorage.getItem(SETTINGS_STORAGE_KEY);
-      let autoExit = false;
-      let stoplossPercent = 2;
-      let targetPercent = 1.5;
-      let slippagePercent = 0.05;
-      let feesPercent = 0.1;
-      let leverage = 3;
-      let capitalPercent = 10;
-      let autoTrade = false;
-      let maxTradeSlot = 5;
-      if (raw) {
-        const parsed = JSON.parse(raw) as { autoExit?: boolean; stoplossPercent?: number; targetPercent?: number; slippagePercent?: number; feesPercent?: number; leverage?: number; capitalPercent?: number; autoTrade?: boolean; maxTradeSlot?: number };
-        if (typeof parsed.autoExit === "boolean") autoExit = parsed.autoExit;
-        if (typeof parsed.stoplossPercent === "number" && parsed.stoplossPercent >= 0) stoplossPercent = parsed.stoplossPercent;
-        if (typeof parsed.targetPercent === "number" && parsed.targetPercent >= 0) targetPercent = parsed.targetPercent;
-        if (typeof parsed.slippagePercent === "number" && parsed.slippagePercent >= 0) slippagePercent = parsed.slippagePercent;
-        if (typeof parsed.feesPercent === "number" && parsed.feesPercent >= 0) feesPercent = parsed.feesPercent;
-        if (typeof parsed.leverage === "number") leverage = parsed.leverage;
-        if (typeof parsed.capitalPercent === "number") capitalPercent = parsed.capitalPercent;
-        if (typeof parsed.autoTrade === "boolean") autoTrade = parsed.autoTrade;
-        if (typeof parsed.maxTradeSlot === "number") maxTradeSlot = parsed.maxTradeSlot;
-      }
-      const wsUrl = `ws://${window.location.hostname}:8080`;
-      const ws = new WebSocket(wsUrl);
-      ws.onopen = () => {
-        ws.send(
-          JSON.stringify({
-            action: "set_auto_exit_settings",
-            payload: { autoExit, stoplossPercent, targetPercent, slippagePercent, feesPercent, leverage, capitalPercent, autoTrade, maxTradeSlot },
-          })
-        );
-        setTimeout(() => ws.close(), 500);
-      };
-      ws.onerror = () => {};
-    } catch {
-      // ignore
-    }
+    fetch("/api/settings/config")
+      .then((r) => r.json())
+      .then((data: { autoExit?: boolean; stoplossPercent?: number; targetPercent?: number; slippagePercent?: number; feesPercent?: number; leverage?: number; capitalPercent?: number; autoTrade?: boolean; maxTradeSlot?: number }) => {
+        const payload = {
+          autoExit: typeof data.autoExit === "boolean" ? data.autoExit : false,
+          stoplossPercent: typeof data.stoplossPercent === "number" ? data.stoplossPercent : 2,
+          targetPercent: typeof data.targetPercent === "number" ? data.targetPercent : 1.5,
+          slippagePercent: typeof data.slippagePercent === "number" ? data.slippagePercent : 0.05,
+          feesPercent: typeof data.feesPercent === "number" ? data.feesPercent : 0.1,
+          leverage: typeof data.leverage === "number" ? data.leverage : 3,
+          capitalPercent: typeof data.capitalPercent === "number" ? data.capitalPercent : 10,
+          autoTrade: typeof data.autoTrade === "boolean" ? data.autoTrade : false,
+          maxTradeSlot: typeof data.maxTradeSlot === "number" ? data.maxTradeSlot : 5,
+        };
+        const wsUrl = `ws://${window.location.hostname}:8080`;
+        const ws = new WebSocket(wsUrl);
+        ws.onopen = () => {
+          ws.send(JSON.stringify({ action: "set_auto_exit_settings", payload }));
+          setTimeout(() => ws.close(), 500);
+        };
+        ws.onerror = () => {};
+      })
+      .catch(() => {});
   }, []);
 }
 

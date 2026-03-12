@@ -49,18 +49,15 @@ function getDefaultUsersArray(): UserRecord[] {
   ];
 }
 
+/** Reads users from users.json. Returns empty array if file missing or invalid. */
 function loadUsers(): UserRecord[] {
   try {
     const raw = fs.readFileSync(USERS_FILE, "utf8");
     const parsed = JSON.parse(raw) as unknown;
-    if (!Array.isArray(parsed)) return getDefaultUsersArray();
+    if (!Array.isArray(parsed)) return [];
     return parsed as UserRecord[];
   } catch {
-    const defaults = getDefaultUsersArray();
-    try {
-      fs.writeFileSync(USERS_FILE, JSON.stringify(defaults, null, 2), "utf8");
-    } catch {}
-    return defaults;
+    return [];
   }
 }
 
@@ -84,6 +81,14 @@ function ensureDefaultUser(): void {
     for (const u of list) {
       const key = u.email?.trim().toLowerCase();
       if (key) users.set(key, u);
+    }
+    if (users.size === 0) {
+      const defaults = getDefaultUsersArray();
+      for (const u of defaults) {
+        const key = u.email?.trim().toLowerCase();
+        if (key) users.set(key, u);
+      }
+      saveUsers(Array.from(users.values()));
     }
   } catch (err) {
     console.error("[auth-users] ensureDefaultUser failed:", err);

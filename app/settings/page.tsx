@@ -5,8 +5,6 @@ import { useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { useApiKeys } from "@/contexts/ApiKeysContext";
 
-const SETTINGS_STORAGE_KEY = "tradeict-earner-settings";
-
 export interface ApiKeysState {
   binanceApiKey: string;
   binanceApiSecret: string;
@@ -51,34 +49,6 @@ const DEFAULT_SETTINGS: SettingsState = {
   feesPercent: 0.1,
 };
 
-function loadSettings(): SettingsState {
-  if (typeof window === "undefined") return DEFAULT_SETTINGS;
-  try {
-    const raw = localStorage.getItem(SETTINGS_STORAGE_KEY);
-    if (!raw) return DEFAULT_SETTINGS;
-    const parsed = JSON.parse(raw) as Partial<SettingsState>;
-    return {
-      autoTrade: typeof parsed.autoTrade === "boolean" ? parsed.autoTrade : DEFAULT_SETTINGS.autoTrade,
-      autoExit: typeof parsed.autoExit === "boolean" ? parsed.autoExit : DEFAULT_SETTINGS.autoExit,
-      capitalPercent: typeof parsed.capitalPercent === "number" ? parsed.capitalPercent : DEFAULT_SETTINGS.capitalPercent,
-      maxTradeSlot: typeof parsed.maxTradeSlot === "number" ? parsed.maxTradeSlot : DEFAULT_SETTINGS.maxTradeSlot,
-      leverage: typeof parsed.leverage === "number" ? parsed.leverage : DEFAULT_SETTINGS.leverage,
-      stoplossPercent: typeof parsed.stoplossPercent === "number" ? parsed.stoplossPercent : DEFAULT_SETTINGS.stoplossPercent,
-      targetPercent: typeof parsed.targetPercent === "number" ? parsed.targetPercent : DEFAULT_SETTINGS.targetPercent,
-      slippagePercent: typeof parsed.slippagePercent === "number" ? parsed.slippagePercent : DEFAULT_SETTINGS.slippagePercent,
-      feesPercent: typeof parsed.feesPercent === "number" ? parsed.feesPercent : DEFAULT_SETTINGS.feesPercent,
-    };
-  } catch {
-    return DEFAULT_SETTINGS;
-  }
-}
-
-function saveSettings(s: SettingsState): void {
-  try {
-    localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(s));
-  } catch {}
-}
-
 type ApiKeyField = "binanceApiKey" | "binanceApiSecret" | "bybitApiKey" | "bybitApiSecret";
 
 export default function SettingsPage() {
@@ -86,17 +56,43 @@ export default function SettingsPage() {
   const { apiKeys: contextApiKeys, refreshApiKeys, loading: profileLoading } = useApiKeys();
   const [settings, setSettings] = useState<SettingsState>(DEFAULT_SETTINGS);
   const [apiKeys, setApiKeys] = useState<ApiKeysState>(DEFAULT_API_KEYS);
-  const [hydrated, setHydrated] = useState(false);
+  const [configLoaded, setConfigLoaded] = useState(false);
   const [focusedField, setFocusedField] = useState<ApiKeyField | null>(null);
   const [editValue, setEditValue] = useState("");
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
   const [testing, setTesting] = useState<"binance" | "bybit" | null>(null);
   const [savingKeys, setSavingKeys] = useState(false);
+  const [savingConfig, setSavingConfig] = useState(false);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Load bot config from backend on mount (no localStorage; avoids overwriting backend with defaults).
   useEffect(() => {
-    setSettings(loadSettings());
-    setHydrated(true);
+    let cancelled = false;
+    fetch("/api/settings/config")
+      .then((r) => r.json())
+      .then((data: Partial<SettingsState>) => {
+        if (cancelled) return;
+        setSettings({
+          autoTrade: typeof data.autoTrade === "boolean" ? data.autoTrade : DEFAULT_SETTINGS.autoTrade,
+          autoExit: typeof data.autoExit === "boolean" ? data.autoExit : DEFAULT_SETTINGS.autoExit,
+          capitalPercent: typeof data.capitalPercent === "number" ? data.capitalPercent : DEFAULT_SETTINGS.capitalPercent,
+          maxTradeSlot: typeof data.maxTradeSlot === "number" ? data.maxTradeSlot : DEFAULT_SETTINGS.maxTradeSlot,
+          leverage: typeof data.leverage === "number" ? data.leverage : DEFAULT_SETTINGS.leverage,
+          stoplossPercent: typeof data.stoplossPercent === "number" ? data.stoplossPercent : DEFAULT_SETTINGS.stoplossPercent,
+          targetPercent: typeof data.targetPercent === "number" ? data.targetPercent : DEFAULT_SETTINGS.targetPercent,
+          slippagePercent: typeof data.slippagePercent === "number" ? data.slippagePercent : DEFAULT_SETTINGS.slippagePercent,
+          feesPercent: typeof data.feesPercent === "number" ? data.feesPercent : DEFAULT_SETTINGS.feesPercent,
+        });
+        setConfigLoaded(true);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setConfigLoaded(true);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // Sync local API key inputs when profile has finished loading from the server (avoids overwriting with empty before fetch completes).
@@ -109,39 +105,6 @@ export default function SettingsPage() {
       bybitApiSecret: contextApiKeys.bybitApiSecret ?? "",
     });
   }, [profileLoading, contextApiKeys.binanceApiKey, contextApiKeys.binanceApiSecret, contextApiKeys.bybitApiKey, contextApiKeys.bybitApiSecret]);
-
-  useEffect(() => {
-    if (!hydrated) return;
-    saveSettings(settings);
-
-    // Sync settings with the backend WS server
-    try {
-      const wsUrl = `ws://${window.location.hostname}:8080`;
-      const ws = new WebSocket(wsUrl);
-      ws.onopen = () => {
-        ws.send(
-          JSON.stringify({
-            action: "set_auto_exit_settings",
-            payload: {
-              autoTrade: settings.autoTrade,
-              autoExit: settings.autoExit,
-              stoplossPercent: settings.stoplossPercent,
-              targetPercent: settings.targetPercent,
-              slippagePercent: settings.slippagePercent,
-              feesPercent: settings.feesPercent,
-              leverage: settings.leverage,
-              capitalPercent: settings.capitalPercent,
-              maxTradeSlot: settings.maxTradeSlot,
-            },
-          })
-        );
-        setTimeout(() => ws.close(), 500);
-      };
-      ws.onerror = (err) => console.error("WS sync error", err);
-    } catch (e) {
-      console.error("Failed to sync settings with WS backend", e);
-    }
-  }, [settings, hydrated]);
 
 
   const showToast = useCallback((message: string, type: "success" | "error") => {
@@ -191,6 +154,53 @@ export default function SettingsPage() {
   };
 
   const resetToDefaults = () => setSettings(DEFAULT_SETTINGS);
+
+  const saveConfigToBackend = useCallback(async () => {
+    setSavingConfig(true);
+    try {
+      const res = await fetch("/api/settings/config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(settings),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        showToast((data as { error?: string }).error ?? "Failed to save settings", "error");
+        return;
+      }
+      // Push saved config to the running WS engine so it uses new values immediately.
+      try {
+        const wsUrl = `ws://${typeof window !== "undefined" ? window.location.hostname : "localhost"}:8080`;
+        const ws = new WebSocket(wsUrl);
+        ws.onopen = () => {
+          ws.send(
+            JSON.stringify({
+              action: "set_auto_exit_settings",
+              payload: {
+                autoTrade: settings.autoTrade,
+                autoExit: settings.autoExit,
+                stoplossPercent: settings.stoplossPercent,
+                targetPercent: settings.targetPercent,
+                slippagePercent: settings.slippagePercent,
+                feesPercent: settings.feesPercent,
+                leverage: settings.leverage,
+                capitalPercent: settings.capitalPercent,
+                maxTradeSlot: settings.maxTradeSlot,
+              },
+            })
+          );
+          setTimeout(() => ws.close(), 500);
+        };
+      } catch {
+        // WS sync is best-effort; config is already saved to file
+      }
+      showToast("Settings saved and synced to bot", "success");
+    } catch {
+      showToast("Failed to save settings", "error");
+    } finally {
+      setSavingConfig(false);
+    }
+  }, [settings, showToast]);
 
   const getDisplayValue = (key: ApiKeyField) => {
     const val = apiKeys[key];
@@ -547,10 +557,12 @@ export default function SettingsPage() {
         {/* Actions */}
         <div className="flex flex-wrap gap-3">
           <button
-            type="submit"
-            className="glass-button px-6 py-3 rounded-xl text-sm font-medium text-white accent-border"
+            type="button"
+            onClick={saveConfigToBackend}
+            disabled={savingConfig || !configLoaded}
+            className="glass-button px-6 py-3 rounded-xl text-sm font-medium text-white accent-border disabled:opacity-50"
           >
-            Save settings
+            {savingConfig ? "Saving…" : "Save settings"}
           </button>
           <button
             type="button"
