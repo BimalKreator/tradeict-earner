@@ -312,18 +312,32 @@ export function startAutoExitMonitor(
     const targetPct = (settings.targetPercent ?? 1.5) / 100;
     const feesPct = (settings.feesPercent ?? 0.1) / 100;
 
-    const tradeValue = pos.totalQuantity * pos.entryPrice;
+    // Bulletproof property extraction to prevent NaN
+    const posAny = pos as Record<string, unknown>;
+    const qty = Number(posAny.quantity ?? posAny.qty ?? posAny.totalQuantity ?? 0) || 0;
+    const entryPrice = Number(posAny.entryPrice ?? posAny.avgEntryPrice ?? 0) || 0;
+    const margin = Number(posAny.marginUsed ?? posAny.usedMargin ?? 0) || 0;
+
+    const tradeValue = qty * entryPrice;
 
     // Stoploss = Margin used x stoploss%
-    const stoplossAmount = pos.usedMargin * stoplossPct;
+    const stoplossAmount = margin * stoplossPct;
 
     // Target = (Margin used x Target%) + (Trade Value x Fees%)
-    const targetAmount = (pos.usedMargin * targetPct) + (tradeValue * feesPct);
+    const targetAmount = (margin * targetPct) + (tradeValue * feesPct);
 
-    if (combinedPnl <= -stoplossAmount || combinedPnl >= targetAmount) {
+    // Occasional debug log (~2% of the time) to verify values
+    if (Math.random() < 0.02) {
+      console.log(`[AUTO-EXIT Tracker] ${symbol} | Live PnL: $${combinedPnl.toFixed(4)} | Target: $${targetAmount.toFixed(4)} | SL: -$${stoplossAmount.toFixed(4)} | Margin: $${margin.toFixed(2)}`);
+    }
+
+    if (combinedPnl >= targetAmount && targetAmount > 0) {
       exitLocks.add(pos.symbol);
-      const reason = combinedPnl <= -stoplossAmount ? "stoploss" : "target";
-      console.log(`[CHUNK-SYSTEM] Auto-Exit: ${pos.symbol} ${reason} (PnL=$${combinedPnl.toFixed(2)}). Triggering exit.`);
+      console.log(`[CHUNK-SYSTEM] Auto-Exit: ${pos.symbol} target hit! PnL=$${combinedPnl.toFixed(4)} >= Target=$${targetAmount.toFixed(4)}. Triggering exit.`);
+      triggerExit(pos, ctx).finally(() => exitLocks.delete(pos.symbol));
+    } else if (combinedPnl <= -stoplossAmount) {
+      exitLocks.add(pos.symbol);
+      console.log(`[CHUNK-SYSTEM] Auto-Exit: ${pos.symbol} stoploss hit! PnL=$${combinedPnl.toFixed(4)} <= -SL=$${stoplossAmount.toFixed(4)}. Triggering exit.`);
       triggerExit(pos, ctx).finally(() => exitLocks.delete(pos.symbol));
     }
   };
