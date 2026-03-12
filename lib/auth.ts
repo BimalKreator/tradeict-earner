@@ -2,16 +2,8 @@ import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { findUserByEmail, verifyPassword } from "./auth-users";
 
-const FALLBACK_SECRET =
-  "tradeict-earner-fallback-secret-min-32-chars-long-for-jwt-signing";
-function getSecret(): string {
-  const env = process.env.NEXTAUTH_SECRET;
-  if (typeof env === "string" && env.trim().length >= 32) return env.trim();
-  if (typeof env === "string" && env.trim().length > 0) return env.trim();
-  return FALLBACK_SECRET;
-}
-
 export const authOptions: NextAuthOptions = {
+  secret: process.env.NEXTAUTH_SECRET || "fallback_secret_that_is_at_least_32_characters_long_for_safety",
   providers: [
     CredentialsProvider({
       name: "Credentials",
@@ -72,5 +64,4 @@ export const authOptions: NextAuthOptions = {
     strategy: "jwt",
     maxAge: 30 * 24 * 60 * 60, // 30 days
   },
-  secret: getSecret(),
 };
