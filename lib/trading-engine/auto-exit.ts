@@ -313,7 +313,7 @@ export function startAutoExitMonitor(
     const feesPct = (settings.feesPercent ?? 0.1) / 100;
 
     // Bulletproof property extraction to prevent NaN
-    const posAny = pos as Record<string, unknown>;
+    const posAny = pos as any;
     const qty = Number(posAny.quantity ?? posAny.qty ?? posAny.totalQuantity ?? 0) || 0;
     const entryPrice = Number(posAny.entryPrice ?? posAny.avgEntryPrice ?? 0) || 0;
     const margin = Number(posAny.marginUsed ?? posAny.usedMargin ?? 0) || 0;
