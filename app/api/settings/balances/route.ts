@@ -1,21 +1,26 @@
+import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 import { getBinanceBalance, getBybitBalance } from "@/lib/trading-engine/execution-engine";
+import { authOptions } from "@/lib/auth";
+import { findUserByEmail } from "@/lib/auth-users";
 
-export async function POST(request: Request) {
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
+export async function POST() {
   try {
-    const body = (await request.json()) as {
-      binanceApiKey?: string;
-      binanceApiSecret?: string;
-      bybitApiKey?: string;
-      bybitApiSecret?: string;
-    };
-    const { binanceApiKey, binanceApiSecret, bybitApiKey, bybitApiSecret } = body;
-    if (!binanceApiKey || !binanceApiSecret || !bybitApiKey || !bybitApiSecret) {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const user = findUserByEmail(session.user.email);
+    if (!user?.apiKeys?.binanceApiKey || !user?.apiKeys?.binanceApiSecret || !user?.apiKeys?.bybitApiKey || !user?.apiKeys?.bybitApiSecret) {
       return NextResponse.json(
-        { error: "Missing API credentials" },
+        { error: "API keys not configured. Save them in Settings." },
         { status: 400 }
       );
     }
+    const { binanceApiKey, binanceApiSecret, bybitApiKey, bybitApiSecret } = user.apiKeys;
 
     const [binance, bybit] = await Promise.all([
       getBinanceBalance(binanceApiKey, binanceApiSecret),

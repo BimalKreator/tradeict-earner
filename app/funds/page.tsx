@@ -1,8 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useApiKeys } from "@/contexts/ApiKeysContext";
-
 const OPENING_BALANCES_KEY = "tradeict-earner-opening-balances";
 
 const DEFAULT_OPENING_BINANCE = 65.15;
@@ -34,7 +32,6 @@ function loadOpeningBalances(): { binance: number; bybit: number } {
 }
 
 export default function FundsPage() {
-  const { apiKeys } = useApiKeys();
   const [binance, setBinance] = useState<BalanceMetrics | null>(null);
   const [bybit, setBybit] = useState<BalanceMetrics | null>(null);
   const [loading, setLoading] = useState(true);
@@ -44,17 +41,11 @@ export default function FundsPage() {
   const saveToastRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fetchBalances = useCallback(() => {
-    if (!apiKeys.binanceApiKey || !apiKeys.binanceApiSecret || !apiKeys.bybitApiKey || !apiKeys.bybitApiSecret) {
-      setBinance(null);
-      setBybit(null);
-      setLoading(false);
-      return;
-    }
     setLoading(true);
     fetch("/api/settings/balances", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(apiKeys),
+      body: "{}",
     })
       .then((r) => r.json())
       .then((data: { binance?: BalanceMetrics; bybit?: BalanceMetrics; error?: string }) => {
@@ -87,7 +78,7 @@ export default function FundsPage() {
         setBybit(null);
       })
       .finally(() => setLoading(false));
-  }, [apiKeys]);
+  }, []);
 
   useEffect(() => {
     fetchBalances();

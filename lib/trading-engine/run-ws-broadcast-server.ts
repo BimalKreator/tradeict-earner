@@ -33,6 +33,7 @@ import {
   type OrderSide,
 } from "./execution-engine";
 import { startAutoExitMonitor } from "./auto-exit";
+import { findUserByEmail } from "../auth-users";
 
 dotenv.config({ path: path.join(process.cwd(), ".env.local") });
 dotenv.config({ path: path.join(process.cwd(), ".env") }); // Fallback
@@ -244,10 +245,6 @@ async function runManualTrade(
   payload: {
     symbol: string;
     side: string;
-    binanceApiKey: string;
-    binanceApiSecret: string;
-    bybitApiKey: string;
-    bybitApiSecret: string;
     isExit?: boolean;
     quantity?: number;
     userEmail?: string;
@@ -256,14 +253,25 @@ async function runManualTrade(
   isTradeExecuting = true;
   try {
     const { symbol, side, isExit, quantity, userEmail } = payload;
+    if (!userEmail?.trim()) {
+      isTradeExecuting = false;
+      sendTradeUpdate(ws, "Trade failed: Not authenticated", true);
+      return;
+    }
+    const user = findUserByEmail(userEmail.trim());
+    if (!user?.apiKeys?.binanceApiKey || !user?.apiKeys?.binanceApiSecret || !user?.apiKeys?.bybitApiKey || !user?.apiKeys?.bybitApiSecret) {
+      isTradeExecuting = false;
+      sendTradeUpdate(ws, "Trade failed: API keys not configured. Save them in Settings.", true);
+      return;
+    }
     const credentials: ExchangeCredentials = {
       binance: {
-        apiKey: payload.binanceApiKey,
-        apiSecret: payload.binanceApiSecret,
+        apiKey: user.apiKeys.binanceApiKey,
+        apiSecret: user.apiKeys.binanceApiSecret,
       },
       bybit: {
-        apiKey: payload.bybitApiKey,
-        apiSecret: payload.bybitApiSecret,
+        apiKey: user.apiKeys.bybitApiKey,
+        apiSecret: user.apiKeys.bybitApiSecret,
       },
     };
     (credentials as { slippagePercent?: number }).slippagePercent = autoExitSettings.slippagePercent ?? 0.05;
@@ -302,8 +310,8 @@ async function runManualTrade(
 
     const [orderbook, binanceData, bybitData] = await Promise.all([
       fetchOrderbookSnapshot(symbol),
-      getBinanceBalance(payload.binanceApiKey, payload.binanceApiSecret),
-      getBybitBalance(payload.bybitApiKey, payload.bybitApiSecret),
+      getBinanceBalance(credentials.binance.apiKey, credentials.binance.apiSecret),
+      getBybitBalance(credentials.bybit.apiKey, credentials.bybit.apiSecret),
     ]);
     const binanceBalance = binanceData.available;
     const bybitBalance = bybitData.available;
@@ -555,12 +563,8 @@ async function main() {
             return;
           }
           const payload = msg.payload as {
-            symbol: string;
-            side: string;
-            binanceApiKey: string;
-            binanceApiSecret: string;
-            bybitApiKey: string;
-            bybitApiSecret: string;
+            symbol?: string;
+            side?: string;
             isExit?: boolean;
             quantity?: number;
             leverage?: number;
@@ -570,18 +574,22 @@ async function main() {
             !payload?.symbol ||
             !payload.side ||
             typeof payload.side !== "string" ||
-            payload.side.trim() === "" ||
-            !payload.binanceApiKey ||
-            !payload.binanceApiSecret ||
-            !payload.bybitApiKey ||
-            !payload.bybitApiSecret
+            payload.side.trim() === ""
           ) {
-            sendTradeUpdate(ws, "Trade failed: Invalid symbol, side, or missing API credentials", true);
+            sendTradeUpdate(ws, "Trade failed: Invalid symbol or side", true);
             return;
           }
-          // Exit flow: quantity not required; executeCloseTrade fetches exact positions
-          if (!payload) return;
-          runManualTrade(ws, payload).catch((e) => {
+          if (!payload.userEmail?.trim()) {
+            sendTradeUpdate(ws, "Trade failed: Not authenticated", true);
+            return;
+          }
+          runManualTrade(ws, {
+            symbol: payload.symbol,
+            side: payload.side,
+            isExit: payload.isExit,
+            quantity: payload.quantity,
+            userEmail: payload.userEmail,
+          }).catch((e) => {
             const errMsg = e instanceof Error ? e.message : String(e);
             console.error("[WS Server] [CHUNK-SYSTEM] Manual trade error:", errMsg);
             sendTradeUpdate(ws, `Trade failed: ${errMsg}`, true);

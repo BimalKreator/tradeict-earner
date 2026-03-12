@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
-import { useApiKeys } from "@/contexts/ApiKeysContext";
 
 export interface SymbolState {
   symbol: string;
@@ -142,7 +141,6 @@ export default function ScreenerPage() {
   const [tradeToast, setTradeToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
   const [activePositions, setActivePositions] = useState<Set<string>>(new Set());
   const [maxSlots, setMaxSlots] = useState(5);
-  const { apiKeys } = useApiKeys();
   const { data: session } = useSession();
 
   const wsRef = useRef<WebSocket | null>(null);
@@ -286,24 +284,22 @@ export default function ScreenerPage() {
     setTradeQty("");
     setTradeLeverage(3);
     setBalances(null);
-    if (apiKeys.binanceApiKey && apiKeys.binanceApiSecret && apiKeys.bybitApiKey && apiKeys.bybitApiSecret) {
-      setBalancesLoading(true);
-      fetch("/api/settings/balances", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(apiKeys),
+    setBalancesLoading(true);
+    fetch("/api/settings/balances", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: "{}",
+    })
+      .then((r) => r.json())
+      .then((data: { binance?: number; bybit?: number; error?: string }) => {
+        if (data.error) setBalances({ binance: 0, bybit: 0 });
+        else setBalances({
+          binance: (data.binance as { available?: number } | undefined)?.available ?? 0,
+          bybit: (data.bybit as { available?: number } | undefined)?.available ?? 0,
+        });
       })
-        .then((r) => r.json())
-        .then((data: { binance?: number; bybit?: number; error?: string }) => {
-          if (data.error) setBalances({ binance: 0, bybit: 0 });
-          else setBalances({
-            binance: (data.binance as { available?: number } | undefined)?.available ?? 0,
-            bybit: (data.bybit as { available?: number } | undefined)?.available ?? 0,
-          });
-        })
-        .catch(() => setBalances({ binance: 0, bybit: 0 }))
-        .finally(() => setBalancesLoading(false));
-    }
+      .catch(() => setBalances({ binance: 0, bybit: 0 }))
+      .finally(() => setBalancesLoading(false));
   };
 
   const closeTradeModal = () => {
@@ -322,8 +318,8 @@ export default function ScreenerPage() {
 
   const submitTrade = () => {
     if (!tradeModal) return;
-    if (!apiKeys.binanceApiKey || !apiKeys.binanceApiSecret || !apiKeys.bybitApiKey || !apiKeys.bybitApiSecret) {
-      showTradeToast("API keys not configured", "error");
+    if (!session?.user?.email) {
+      showTradeToast("Not signed in", "error");
       return;
     }
     const ws = wsRef.current;
@@ -342,8 +338,7 @@ export default function ScreenerPage() {
             side,
             quantity: parseFloat(tradeQty) || 0,
             leverage: tradeLeverage,
-            userEmail: session?.user?.email ?? undefined,
-            ...apiKeys,
+            userEmail: session.user.email,
           },
         })
       );

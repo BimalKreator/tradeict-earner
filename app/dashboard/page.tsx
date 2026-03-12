@@ -2,7 +2,6 @@
 
 import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
-import { useApiKeys } from "@/contexts/ApiKeysContext";
 
 const SETTINGS_STORAGE_KEY = "tradeict-earner-settings";
 const OPENING_BALANCES_KEY = "tradeict-earner-opening-balances";
@@ -151,32 +150,25 @@ export default function DashboardPage() {
   });
   const [balances, setBalances] = useState<{ binance: number; bybit: number } | null>(null);
   const [wsActiveSymbols, setWsActiveSymbols] = useState<string[]>([]);
-  const { apiKeys } = useApiKeys();
   const { data: session } = useSession();
   const wsRef = useRef<WebSocket | null>(null);
   const toastRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fetchPositions = useCallback(() => {
-    if (!apiKeys.binanceApiKey || !apiKeys.binanceApiSecret || !apiKeys.bybitApiKey || !apiKeys.bybitApiSecret) {
-      setPositions([]);
-      setLoading(false);
-      return;
-    }
     setLoading(true);
     fetch("/api/positions", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(apiKeys),
+      body: "{}",
     })
       .then((r) => r.json())
       .then((data: { positions?: GroupedPosition[]; error?: string }) => {
-        console.log("Positions Data:", data);
         if (data.error) setPositions([]);
         else setPositions(data.positions ?? []);
       })
       .catch(() => setPositions([]))
       .finally(() => setLoading(false));
-  }, [apiKeys]);
+  }, []);
 
   useEffect(() => {
     setSettings(loadSettings());
@@ -190,14 +182,10 @@ export default function DashboardPage() {
   }, []);
 
   const fetchBalances = useCallback(() => {
-    if (!apiKeys.binanceApiKey || !apiKeys.binanceApiSecret || !apiKeys.bybitApiKey || !apiKeys.bybitApiSecret) {
-      setBalances(null);
-      return;
-    }
     fetch("/api/settings/balances", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(apiKeys),
+      body: "{}",
     })
       .then((r) => r.json())
       .then((data: { binance?: { total?: number }; bybit?: { total?: number }; error?: string }) => {
@@ -211,7 +199,7 @@ export default function DashboardPage() {
         });
       })
       .catch(() => setBalances(null));
-  }, [apiKeys]);
+  }, []);
 
   useEffect(() => {
     fetchBalances();
@@ -295,8 +283,8 @@ export default function DashboardPage() {
 
   const exitPosition = useCallback(
     (pos: GroupedPosition) => {
-      if (!apiKeys.binanceApiKey || !apiKeys.binanceApiSecret || !apiKeys.bybitApiKey || !apiKeys.bybitApiSecret) {
-        showToast("API keys not configured", "error");
+      if (!session?.user?.email) {
+        showToast("Not signed in", "error");
         return;
       }
       const ws = wsRef.current;
@@ -315,8 +303,7 @@ export default function DashboardPage() {
               side: exitSide,
               quantity: pos.totalQuantity,
               isExit: true,
-              userEmail: session?.user?.email ?? undefined,
-              ...apiKeys,
+              userEmail: session.user.email,
             },
           })
         );
@@ -325,7 +312,7 @@ export default function DashboardPage() {
         setClosingId(null);
       }
     },
-    [showToast, session, apiKeys]
+    [showToast, session]
   );
 
   const stateBySymbol = useCallback(

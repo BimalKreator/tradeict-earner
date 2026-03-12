@@ -1,3 +1,4 @@
+import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 import {
   getBinancePositions,
@@ -5,6 +6,8 @@ import {
   type RawPosition,
   type OrderSide,
 } from "@/lib/trading-engine/execution-engine";
+import { authOptions } from "@/lib/auth";
+import { findUserByEmail } from "@/lib/auth-users";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -117,21 +120,20 @@ function groupPositions(binance: RawPosition[], bybit: RawPosition[]): GroupedPo
   return out.sort((a, b) => a.symbol.localeCompare(b.symbol));
 }
 
-export async function POST(request: Request) {
+export async function POST() {
   try {
-    const body = (await request.json()) as {
-      binanceApiKey?: string;
-      binanceApiSecret?: string;
-      bybitApiKey?: string;
-      bybitApiSecret?: string;
-    };
-    const { binanceApiKey, binanceApiSecret, bybitApiKey, bybitApiSecret } = body;
-    if (!binanceApiKey || !binanceApiSecret || !bybitApiKey || !bybitApiSecret) {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const user = findUserByEmail(session.user.email);
+    if (!user?.apiKeys?.binanceApiKey || !user?.apiKeys?.binanceApiSecret || !user?.apiKeys?.bybitApiKey || !user?.apiKeys?.bybitApiSecret) {
       return NextResponse.json(
-        { error: "Missing API credentials" },
+        { error: "API keys not configured. Save them in Settings." },
         { status: 400 }
       );
     }
+    const { binanceApiKey, binanceApiSecret, bybitApiKey, bybitApiSecret } = user.apiKeys;
 
     const [binanceList, bybitList] = await Promise.all([
       getBinancePositions(binanceApiKey, binanceApiSecret),
