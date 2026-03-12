@@ -136,6 +136,8 @@ export default function SettingsPage() {
               targetPercent: settings.targetPercent,
               slippagePercent: settings.slippagePercent,
               feesPercent: settings.feesPercent,
+              leverage: settings.leverage,
+              capitalPercent: settings.capitalPercent,
             },
           })
         );

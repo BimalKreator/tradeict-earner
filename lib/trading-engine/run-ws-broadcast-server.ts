@@ -317,13 +317,15 @@ async function main() {
           }
           return;
         }
-        const payloadMsg = msg.payload as { autoExit?: boolean; stoplossPercent?: number; targetPercent?: number; slippagePercent?: number; feesPercent?: number } | undefined;
+        const payloadMsg = msg.payload as { autoExit?: boolean; stoplossPercent?: number; targetPercent?: number; slippagePercent?: number; feesPercent?: number; leverage?: number; capitalPercent?: number } | undefined;
         if (msg.action === "set_auto_exit_settings" && payloadMsg) {
           if (typeof payloadMsg.autoExit === "boolean") autoExitSettings.autoExit = payloadMsg.autoExit;
           if (typeof payloadMsg.stoplossPercent === "number" && payloadMsg.stoplossPercent >= 0) autoExitSettings.stoplossPercent = payloadMsg.stoplossPercent;
           if (typeof payloadMsg.targetPercent === "number" && payloadMsg.targetPercent >= 0) autoExitSettings.targetPercent = payloadMsg.targetPercent;
           if (typeof payloadMsg.slippagePercent === "number" && payloadMsg.slippagePercent >= 0) autoExitSettings.slippagePercent = payloadMsg.slippagePercent;
           if (typeof payloadMsg.feesPercent === "number" && payloadMsg.feesPercent >= 0) autoExitSettings.feesPercent = payloadMsg.feesPercent;
+          if (typeof payloadMsg.leverage === "number") autoExitSettings.leverage = payloadMsg.leverage;
+          if (typeof payloadMsg.capitalPercent === "number") autoExitSettings.capitalPercent = payloadMsg.capitalPercent;
           saveAutoExitSettings();
           console.log("[WS Server] Auto-Exit settings updated from client: autoExit=" + autoExitSettings.autoExit);
           return;

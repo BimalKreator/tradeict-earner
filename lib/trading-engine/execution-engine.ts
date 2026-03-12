@@ -29,6 +29,8 @@ export interface ExecutionSettings {
   slippagePercent?: number;
   /** Total fees as percentage of trade value (e.g. 0.1 = 0.1%). */
   feesPercent?: number;
+  /** Leverage (e.g. 3). */
+  leverage?: number;
 }
 
 export interface ExchangeCredentials {
@@ -959,7 +961,19 @@ export async function executeChunkTrade(
   const execPriceBybit = formatPrice(execPriceBybitRaw, bybitTickSize);
   const execPriceBinance = formatPrice(execPriceBinanceRaw, binanceTickSize);
 
-  const firstChunkQtyRaw = minNotional / priceBybitBase;
+  const lev = settings.leverage ?? 1;
+  const capPct = Math.max(0, Math.min(100, settings.capitalPercent ?? 10)) / 100;
+  const minBal = Math.min(binanceBalance, bybitBalance);
+  const targetNotional = minBal * capPct * lev;
+  const targetQtyRaw = targetNotional / priceBybitBase;
+  const targetTotalQty = parseFloat(formatQuantity(targetQtyRaw, Math.max(bybitStepSize, binanceStepSize)));
+
+  console.log(`${P} Target Notional=$${targetNotional.toFixed(2)}, Target Total Qty=${targetTotalQty} (Cap%: ${capPct * 100}%, Lev: ${lev})`);
+
+  let cumulativeFilled = 0;
+
+  let firstChunkQtyRaw = minNotional / priceBybitBase;
+  if (!isExit && firstChunkQtyRaw > targetTotalQty) firstChunkQtyRaw = targetTotalQty;
   const firstChunkQtyBybitStr = formatQuantity(firstChunkQtyRaw, bybitStepSize);
   const firstChunkQty = parseFloat(firstChunkQtyBybitStr) || 0;
   if (firstChunkQty <= 0) {
@@ -1095,6 +1109,11 @@ export async function executeChunkTrade(
           }
           throw err;
         });
+
+        console.log(`${P} Waiting for Binance Chunk 1 confirmation...`);
+        await privateWs.waitForOrderConfirmation("binance", binanceRes.orderId, CONFIRM_TIMEOUT_MS, symbol);
+        cumulativeFilled += filledBybit;
+
         console.log(`${P} Chunk 1 complete. Bybit orderId=${bybitOrderId} Binance orderId=${binanceRes.orderId}`);
         onProgress?.("Chunk 1 complete");
         results.push({
@@ -1129,17 +1148,16 @@ export async function executeChunkTrade(
   }
 
   const firstRowQty = getFirstRowQty(orderbook, side);
-  const chunkQtyRaw = firstRowQty * frac;
-  const chunkQtyBybitStr = formatQuantity(chunkQtyRaw, bybitStepSize);
-  const chunkQty = parseFloat(chunkQtyBybitStr) || 0;
-  console.log(`${P} Calculating remaining quantity: firstRowQty=${firstRowQty} frac=${frac} -> chunkQty(raw)=${chunkQtyRaw} chunkQty(formatted)=${chunkQtyBybitStr} (50% of first row liquidity for Chunk 2+)`);
-  if (chunkQty <= 0) {
-    console.log(`${P} No further chunks: chunkQty <= 0. Final completion.`);
-    onProgress?.("Trade completed");
-    return results;
-  }
+  console.log(`${P} Chunk 2+: firstRowQty=${firstRowQty} frac=${frac} (liquidity fraction for subsequent chunks)`);
 
   for (let i = 0; i < 10; i++) {
+    const remaining = targetTotalQty - cumulativeFilled;
+    if (!isExit && (remaining <= 0 || remaining < Math.min(bybitStepSize, binanceStepSize))) {
+      console.log(`${P} Target quantity reached (${cumulativeFilled}/${targetTotalQty}). Stopping chunks.`);
+      onProgress?.("Target quantity reached");
+      break;
+    }
+
     const priceBybitNext = getBestPrice(orderbook, side);
     const priceBinanceNext = getBestPrice(orderbook, side);
     if (priceBybitNext <= 0 || priceBinanceNext <= 0) {
@@ -1151,6 +1169,16 @@ export async function executeChunkTrade(
     const execBinanceNextRaw = isBuy ? priceBinanceNext * (1 + slipPctNext) : priceBinanceNext * (1 - slipPctNext);
     const execPriceBybitNext = formatPrice(execBybitNextRaw, bybitTickSize);
     const execPriceBinanceNext = formatPrice(execBinanceNextRaw, binanceTickSize);
+
+    let chunkQtyRaw = firstRowQty * frac;
+    if (!isExit && chunkQtyRaw > remaining) chunkQtyRaw = remaining;
+
+    const chunkQtyBybitStr = formatQuantity(chunkQtyRaw, bybitStepSize);
+    const chunkQty = parseFloat(chunkQtyBybitStr) || 0;
+    if (chunkQty <= 0) {
+      console.log(`${P} Chunk ${i + 2}: chunk qty rounded to 0. Stopping.`);
+      break;
+    }
 
     let bybitId: string | null = null;
     try {
@@ -1186,8 +1214,10 @@ export async function executeChunkTrade(
         results.push({ success: false, error: "Bybit IOC filled 0", abortedBybit: true });
         break;
       }
-      const binanceChunkQtyStr = formatQuantity(filled > 0 ? filled : chunkQty, binanceStepSize);
-      await placeBinanceOrder(credentials.binance.apiKey, credentials.binance.apiSecret, {
+      cumulativeFilled += filled;
+
+      const binanceChunkQtyStr = formatQuantity(filled, binanceStepSize);
+      const binanceRes = await placeBinanceOrder(credentials.binance.apiKey, credentials.binance.apiSecret, {
         symbol,
         side: binanceSide,
         type: "LIMIT",
@@ -1197,12 +1227,15 @@ export async function executeChunkTrade(
         reduceOnly,
       });
 
+      console.log(`${P} Waiting for Binance Chunk ${i + 2} confirmation...`);
+      await privateWs.waitForOrderConfirmation("binance", binanceRes.orderId ?? "", CONFIRM_TIMEOUT_MS, symbol);
+
       console.log(`${P} Chunk ${i + 2} complete.`);
       onProgress?.(`Chunk ${i + 2} complete`);
       results.push({
         success: true,
         bybitOrder: { exchange: "bybit", orderId: bybitId, symbol, side, quantity: chunkQty, price: priceBybitNext, filledQty: filled, status: "FILLED" },
-        binanceOrder: { exchange: "binance", orderId: "", symbol, side, quantity: chunkQty, price: priceBinanceNext, status: "FILLED" },
+        binanceOrder: { exchange: "binance", orderId: binanceRes.orderId ?? "", symbol, side, quantity: chunkQty, price: priceBinanceNext, status: "FILLED" },
       });
     } catch (e) {
       const errMsg = e instanceof Error ? e.message : String(e);
