@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
+import { useApiKeys } from "@/contexts/ApiKeysContext";
 
 export interface SymbolState {
   symbol: string;
@@ -21,7 +22,6 @@ const BANNED_TOKENS_STORAGE_KEY = "tradeict-earner-banned-tokens";
 const TRADE_AMOUNT_STORAGE_KEY = "tradeict-earner-trade-amount";
 const MIN_L2_SPREAD_STORAGE_KEY = "tradeict-earner-min-l2-spread-pct";
 const ONLY_SAFE_STORAGE_KEY = "tradeict-earner-only-safe-opportunities";
-const API_KEYS_STORAGE_KEY = "tradeict-earner-api-keys";
 const PAGE_SIZE = 15;
 
 interface TradeRow {
@@ -142,6 +142,7 @@ export default function ScreenerPage() {
   const [tradeToast, setTradeToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
   const [activePositions, setActivePositions] = useState<Set<string>>(new Set());
   const [maxSlots, setMaxSlots] = useState(5);
+  const { apiKeys } = useApiKeys();
   const { data: session } = useSession();
 
   const wsRef = useRef<WebSocket | null>(null);
@@ -280,41 +281,17 @@ export default function ScreenerPage() {
     });
   };
 
-  function getApiKeysFromStorage(): {
-    binanceApiKey: string;
-    binanceApiSecret: string;
-    bybitApiKey: string;
-    bybitApiSecret: string;
-  } {
-    if (typeof window === "undefined")
-      return { binanceApiKey: "", binanceApiSecret: "", bybitApiKey: "", bybitApiSecret: "" };
-    try {
-      const raw = localStorage.getItem(API_KEYS_STORAGE_KEY);
-      if (!raw) return { binanceApiKey: "", binanceApiSecret: "", bybitApiKey: "", bybitApiSecret: "" };
-      const p = JSON.parse(raw) as Record<string, unknown>;
-      return {
-        binanceApiKey: typeof p.binanceApiKey === "string" ? p.binanceApiKey : "",
-        binanceApiSecret: typeof p.binanceApiSecret === "string" ? p.binanceApiSecret : "",
-        bybitApiKey: typeof p.bybitApiKey === "string" ? p.bybitApiKey : "",
-        bybitApiSecret: typeof p.bybitApiSecret === "string" ? p.bybitApiSecret : "",
-      };
-    } catch {
-      return { binanceApiKey: "", binanceApiSecret: "", bybitApiKey: "", bybitApiSecret: "" };
-    }
-  }
-
   const openTradeModal = (row: TradeRow) => {
     setTradeModal({ row });
     setTradeQty("");
     setTradeLeverage(3);
     setBalances(null);
-    const keys = getApiKeysFromStorage();
-    if (keys.binanceApiKey && keys.binanceApiSecret && keys.bybitApiKey && keys.bybitApiSecret) {
+    if (apiKeys.binanceApiKey && apiKeys.binanceApiSecret && apiKeys.bybitApiKey && apiKeys.bybitApiSecret) {
       setBalancesLoading(true);
       fetch("/api/settings/balances", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(keys),
+        body: JSON.stringify(apiKeys),
       })
         .then((r) => r.json())
         .then((data: { binance?: number; bybit?: number; error?: string }) => {
@@ -345,8 +322,7 @@ export default function ScreenerPage() {
 
   const submitTrade = () => {
     if (!tradeModal) return;
-    const keys = getApiKeysFromStorage();
-    if (!keys.binanceApiKey || !keys.binanceApiSecret || !keys.bybitApiKey || !keys.bybitApiSecret) {
+    if (!apiKeys.binanceApiKey || !apiKeys.binanceApiSecret || !apiKeys.bybitApiKey || !apiKeys.bybitApiSecret) {
       showTradeToast("API keys not configured", "error");
       return;
     }
@@ -367,7 +343,7 @@ export default function ScreenerPage() {
             quantity: parseFloat(tradeQty) || 0,
             leverage: tradeLeverage,
             userEmail: session?.user?.email ?? undefined,
-            ...keys,
+            ...apiKeys,
           },
         })
       );

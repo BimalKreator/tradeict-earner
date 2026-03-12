@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useApiKeys } from "@/contexts/ApiKeysContext";
 
-const API_KEYS_STORAGE_KEY = "tradeict-earner-api-keys";
 const OPENING_BALANCES_KEY = "tradeict-earner-opening-balances";
 
 const DEFAULT_OPENING_BINANCE = 65.15;
@@ -12,29 +12,6 @@ interface BalanceMetrics {
   total: number;
   used: number;
   available: number;
-}
-
-function getApiKeysFromStorage(): {
-  binanceApiKey: string;
-  binanceApiSecret: string;
-  bybitApiKey: string;
-  bybitApiSecret: string;
-} {
-  if (typeof window === "undefined")
-    return { binanceApiKey: "", binanceApiSecret: "", bybitApiKey: "", bybitApiSecret: "" };
-  try {
-    const raw = localStorage.getItem(API_KEYS_STORAGE_KEY);
-    if (!raw) return { binanceApiKey: "", binanceApiSecret: "", bybitApiKey: "", bybitApiSecret: "" };
-    const p = JSON.parse(raw) as Record<string, unknown>;
-    return {
-      binanceApiKey: typeof p.binanceApiKey === "string" ? p.binanceApiKey : "",
-      binanceApiSecret: typeof p.binanceApiSecret === "string" ? p.binanceApiSecret : "",
-      bybitApiKey: typeof p.bybitApiKey === "string" ? p.bybitApiKey : "",
-      bybitApiSecret: typeof p.bybitApiSecret === "string" ? p.bybitApiSecret : "",
-    };
-  } catch {
-    return { binanceApiKey: "", binanceApiSecret: "", bybitApiKey: "", bybitApiSecret: "" };
-  }
 }
 
 function fmt(n: number): string {
@@ -57,6 +34,7 @@ function loadOpeningBalances(): { binance: number; bybit: number } {
 }
 
 export default function FundsPage() {
+  const { apiKeys } = useApiKeys();
   const [binance, setBinance] = useState<BalanceMetrics | null>(null);
   const [bybit, setBybit] = useState<BalanceMetrics | null>(null);
   const [loading, setLoading] = useState(true);
@@ -66,8 +44,7 @@ export default function FundsPage() {
   const saveToastRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fetchBalances = useCallback(() => {
-    const keys = getApiKeysFromStorage();
-    if (!keys.binanceApiKey || !keys.binanceApiSecret || !keys.bybitApiKey || !keys.bybitApiSecret) {
+    if (!apiKeys.binanceApiKey || !apiKeys.binanceApiSecret || !apiKeys.bybitApiKey || !apiKeys.bybitApiSecret) {
       setBinance(null);
       setBybit(null);
       setLoading(false);
@@ -77,7 +54,7 @@ export default function FundsPage() {
     fetch("/api/settings/balances", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(keys),
+      body: JSON.stringify(apiKeys),
     })
       .then((r) => r.json())
       .then((data: { binance?: BalanceMetrics; bybit?: BalanceMetrics; error?: string }) => {
@@ -110,7 +87,7 @@ export default function FundsPage() {
         setBybit(null);
       })
       .finally(() => setLoading(false));
-  }, []);
+  }, [apiKeys]);
 
   useEffect(() => {
     fetchBalances();

@@ -2,8 +2,8 @@
 
 import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
+import { useApiKeys } from "@/contexts/ApiKeysContext";
 
-const API_KEYS_STORAGE_KEY = "tradeict-earner-api-keys";
 const SETTINGS_STORAGE_KEY = "tradeict-earner-settings";
 const OPENING_BALANCES_KEY = "tradeict-earner-opening-balances";
 
@@ -55,29 +55,6 @@ interface SettingsState {
 function formatNumber(num: number | undefined | null): string {
   if (num == null) return "0.0000";
   return num.toLocaleString(undefined, { minimumFractionDigits: 4, maximumFractionDigits: 4 });
-}
-
-function getApiKeysFromStorage(): {
-  binanceApiKey: string;
-  binanceApiSecret: string;
-  bybitApiKey: string;
-  bybitApiSecret: string;
-} {
-  if (typeof window === "undefined")
-    return { binanceApiKey: "", binanceApiSecret: "", bybitApiKey: "", bybitApiSecret: "" };
-  try {
-    const raw = localStorage.getItem(API_KEYS_STORAGE_KEY);
-    if (!raw) return { binanceApiKey: "", binanceApiSecret: "", bybitApiKey: "", bybitApiSecret: "" };
-    const p = JSON.parse(raw) as Record<string, unknown>;
-    return {
-      binanceApiKey: typeof p.binanceApiKey === "string" ? p.binanceApiKey : "",
-      binanceApiSecret: typeof p.binanceApiSecret === "string" ? p.binanceApiSecret : "",
-      bybitApiKey: typeof p.bybitApiKey === "string" ? p.bybitApiKey : "",
-      bybitApiSecret: typeof p.bybitApiSecret === "string" ? p.bybitApiSecret : "",
-    };
-  } catch {
-    return { binanceApiKey: "", binanceApiSecret: "", bybitApiKey: "", bybitApiSecret: "" };
-  }
 }
 
 function loadSettings(): SettingsState {
@@ -174,13 +151,13 @@ export default function DashboardPage() {
   });
   const [balances, setBalances] = useState<{ binance: number; bybit: number } | null>(null);
   const [wsActiveSymbols, setWsActiveSymbols] = useState<string[]>([]);
+  const { apiKeys } = useApiKeys();
   const { data: session } = useSession();
   const wsRef = useRef<WebSocket | null>(null);
   const toastRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fetchPositions = useCallback(() => {
-    const keys = getApiKeysFromStorage();
-    if (!keys.binanceApiKey || !keys.binanceApiSecret || !keys.bybitApiKey || !keys.bybitApiSecret) {
+    if (!apiKeys.binanceApiKey || !apiKeys.binanceApiSecret || !apiKeys.bybitApiKey || !apiKeys.bybitApiSecret) {
       setPositions([]);
       setLoading(false);
       return;
@@ -189,7 +166,7 @@ export default function DashboardPage() {
     fetch("/api/positions", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(keys),
+      body: JSON.stringify(apiKeys),
     })
       .then((r) => r.json())
       .then((data: { positions?: GroupedPosition[]; error?: string }) => {
@@ -199,7 +176,7 @@ export default function DashboardPage() {
       })
       .catch(() => setPositions([]))
       .finally(() => setLoading(false));
-  }, []);
+  }, [apiKeys]);
 
   useEffect(() => {
     setSettings(loadSettings());
@@ -213,15 +190,14 @@ export default function DashboardPage() {
   }, []);
 
   const fetchBalances = useCallback(() => {
-    const keys = getApiKeysFromStorage();
-    if (!keys.binanceApiKey || !keys.binanceApiSecret || !keys.bybitApiKey || !keys.bybitApiSecret) {
+    if (!apiKeys.binanceApiKey || !apiKeys.binanceApiSecret || !apiKeys.bybitApiKey || !apiKeys.bybitApiSecret) {
       setBalances(null);
       return;
     }
     fetch("/api/settings/balances", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(keys),
+      body: JSON.stringify(apiKeys),
     })
       .then((r) => r.json())
       .then((data: { binance?: { total?: number }; bybit?: { total?: number }; error?: string }) => {
@@ -235,7 +211,7 @@ export default function DashboardPage() {
         });
       })
       .catch(() => setBalances(null));
-  }, []);
+  }, [apiKeys]);
 
   useEffect(() => {
     fetchBalances();
@@ -319,8 +295,7 @@ export default function DashboardPage() {
 
   const exitPosition = useCallback(
     (pos: GroupedPosition) => {
-      const keys = getApiKeysFromStorage();
-      if (!keys.binanceApiKey || !keys.binanceApiSecret || !keys.bybitApiKey || !keys.bybitApiSecret) {
+      if (!apiKeys.binanceApiKey || !apiKeys.binanceApiSecret || !apiKeys.bybitApiKey || !apiKeys.bybitApiSecret) {
         showToast("API keys not configured", "error");
         return;
       }
@@ -341,7 +316,7 @@ export default function DashboardPage() {
               quantity: pos.totalQuantity,
               isExit: true,
               userEmail: session?.user?.email ?? undefined,
-              ...keys,
+              ...apiKeys,
             },
           })
         );
@@ -350,7 +325,7 @@ export default function DashboardPage() {
         setClosingId(null);
       }
     },
-    [showToast, session]
+    [showToast, session, apiKeys]
   );
 
   const stateBySymbol = useCallback(

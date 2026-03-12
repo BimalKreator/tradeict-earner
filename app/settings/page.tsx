@@ -3,9 +3,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
+import { useApiKeys } from "@/contexts/ApiKeysContext";
 
 const SETTINGS_STORAGE_KEY = "tradeict-earner-settings";
-const API_KEYS_STORAGE_KEY = "tradeict-earner-api-keys";
 
 export interface ApiKeysState {
   binanceApiKey: string;
@@ -25,29 +25,6 @@ function maskValue(val: string): string {
   if (!val || val.length === 0) return "";
   if (val.length <= 4) return "************";
   return "************" + val.slice(-4);
-}
-
-function loadApiKeys(): ApiKeysState {
-  if (typeof window === "undefined") return DEFAULT_API_KEYS;
-  try {
-    const raw = localStorage.getItem(API_KEYS_STORAGE_KEY);
-    if (!raw) return DEFAULT_API_KEYS;
-    const parsed = JSON.parse(raw) as Partial<ApiKeysState>;
-    return {
-      binanceApiKey: typeof parsed.binanceApiKey === "string" ? parsed.binanceApiKey : "",
-      binanceApiSecret: typeof parsed.binanceApiSecret === "string" ? parsed.binanceApiSecret : "",
-      bybitApiKey: typeof parsed.bybitApiKey === "string" ? parsed.bybitApiKey : "",
-      bybitApiSecret: typeof parsed.bybitApiSecret === "string" ? parsed.bybitApiSecret : "",
-    };
-  } catch {
-    return DEFAULT_API_KEYS;
-  }
-}
-
-function saveApiKeys(keys: ApiKeysState): void {
-  try {
-    localStorage.setItem(API_KEYS_STORAGE_KEY, JSON.stringify(keys));
-  } catch {}
 }
 
 export interface SettingsState {
@@ -106,6 +83,7 @@ type ApiKeyField = "binanceApiKey" | "binanceApiSecret" | "bybitApiKey" | "bybit
 
 export default function SettingsPage() {
   const router = useRouter();
+  const { apiKeys: contextApiKeys, refreshApiKeys } = useApiKeys();
   const [settings, setSettings] = useState<SettingsState>(DEFAULT_SETTINGS);
   const [apiKeys, setApiKeys] = useState<ApiKeysState>(DEFAULT_API_KEYS);
   const [hydrated, setHydrated] = useState(false);
@@ -113,13 +91,24 @@ export default function SettingsPage() {
   const [editValue, setEditValue] = useState("");
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
   const [testing, setTesting] = useState<"binance" | "bybit" | null>(null);
+  const [savingKeys, setSavingKeys] = useState(false);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     setSettings(loadSettings());
-    setApiKeys(loadApiKeys());
     setHydrated(true);
   }, []);
+
+  useEffect(() => {
+    if (contextApiKeys.binanceApiKey !== undefined) {
+      setApiKeys({
+        binanceApiKey: contextApiKeys.binanceApiKey ?? "",
+        binanceApiSecret: contextApiKeys.binanceApiSecret ?? "",
+        bybitApiKey: contextApiKeys.bybitApiKey ?? "",
+        bybitApiSecret: contextApiKeys.bybitApiSecret ?? "",
+      });
+    }
+  }, [contextApiKeys.binanceApiKey, contextApiKeys.binanceApiSecret, contextApiKeys.bybitApiKey, contextApiKeys.bybitApiSecret]);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -154,10 +143,6 @@ export default function SettingsPage() {
     }
   }, [settings, hydrated]);
 
-  useEffect(() => {
-    if (!hydrated) return;
-    saveApiKeys(apiKeys);
-  }, [apiKeys, hydrated]);
 
   const showToast = useCallback((message: string, type: "success" | "error") => {
     if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
@@ -167,6 +152,35 @@ export default function SettingsPage() {
       toastTimerRef.current = null;
     }, 4000);
   }, []);
+
+  const saveApiKeysToProfile = useCallback(async () => {
+    setSavingKeys(true);
+    try {
+      const res = await fetch("/api/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          apiKeys: {
+            binanceApiKey: apiKeys.binanceApiKey.trim(),
+            binanceApiSecret: apiKeys.binanceApiSecret.trim(),
+            bybitApiKey: apiKeys.bybitApiKey.trim(),
+            bybitApiSecret: apiKeys.bybitApiSecret.trim(),
+          },
+        }),
+      });
+      if (res.ok) {
+        await refreshApiKeys();
+        showToast("API keys saved and synced across devices", "success");
+      } else {
+        const data = await res.json().catch(() => ({}));
+        showToast((data as { error?: string }).error ?? "Failed to save API keys", "error");
+      }
+    } catch {
+      showToast("Failed to save API keys", "error");
+    } finally {
+      setSavingKeys(false);
+    }
+  }, [apiKeys, refreshApiKeys, showToast]);
 
   const update = <K extends keyof SettingsState>(key: K, value: SettingsState[K]) => {
     setSettings((prev) => ({ ...prev, [key]: value }));
@@ -248,7 +262,7 @@ export default function SettingsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-white">Settings</h1>
-          <p className="text-slate-400 text-sm mt-1">Bot configuration — saved in this browser</p>
+          <p className="text-slate-400 text-sm mt-1">Bot configuration — API keys sync across devices when logged in</p>
         </div>
         <button
           type="button"
@@ -498,6 +512,16 @@ export default function SettingsPage() {
                 )}
               </button>
             </div>
+          </div>
+          <div className="pt-2">
+            <button
+              type="button"
+              onClick={saveApiKeysToProfile}
+              disabled={savingKeys}
+              className="glass-button px-5 py-2.5 rounded-xl text-sm font-medium text-white border border-white/[0.12] disabled:opacity-50"
+            >
+              {savingKeys ? "Saving…" : "Save API Keys"}
+            </button>
           </div>
         </div>
 

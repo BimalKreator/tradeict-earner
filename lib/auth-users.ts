@@ -1,11 +1,19 @@
 import { createHash } from "crypto";
 
+export interface ApiKeysData {
+  binanceApiKey?: string;
+  binanceApiSecret?: string;
+  bybitApiKey?: string;
+  bybitApiSecret?: string;
+}
+
 export interface UserRecord {
   id: string;
   email: string;
   passwordHash: string;
   name: string;
   mobile: string;
+  apiKeys?: ApiKeysData;
 }
 
 function hashPassword(password: string): string {
@@ -65,11 +73,17 @@ export function verifyPassword(user: UserRecord, password: string): boolean {
 
 /**
  * Update a user by current email. New email updates the record so findUserByEmail works with the new email.
- * New password is hashed before storing.
+ * New password is hashed before storing. apiKeys are stored as provided (sync across devices).
  */
 export function updateUser(
   currentEmail: string,
-  updates: { name?: string; email?: string; mobile?: string; password?: string }
+  updates: {
+    name?: string;
+    email?: string;
+    mobile?: string;
+    password?: string;
+    apiKeys?: ApiKeysData;
+  }
 ): UserRecord | null {
   ensureDefaultUser();
   const normalized = currentEmail?.trim().toLowerCase();
@@ -88,6 +102,14 @@ export function updateUser(
   if (updates.mobile !== undefined) user.mobile = updates.mobile.trim();
   if (updates.password !== undefined && updates.password.length >= 6) {
     user.passwordHash = hashPassword(updates.password);
+  }
+  if (updates.apiKeys !== undefined) {
+    user.apiKeys = {
+      binanceApiKey: typeof updates.apiKeys.binanceApiKey === "string" ? updates.apiKeys.binanceApiKey : "",
+      binanceApiSecret: typeof updates.apiKeys.binanceApiSecret === "string" ? updates.apiKeys.binanceApiSecret : "",
+      bybitApiKey: typeof updates.apiKeys.bybitApiKey === "string" ? updates.apiKeys.bybitApiKey : "",
+      bybitApiSecret: typeof updates.apiKeys.bybitApiSecret === "string" ? updates.apiKeys.bybitApiSecret : "",
+    };
   }
   return user;
 }

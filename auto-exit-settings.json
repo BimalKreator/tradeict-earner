@@ -1,11 +1,11 @@
 {
   "autoExit": true,
   "stoplossPercent": 10,
-  "targetPercent": 1.3,
+  "targetPercent": 1,
   "slippagePercent": 0.5,
   "feesPercent": 0.2,
   "autoTrade": true,
-  "maxTradeSlot": 3,
+  "maxTradeSlot": 4,
   "leverage": 3,
   "capitalPercent": 20
 }
