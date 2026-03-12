@@ -8,6 +8,7 @@ import WebSocket from "ws";
 import {
   getBinancePositions,
   getBybitPositions,
+  getBybitOrderbookFast,
   executeCloseTrade,
   type ExecutionSettings,
   type OrderbookSnapshot,
@@ -407,6 +408,54 @@ export function startAutoExitMonitor(
           continue;
         }
         orphanFirstSeen.delete(pos.symbol);
+      }
+
+      // REST fallback: re-check target/stoploss with fresh orderbooks (in case depth WS missed updates)
+      for (const pos of cachedPositions) {
+        if (exitLocks.has(pos.symbol) || !pos.binance || !pos.bybit) continue;
+        try {
+          const [binanceOb, bybitBest] = await Promise.all([
+            ctx.fetchOrderbook(pos.symbol),
+            getBybitOrderbookFast(pos.symbol),
+          ]);
+          const bybitSnapshot: OrderbookSnapshot | null =
+            bybitBest.bestBid > 0 && bybitBest.bestAsk > 0
+              ? {
+                  symbol: pos.symbol,
+                  bids: [[String(bybitBest.bestBid), "1"]],
+                  asks: [[String(bybitBest.bestAsk), "1"]],
+                }
+              : null;
+          const binanceSnapshot =
+            binanceOb?.bids?.length && binanceOb?.asks?.length ? binanceOb : null;
+          if (!binanceSnapshot && !bybitSnapshot) continue;
+          const combinedPnl = combinedPnlFromL2TwoBooks(pos, binanceSnapshot, bybitSnapshot);
+          const settings = getSettings();
+          const stoplossPct = (settings.stoplossPercent ?? 2) / 100;
+          const targetPct = (settings.targetPercent ?? 1.5) / 100;
+          const feesPct = (settings.feesPercent ?? 0.1) / 100;
+          const posAny = pos as any;
+          const qty = Number(posAny.quantity ?? posAny.qty ?? posAny.totalQuantity ?? 0) || 0;
+          const entryPrice = Number(posAny.entryPrice ?? posAny.avgEntryPrice ?? 0) || 0;
+          const margin = Number(posAny.marginUsed ?? posAny.usedMargin ?? 0) || 0;
+          const tradeValue = qty * entryPrice;
+          const stoplossAmount = margin * stoplossPct;
+          const targetAmount = (margin * targetPct) + (tradeValue * feesPct);
+          if (combinedPnl >= targetAmount && targetAmount > 0) {
+            exitLocks.add(pos.symbol);
+            console.log(`[CHUNK-SYSTEM] Auto-Exit (REST): ${pos.symbol} target hit! PnL=$${combinedPnl.toFixed(4)} >= Target=$${targetAmount.toFixed(4)}. Triggering exit.`);
+            triggerExit(pos, ctx).finally(() => exitLocks.delete(pos.symbol));
+            break;
+          }
+          if (combinedPnl <= -stoplossAmount) {
+            exitLocks.add(pos.symbol);
+            console.log(`[CHUNK-SYSTEM] Auto-Exit (REST): ${pos.symbol} stoploss hit! PnL=$${combinedPnl.toFixed(4)}. Triggering exit.`);
+            triggerExit(pos, ctx).finally(() => exitLocks.delete(pos.symbol));
+            break;
+          }
+        } catch (e) {
+          // ignore REST fallback errors
+        }
       }
 
       // Dynamic subscriptions: SUBSCRIBE for active, UNSUBSCRIBE for inactive

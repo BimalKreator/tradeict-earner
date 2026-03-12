@@ -349,11 +349,13 @@ export default function ScreenerPage() {
     if (availableSlots === 0) return new Set<string>();
 
     const nextSet = new Set<string>();
+    const norm = (s: string) => (s || "").toUpperCase();
     for (const row of filteredRows) {
-      if (!activePositions.has(row.state.symbol) && row.state.has3xLiquidity) {
-        nextSet.add(row.state.symbol);
-        if (nextSet.size >= availableSlots) break;
-      }
+      const sym = norm(row.state.symbol);
+      if (!sym || !row.state.has3xLiquidity) continue;
+      if (activePositions.has(sym)) continue;
+      nextSet.add(sym);
+      if (nextSet.size >= availableSlots) break;
     }
     return nextSet;
   }, [filteredRows, activePositions, maxSlots]);
@@ -370,7 +372,7 @@ export default function ScreenerPage() {
   }, [pageIndex, currentPage]);
 
   useEffect(() => {
-    setMaxSlots(loadSettings().maxTradeSlot);
+    setMaxSlots(Math.max(1, loadSettings().maxTradeSlot || 5));
     let mounted = true;
     const fetchPositions = async () => {
       const keys = getApiKeysFromStorage();
@@ -383,7 +385,9 @@ export default function ScreenerPage() {
         });
         const data = await res.json();
         if (mounted && data.positions && Array.isArray(data.positions)) {
-          const active = new Set<string>(data.positions.map((p: { symbol: string }) => p.symbol));
+          const active = new Set<string>(
+            data.positions.map((p: { symbol?: string }) => (p.symbol || "").toUpperCase())
+          );
           setActivePositions(active);
         }
       } catch {
@@ -523,7 +527,7 @@ export default function ScreenerPage() {
                     <td className="p-4 font-medium text-white">
                       <div className="flex items-center gap-2">
                         {s.symbol}
-                        {nextTradeSymbols.has(s.symbol) && (
+                        {nextTradeSymbols.has((s.symbol || "").toUpperCase()) && (
                           <span
                             className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-500/20 text-blue-400 border border-blue-500/40 uppercase tracking-wider"
                             title="Next in line for Auto-Trade"
