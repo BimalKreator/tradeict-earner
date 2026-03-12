@@ -25,12 +25,20 @@ function ensureDefaultUser(): void {
   if (defaultUserInitialized) return;
   defaultUserInitialized = true;
   try {
-    const defaultPasswordHash = hashPassword("demo123");
+    const demoHash = hashPassword("demo123");
     users.set("admin@tradeict.com", {
       id: "1",
       email: "admin@tradeict.com",
-      passwordHash: defaultPasswordHash,
+      passwordHash: demoHash,
       name: "Admin User",
+      mobile: "",
+    });
+    const earnerHash = hashPassword("demo123");
+    users.set("admin@tradeictearner.online", {
+      id: "2",
+      email: "admin@tradeictearner.online",
+      passwordHash: earnerHash,
+      name: "Admin",
       mobile: "",
     });
   } catch (err) {
@@ -55,12 +63,16 @@ export function verifyPassword(user: UserRecord, password: string): boolean {
   }
 }
 
+/**
+ * Update a user by current email. New email updates the record so findUserByEmail works with the new email.
+ * New password is hashed before storing.
+ */
 export function updateUser(
-  email: string,
+  currentEmail: string,
   updates: { name?: string; email?: string; mobile?: string; password?: string }
 ): UserRecord | null {
   ensureDefaultUser();
-  const normalized = email?.trim().toLowerCase();
+  const normalized = currentEmail?.trim().toLowerCase();
   const user = users.get(normalized);
   if (!user) return null;
 

@@ -4,7 +4,7 @@
   "targetPercent": 1.3,
   "slippagePercent": 0.5,
   "feesPercent": 0.2,
-  "autoTrade": false,
+  "autoTrade": true,
   "maxTradeSlot": 3,
   "leverage": 3,
   "capitalPercent": 20

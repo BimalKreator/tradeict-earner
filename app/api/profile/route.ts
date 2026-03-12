@@ -3,6 +3,9 @@ import { NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth";
 import { findUserByEmail, updateUser } from "@/lib/auth-users";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.email) {

@@ -1,5 +1,5 @@
 {
-  "minL2SpreadPct": 0.1,
+  "minL2SpreadPct": 1.5,
   "fundingType": "favourable",
   "bannedTokens": [],
   "onlySafeOpportunities": false

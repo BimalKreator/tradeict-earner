@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { useSession } from "next-auth/react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useSession, signOut } from "next-auth/react";
 
 export default function ProfilePage() {
   const { data: session, status } = useSession();
@@ -12,15 +12,20 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+  const initialEmailRef = useRef<string>("");
 
   const fetchProfile = useCallback(async () => {
     try {
       const res = await fetch("/api/profile");
       if (res.ok) {
         const data = await res.json();
-        setName(data.name ?? "");
-        setEmail(data.email ?? "");
-        setMobile(data.mobile ?? "");
+        const n = data.name ?? "";
+        const e = data.email ?? "";
+        const m = data.mobile ?? "";
+        setName(n);
+        setEmail(e);
+        setMobile(m);
+        initialEmailRef.current = e;
       }
     } catch {
       setToast({ message: "Failed to load profile", type: "error" });
@@ -51,11 +56,27 @@ export default function ProfilePage() {
       });
       const data = await res.json();
       if (res.ok) {
-        setToast({ message: "Profile updated", type: "success" });
-        setPassword("");
-        if (data.email) setEmail(data.email);
-        if (data.name) setName(data.name);
-        if (data.mobile !== undefined) setMobile(data.mobile);
+        const emailChanged = email.trim().toLowerCase() !== initialEmailRef.current.toLowerCase();
+        const passwordChanged = password.trim().length >= 6;
+        if (emailChanged || passwordChanged) {
+          setToast({
+            message: "Profile updated. Please sign in with your new credentials.",
+            type: "success",
+          });
+          setPassword("");
+          setTimeout(() => {
+            signOut({ callbackUrl: "/login" });
+          }, 1500);
+        } else {
+          setToast({ message: "Profile updated", type: "success" });
+          setPassword("");
+          if (data.email != null) {
+            setEmail(data.email);
+            initialEmailRef.current = data.email;
+          }
+          if (data.name != null) setName(data.name);
+          if (data.mobile !== undefined) setMobile(data.mobile);
+        }
       } else {
         setToast({ message: data.error ?? "Update failed", type: "error" });
       }
