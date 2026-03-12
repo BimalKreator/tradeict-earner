@@ -59,15 +59,16 @@ function applyDepthDelta(
     if (qty === 0) map.delete(price);
     else map.set(price, qty);
   }
+
   if (ob.bids.size > MAX_ORDERBOOK_LEVELS) {
     const sorted = Array.from(ob.bids.entries()).sort((a, b) => b[0] - a[0]);
     ob.bids.clear();
-    sorted.slice(0, MAX_ORDERBOOK_LEVELS).forEach(([k, v]) => ob.bids.set(k, v));
+    for (let i = 0; i < MAX_ORDERBOOK_LEVELS && i < sorted.length; i++) ob.bids.set(sorted[i][0], sorted[i][1]);
   }
   if (ob.asks.size > MAX_ORDERBOOK_LEVELS) {
     const sorted = Array.from(ob.asks.entries()).sort((a, b) => a[0] - b[0]);
     ob.asks.clear();
-    sorted.slice(0, MAX_ORDERBOOK_LEVELS).forEach(([k, v]) => ob.asks.set(k, v));
+    for (let i = 0; i < MAX_ORDERBOOK_LEVELS && i < sorted.length; i++) ob.asks.set(sorted[i][0], sorted[i][1]);
   }
 }
 

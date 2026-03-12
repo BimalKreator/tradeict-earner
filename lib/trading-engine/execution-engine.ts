@@ -747,7 +747,21 @@ export class PrivateWSManager {
         const order = histData.result.list[0];
         console.log(`[CHUNK-SYSTEM] Bybit order ${orderId} failed to fill. Status: ${order.orderStatus}, Reject Reason: ${order.rejectReason || "None"}`);
       } else {
-        console.log(`[CHUNK-SYSTEM] Bybit order ${orderId} not found in execution list or history. Assuming 0 fill.`);
+        const rtRes = await fetch(`${BYBIT_BASE}/v5/order/realtime?${queryString}`, {
+          headers: {
+            "X-BAPI-API-KEY": this.credentials.bybit.apiKey,
+            "X-BAPI-SIGN": histSign,
+            "X-BAPI-TIMESTAMP": timestamp,
+            "X-BAPI-RECV-WINDOW": recvWindow,
+          },
+        });
+        const rtData = await rtRes.json();
+        if (rtData?.result?.list?.length > 0) {
+          const rtOrder = rtData.result.list[0];
+          console.log(`[CHUNK-SYSTEM] Bybit order ${orderId} found in realtime. Status: ${rtOrder.orderStatus}, Reject Reason: ${rtOrder.rejectReason || "None"}`);
+        } else {
+          console.log(`[CHUNK-SYSTEM] Bybit order ${orderId} missing everywhere (Execution, History, Realtime). This usually means Price out of bounds or Insufficient Margin.`);
+        }
       }
     } else {
       console.log(`[CHUNK-SYSTEM] Bybit order ${orderId} execution list total filled: ${totalFilled}`);

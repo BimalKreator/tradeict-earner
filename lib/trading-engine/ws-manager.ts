@@ -72,14 +72,18 @@ function applyDepthDelta(ob: OrderbookState, levels: OrderbookLevel[], side: "bi
 /** Keep only top N levels per side to prevent unbounded memory growth. */
 function trimOrderbookState(ob: OrderbookState, maxLevels: number) {
   if (ob.bids.size > maxLevels) {
-    const sorted = Array.from(ob.bids.entries()).sort((a, b) => b[0] - a[0]);
+    const sortedBids = Array.from(ob.bids.entries()).sort((a, b) => b[0] - a[0]);
     ob.bids.clear();
-    sorted.slice(0, maxLevels).forEach(([p, q]) => ob.bids.set(p, q));
+    for (let i = 0; i < maxLevels; i++) {
+      if (sortedBids[i]) ob.bids.set(sortedBids[i][0], sortedBids[i][1]);
+    }
   }
   if (ob.asks.size > maxLevels) {
-    const sorted = Array.from(ob.asks.entries()).sort((a, b) => a[0] - b[0]);
+    const sortedAsks = Array.from(ob.asks.entries()).sort((a, b) => a[0] - b[0]);
     ob.asks.clear();
-    sorted.slice(0, maxLevels).forEach(([p, q]) => ob.asks.set(p, q));
+    for (let i = 0; i < maxLevels; i++) {
+      if (sortedAsks[i]) ob.asks.set(sortedAsks[i][0], sortedAsks[i][1]);
+    }
   }
 }
 
