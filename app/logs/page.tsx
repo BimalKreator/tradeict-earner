@@ -1,60 +1,81 @@
-const mockLogs = [
-  { id: "1", time: "2025-03-10 14:32", pair: "BTCUSDT", side: "Long", amount: 0.05, entry: 67100, exit: 67350, pnl: 12.5, status: "Closed" },
-  { id: "2", time: "2025-03-10 12:18", pair: "ETHUSDT", side: "Short", amount: 1.2, entry: 3460, exit: 3452, pnl: 9.6, status: "Closed" },
-  { id: "3", time: "2025-03-10 09:45", pair: "SOLUSDT", side: "Long", amount: 50, entry: 178.2, exit: 179.1, pnl: 45.0, status: "Closed" },
-  { id: "4", time: "2025-03-09 16:22", pair: "BTCUSDT", side: "Short", amount: 0.02, entry: 66800, exit: 66920, pnl: -2.4, status: "Closed" },
-  { id: "5", time: "2025-03-09 11:05", pair: "BNBUSDT", side: "Long", amount: 5, entry: 580, exit: 582.5, pnl: 12.5, status: "Closed" },
-  { id: "6", time: "2025-03-08 18:40", pair: "ETHUSDT", side: "Long", amount: 0.5, entry: 3420, exit: 3440, pnl: 10.0, status: "Closed" },
-];
+"use client";
+
+import { useEffect, useState } from "react";
 
 export default function LogsPage() {
+  const [logs, setLogs] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchLogs = async () => {
+    try {
+      const res = await fetch("/api/logs");
+      const data = await res.json();
+      setLogs(Array.isArray(data) ? data : []);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchLogs();
+    const id = setInterval(fetchLogs, 5000);
+    return () => clearInterval(id);
+  }, []);
+
   return (
-    <div className="space-y-6 lg:space-y-8">
-      <div>
-        <h1 className="text-2xl md:text-3xl font-bold text-white">Logs</h1>
-        <p className="text-slate-400 text-sm mt-1">History of completed trades (mock)</p>
-      </div>
+    <div className="space-y-6">
+      <h1 className="text-2xl md:text-3xl font-bold text-white">Trade History</h1>
+      <p className="text-slate-400 text-sm mt-1">Real executed entry/exit prices and combined PnL from exchanges.</p>
 
       <div className="glass-panel overflow-hidden">
-        <div className="p-4 md:p-5 border-b border-white/[0.06]">
-          <h2 className="text-lg font-semibold text-white">Completed trades</h2>
-          <p className="text-slate-400 text-sm mt-0.5">Closed positions</p>
-        </div>
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[640px]">
+          <table className="w-full min-w-[1000px]">
             <thead>
               <tr className="text-left text-slate-400 text-xs font-medium uppercase tracking-wider border-b border-white/[0.06]">
                 <th className="p-4">Time</th>
-                <th className="p-4">Pair</th>
-                <th className="p-4">Side</th>
-                <th className="p-4">Amount</th>
-                <th className="p-4">Entry</th>
-                <th className="p-4">Exit</th>
-                <th className="p-4 text-right">PnL</th>
-                <th className="p-4">Status</th>
+                <th className="p-4">Symbol</th>
+                <th className="p-4">Qty</th>
+                <th className="p-4">Binance (En/Ex)</th>
+                <th className="p-4">Bybit (En/Ex)</th>
+                <th className="p-4 text-right">Combine PnL</th>
               </tr>
             </thead>
             <tbody>
-              {mockLogs.map((row) => (
-                <tr key={row.id} className="border-b border-white/[0.04] last:border-0 hover:bg-white/[0.02] transition-colors">
-                  <td className="p-4 text-slate-300 text-sm">{row.time}</td>
-                  <td className="p-4 font-medium text-white">{row.pair}</td>
-                  <td className="p-4">
-                    <span className={row.side === "Long" ? "text-emerald-400" : "text-amber-400"}>{row.side}</span>
-                  </td>
-                  <td className="p-4 text-slate-300">{row.amount}</td>
-                  <td className="p-4 text-slate-300">${row.entry.toLocaleString()}</td>
-                  <td className="p-4 text-slate-300">${row.exit.toLocaleString()}</td>
-                  <td className="p-4 text-right">
-                    <span className={row.pnl >= 0 ? "text-emerald-400" : "text-red-400"}>
-                      {row.pnl >= 0 ? "+" : ""}${row.pnl.toFixed(2)}
-                    </span>
-                  </td>
-                  <td className="p-4">
-                    <span className="text-slate-400 text-sm">{row.status}</span>
-                  </td>
-                </tr>
-              ))}
+              {loading ? (
+                <tr><td colSpan={6} className="p-8 text-center text-slate-500">Loading logs...</td></tr>
+              ) : logs.length === 0 ? (
+                <tr><td colSpan={6} className="p-8 text-center text-slate-500">No closed trades yet.</td></tr>
+              ) : (
+                logs.map((log) => (
+                  <tr key={log.id ?? log.timestamp} className="border-b border-white/[0.04] last:border-0 hover:bg-white/[0.02]">
+                    <td className="p-4 text-sm text-slate-400">{log.timestamp != null ? new Date(log.timestamp).toLocaleTimeString() : "—"}</td>
+                    <td className="p-4 text-sm font-medium text-white">{log.symbol ?? "—"}</td>
+                    <td className="p-4 text-sm text-slate-300">{log.qty ?? "—"}</td>
+                    <td className="p-4 text-sm">
+                      <div className="text-slate-300">{Number(log.binanceEntry).toFixed(5)}</div>
+                      <div className="text-slate-500">{Number(log.binanceExit).toFixed(5)}</div>
+                      <div className={(log.binancePnl ?? 0) >= 0 ? "text-emerald-400 text-xs" : "text-red-400 text-xs"}>
+                        {(log.binancePnl ?? 0) >= 0 ? "+" : ""}{Number(log.binancePnl).toFixed(2)}
+                      </div>
+                    </td>
+                    <td className="p-4 text-sm">
+                      <div className="text-slate-300">{Number(log.bybitEntry).toFixed(5)}</div>
+                      <div className="text-slate-500">{Number(log.bybitExit).toFixed(5)}</div>
+                      <div className={(log.bybitPnl ?? 0) >= 0 ? "text-emerald-400 text-xs" : "text-red-400 text-xs"}>
+                        {(log.bybitPnl ?? 0) >= 0 ? "+" : ""}{Number(log.bybitPnl).toFixed(2)}
+                      </div>
+                    </td>
+                    <td className="p-4 text-right">
+                      <div className={`text-base font-bold ${(log.combinedPnlUsd ?? 0) >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                        ${Number(log.combinedPnlUsd).toFixed(2)}
+                      </div>
+                      <div className={`text-xs mt-0.5 ${(log.combinedPnlPct ?? 0) >= 0 ? "text-emerald-400/80" : "text-red-400/80"}`}>
+                        {Number(log.combinedPnlPct).toFixed(2)}%
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

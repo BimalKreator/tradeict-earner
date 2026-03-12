@@ -5,6 +5,8 @@
 
 import WebSocket from "ws";
 import crypto from "crypto";
+import fs from "fs";
+import path from "path";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -1309,6 +1311,12 @@ export async function executeCloseTrade(
   let binanceOpen = bPos?.quantity ?? 0;
   let bybitOpen = yPos?.quantity ?? 0;
 
+  const binanceEntryPrice = bPos?.entryPrice ?? 0;
+  const bybitEntryPrice = yPos?.entryPrice ?? 0;
+  const totalMarginUsed = (bPos?.marginUsed ?? 0) + (yPos?.marginUsed ?? 0);
+  const startQty = Math.max(binanceOpen, bybitOpen);
+  const startTime = Date.now();
+
   const bSide = bPos?.side ?? "Long";
   const ySide = yPos?.side ?? "Long";
 
@@ -1438,8 +1446,119 @@ export async function executeCloseTrade(
   const fullyClosed = binanceOpen <= 0 && bybitOpen <= 0;
   if (fullyClosed) {
     onProgress?.("Position fully closed.");
+    logClosedTrade(symbol, credentials, startTime, startQty, binanceEntryPrice, bybitEntryPrice, totalMarginUsed).catch(() => {});
   } else {
     onProgress?.(`Exit incomplete after ${maxAttempts} attempts (Bybit: ${bybitOpen} Binance: ${binanceOpen}).`);
   }
   return fullyClosed;
+}
+
+// ---------------------------------------------------------------------------
+// Real-Execution Trade Logger: fetch exact exchange data after close, append to trade-logs.json
+// ---------------------------------------------------------------------------
+
+async function logClosedTrade(
+  symbol: string,
+  credentials: ExchangeCredentials,
+  startTime: number,
+  qty: number,
+  binanceEntry: number,
+  bybitEntry: number,
+  totalMarginUsed: number
+): Promise<void> {
+  try {
+    await sleep(3000); // Allow exchange databases to index the fill
+    const timestamp = Date.now();
+
+    // Bybit Real Data (closed-pnl)
+    const bybitQs = `category=linear&symbol=${symbol}&limit=10`;
+    const bybitSign = signBybitV5Get(credentials.bybit.apiSecret, String(timestamp), credentials.bybit.apiKey, "5000", bybitQs);
+    const bybitRes = await fetch(`${BYBIT_BASE}/v5/position/closed-pnl?${bybitQs}`, {
+      headers: {
+        "X-BAPI-API-KEY": credentials.bybit.apiKey,
+        "X-BAPI-SIGN": bybitSign,
+        "X-BAPI-TIMESTAMP": String(timestamp),
+        "X-BAPI-RECV-WINDOW": "5000",
+      },
+    });
+    const bybitData = await bybitRes.json();
+    const bybitList = (bybitData?.result?.list ?? []) as { updatedTime?: number; closedPnl?: string; avgExitPrice?: string }[];
+    const recentBybit = bybitList.filter((x) => Number(x.updatedTime) >= startTime - 5000);
+    let bybitPnl = 0;
+    let bybitExit = 0;
+    if (recentBybit.length > 0) {
+      for (const r of recentBybit) bybitPnl += Number(r.closedPnl ?? 0);
+      bybitExit = Number(recentBybit[0].avgExitPrice ?? 0);
+    }
+
+    // Binance Real Data (income + userTrades for exit price)
+    const bIncQs = `symbol=${symbol}&incomeType=REALIZED_PNL&limit=20&timestamp=${timestamp}`;
+    const bIncSign = signBinance(credentials.binance.apiSecret, bIncQs);
+    const bIncRes = await fetch(`${BINANCE_BASE}/fapi/v1/income?${bIncQs}&signature=${bIncSign}`, {
+      headers: { "X-MBX-APIKEY": credentials.binance.apiKey },
+    });
+    let bIncJson: { time?: number; income?: string }[] = [];
+    try {
+      const arr = await bIncRes.json();
+      bIncJson = Array.isArray(arr) ? arr : [];
+    } catch {
+      // ignore
+    }
+    const recentBInc = bIncJson.filter((x) => (x.time ?? 0) >= startTime - 5000);
+    let binancePnl = 0;
+    for (const r of recentBInc) binancePnl += Number(r.income ?? 0);
+
+    const bTrdQs = `symbol=${symbol}&limit=20&timestamp=${timestamp}`;
+    const bTrdSign = signBinance(credentials.binance.apiSecret, bTrdQs);
+    const bTrdRes = await fetch(`${BINANCE_BASE}/fapi/v1/userTrades?${bTrdQs}&signature=${bTrdSign}`, {
+      headers: { "X-MBX-APIKEY": credentials.binance.apiKey },
+    });
+    let bTrdJson: { time?: number; price?: string; qty?: string }[] = [];
+    try {
+      const arr = await bTrdRes.json();
+      bTrdJson = Array.isArray(arr) ? arr : [];
+    } catch {
+      // ignore
+    }
+    const recentBTrd = bTrdJson.filter((x) => (x.time ?? 0) >= startTime - 5000);
+    let bExitNotional = 0;
+    let bExitQty = 0;
+    for (const r of recentBTrd) {
+      bExitNotional += Number(r.price ?? 0) * Number(r.qty ?? 0);
+      bExitQty += Number(r.qty ?? 0);
+    }
+    const binanceExit = bExitQty > 0 ? bExitNotional / bExitQty : 0;
+
+    const combinedPnlUsd = bybitPnl + binancePnl;
+    const combinedPnlPct = totalMarginUsed > 0 ? (combinedPnlUsd / totalMarginUsed) * 100 : 0;
+
+    const logEntry = {
+      id: crypto.randomUUID(),
+      symbol,
+      qty,
+      timestamp,
+      binanceEntry,
+      binanceExit,
+      binancePnl,
+      bybitEntry,
+      bybitExit,
+      bybitPnl,
+      combinedPnlUsd,
+      combinedPnlPct,
+    };
+    const logPath = path.join(process.cwd(), "trade-logs.json");
+    let logs: unknown[] = [];
+    try {
+      if (fs.existsSync(logPath)) logs = JSON.parse(fs.readFileSync(logPath, "utf-8")) as unknown[];
+    } catch {
+      // ignore
+    }
+    if (!Array.isArray(logs)) logs = [];
+    logs.unshift(logEntry);
+    if (logs.length > 200) logs = logs.slice(0, 200);
+    fs.writeFileSync(logPath, JSON.stringify(logs, null, 2), "utf-8");
+    console.log(`[LOGGER] Real Exit Logged for ${symbol}: PnL $${combinedPnlUsd.toFixed(2)} (${combinedPnlPct.toFixed(2)}%)`);
+  } catch (e) {
+    console.error("[LOGGER] Failed:", e);
+  }
 }
