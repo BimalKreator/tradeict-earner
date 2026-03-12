@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { signOut } from "next-auth/react";
 
 const SETTINGS_STORAGE_KEY = "tradeict-earner-settings";
 const API_KEYS_STORAGE_KEY = "tradeict-earner-api-keys";
@@ -229,11 +230,11 @@ export default function SettingsPage() {
   const hasBinanceKeys = !!(apiKeys.binanceApiKey?.trim() && apiKeys.binanceApiSecret?.trim());
   const hasBybitKeys = !!(apiKeys.bybitApiKey?.trim() && apiKeys.bybitApiSecret?.trim());
 
-  const handleLogout = useCallback(() => {
+  const handleLogout = useCallback(async () => {
     try {
-      localStorage.removeItem(API_KEYS_STORAGE_KEY);
-      setApiKeys(DEFAULT_API_KEYS);
+      await signOut({ redirect: false });
       router.push("/login");
+      router.refresh();
     } catch {
       router.push("/login");
     }

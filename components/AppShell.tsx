@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef } from "react";
-import { usePathname } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { signOut, useSession } from "next-auth/react";
 
 const SETTINGS_STORAGE_KEY = "tradeict-earner-settings";
 
@@ -60,6 +61,14 @@ const navItems = [
   { href: "/logs", label: "Logs", icon: LogsIcon },
   { href: "/settings", label: "Settings", icon: SettingsIcon },
 ] as const;
+
+function ProfileIcon() {
+  return (
+    <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+    </svg>
+  );
+}
 
 function DashboardIcon({ active }: { active?: boolean }) {
   return (
@@ -150,7 +159,34 @@ function BottomNavLink({
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { data: session, status } = useSession();
+  const [profileOpen, setProfileOpen] = useState(false);
+  const profileRefDesktop = useRef<HTMLDivElement>(null);
+  const profileRefMobile = useRef<HTMLDivElement>(null);
   useSyncAutoExitOnLoad();
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      const target = e.target as Node;
+      if (profileRefDesktop.current?.contains(target) || profileRefMobile.current?.contains(target)) return;
+      setProfileOpen(false);
+    }
+    if (profileOpen) document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [profileOpen]);
+
+  const handleLogout = async () => {
+    setProfileOpen(false);
+    await signOut({ redirect: false });
+    router.push("/login");
+  };
+
+  const isLoginPage = pathname === "/login";
+
+  if (isLoginPage) {
+    return <div className="min-h-screen">{children}</div>;
+  }
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row">
@@ -172,10 +208,76 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             />
           ))}
         </nav>
+        {/* Profile dropdown */}
+        <div className="p-3 border-t border-white/[0.06]" ref={profileRefDesktop}>
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setProfileOpen(!profileOpen)}
+              className="flex items-center gap-3 rounded-xl px-3 py-2.5 w-full text-sm font-medium text-slate-300 hover:text-white hover:bg-white/5 border border-transparent transition-all"
+            >
+              <ProfileIcon />
+              <span className="truncate">{session?.user?.email ?? "Profile"}</span>
+              <svg className={`w-4 h-4 shrink-0 transition-transform ${profileOpen ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            {profileOpen && (
+              <div className="absolute bottom-full left-0 right-0 mb-1 py-1 rounded-xl bg-slate-800/95 border border-white/[0.08] shadow-xl z-50">
+                <Link
+                  href="/profile"
+                  onClick={() => setProfileOpen(false)}
+                  className="block px-4 py-2.5 text-sm text-slate-200 hover:bg-white/10 hover:text-white"
+                >
+                  Account settings
+                </Link>
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="block w-full text-left px-4 py-2.5 text-sm text-red-300 hover:bg-red-500/10"
+                >
+                  Logout
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
       </aside>
 
       {/* Main content */}
       <main className="flex-1 flex flex-col min-h-screen md:pl-56 pb-20 md:pb-0">
+        {/* Mobile header with Profile */}
+        <div className="md:hidden flex items-center justify-between px-4 py-3 border-b border-white/[0.06] bg-navy-900/80">
+          <Link href="/" className="text-lg font-bold text-white">Tradeict Earner</Link>
+          <div className="relative" ref={profileRefMobile}>
+            <button
+              type="button"
+              onClick={() => setProfileOpen(!profileOpen)}
+              className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/10"
+              aria-label="Profile"
+            >
+              <ProfileIcon />
+            </button>
+            {profileOpen && (
+              <div className="absolute right-0 top-full mt-1 py-1 min-w-[180px] rounded-xl bg-slate-800/95 border border-white/[0.08] shadow-xl z-50">
+                <Link
+                  href="/profile"
+                  onClick={() => setProfileOpen(false)}
+                  className="block px-4 py-2.5 text-sm text-slate-200 hover:bg-white/10"
+                >
+                  Account settings
+                </Link>
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="block w-full text-left px-4 py-2.5 text-sm text-red-300 hover:bg-red-500/10"
+                >
+                  Logout
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
         <div className="flex-1 p-4 md:p-6 lg:p-8">{children}</div>
       </main>
 
