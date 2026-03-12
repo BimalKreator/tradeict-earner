@@ -375,8 +375,8 @@ export default function DashboardPage() {
                               <div className="flex items-center gap-1.5 mb-1">
                                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                                 <span className="text-white font-medium">Binance</span>
-                                <span className={`text-[10px] px-1.5 py-0.5 rounded ml-1 ${pos.binance.side === "BUY" || pos.binance.side === "Long" ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30" : "bg-red-500/20 text-red-400 border border-red-500/30"}`}>
-                                  {pos.binance.side === "BUY" ? "Long" : pos.binance.side === "SELL" ? "Short" : pos.binance.side}
+                                <span className={`text-[10px] px-1.5 py-0.5 rounded ml-1 ${pos.binance.side === "Long" ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30" : "bg-red-500/20 text-red-400 border border-red-500/30"}`}>
+                                  {pos.binance.side}
                                 </span>
                               </div>
                               <div className="text-slate-400">Entry: <span className="text-slate-200">${formatNumber(pos.binance.entryPrice)}</span></div>
@@ -392,8 +392,8 @@ export default function DashboardPage() {
                               <div className="flex items-center gap-1.5 mb-1">
                                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                                 <span className="text-white font-medium">Bybit</span>
-                                <span className={`text-[10px] px-1.5 py-0.5 rounded ml-1 ${pos.bybit.side === "Buy" || pos.bybit.side === "Long" ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30" : "bg-red-500/20 text-red-400 border border-red-500/30"}`}>
-                                  {pos.bybit.side === "Buy" ? "Long" : pos.bybit.side === "Sell" ? "Short" : pos.bybit.side}
+                                <span className={`text-[10px] px-1.5 py-0.5 rounded ml-1 ${pos.bybit.side === "Long" ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30" : "bg-red-500/20 text-red-400 border border-red-500/30"}`}>
+                                  {pos.bybit.side}
                                 </span>
                               </div>
                               <div className="text-slate-400">Entry: <span className="text-slate-200">${formatNumber(pos.bybit.entryPrice)}</span></div>
