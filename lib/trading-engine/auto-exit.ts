@@ -172,6 +172,34 @@ function combinedPnlFromL2(pos: GroupedPosition, orderbook: OrderbookSnapshot): 
   return pnl;
 }
 
+/** Combined PnL using each exchange's own orderbook for its leg (matches dashboard logic). */
+function combinedPnlFromL2TwoBooks(
+  pos: GroupedPosition,
+  binanceSnapshot: OrderbookSnapshot | null,
+  bybitSnapshot: OrderbookSnapshot | null
+): number {
+  let pnl = 0;
+  if (pos.binance && binanceSnapshot?.bids?.length && binanceSnapshot?.asks?.length) {
+    const b = pos.binance;
+    const targetNotional = b.quantity * b.entryPrice;
+    const levels = b.side === "Long" ? binanceSnapshot.bids : binanceSnapshot.asks;
+    const exitVwap = getVWAP(levels, targetNotional) || parseFloat(levels[0]?.[0] || "0");
+    if (exitVwap > 0) {
+      pnl += b.side === "Long" ? (exitVwap - b.entryPrice) * b.quantity : (b.entryPrice - exitVwap) * b.quantity;
+    }
+  }
+  if (pos.bybit && bybitSnapshot?.bids?.length && bybitSnapshot?.asks?.length) {
+    const y = pos.bybit;
+    const targetNotional = y.quantity * y.entryPrice;
+    const levels = y.side === "Long" ? bybitSnapshot.bids : bybitSnapshot.asks;
+    const exitVwap = getVWAP(levels, targetNotional) || parseFloat(levels[0]?.[0] || "0");
+    if (exitVwap > 0) {
+      pnl += y.side === "Long" ? (exitVwap - y.entryPrice) * y.quantity : (y.entryPrice - exitVwap) * y.quantity;
+    }
+  }
+  return pnl;
+}
+
 export interface AutoExitContext {
   credentials: ExchangeCredentials;
   privateWs: PrivateWSManager;
@@ -303,11 +331,14 @@ export function startAutoExitMonitor(
     const pos = cachedPositions.find((p) => normalizeSymbol(p.symbol) === symbol);
     if (!pos || exitLocks.has(pos.symbol)) return;
 
-    const ob = useBybitBook ? bybitOrderbooks.get(symbol) : binanceOrderbooks.get(symbol);
-    if (!ob || ob.bids.size === 0 || ob.asks.size === 0) return;
+    const obBinance = binanceOrderbooks.get(symbol);
+    const obBybit = bybitOrderbooks.get(symbol);
+    const snapshotBinance = obBinance && obBinance.bids.size > 0 && obBinance.asks.size > 0 ? orderbookToSnapshot(symbol, obBinance) : null;
+    const snapshotBybit = obBybit && obBybit.bids.size > 0 && obBybit.asks.size > 0 ? orderbookToSnapshot(symbol, obBybit) : null;
+    if (!snapshotBinance && !snapshotBybit) return;
 
-    const snapshot = orderbookToSnapshot(symbol, ob);
-    const combinedPnl = combinedPnlFromL2(pos, snapshot);
+    // Use each exchange's orderbook for its own leg (matches dashboard Combined PnL)
+    const combinedPnl = combinedPnlFromL2TwoBooks(pos, snapshotBinance, snapshotBybit);
     const stoplossPct = (settings.stoplossPercent ?? 2) / 100;
     const targetPct = (settings.targetPercent ?? 1.5) / 100;
     const feesPct = (settings.feesPercent ?? 0.1) / 100;
