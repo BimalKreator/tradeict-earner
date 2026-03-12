@@ -6,6 +6,9 @@ import {
   type OrderSide,
 } from "@/lib/trading-engine/execution-engine";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export interface GroupPositionLeg {
   exchange: "binance" | "bybit";
   quantity: number;

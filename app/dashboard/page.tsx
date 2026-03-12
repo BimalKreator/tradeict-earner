@@ -173,6 +173,7 @@ export default function DashboardPage() {
     bybit: DEFAULT_OPENING_BYBIT,
   });
   const [balances, setBalances] = useState<{ binance: number; bybit: number } | null>(null);
+  const [wsActiveSymbols, setWsActiveSymbols] = useState<string[]>([]);
   const { data: session } = useSession();
   const wsRef = useRef<WebSocket | null>(null);
   const toastRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -245,6 +246,15 @@ export default function DashboardPage() {
   }, [fetchPositions]);
 
   useEffect(() => {
+    fetchPositions();
+  }, [wsActiveSymbols, fetchPositions]);
+
+  useEffect(() => {
+    const id = setInterval(fetchPositions, 10000);
+    return () => clearInterval(id);
+  }, [fetchPositions]);
+
+  useEffect(() => {
     if (typeof window === "undefined") return;
     const hostname = window.location.hostname;
     const ws = new WebSocket(`ws://${hostname}:8080`);
@@ -257,11 +267,20 @@ export default function DashboardPage() {
         const msg = JSON.parse(event.data as string) as {
           type?: string;
           states?: SymbolState[];
+          activePositions?: string[];
           action?: string;
           status?: string;
           done?: boolean;
         };
         if (msg.type === "state" && Array.isArray(msg.states)) setStates(msg.states);
+        if (msg.type === "state" && Array.isArray(msg.activePositions)) {
+          const next = msg.activePositions.map((s) => String(s).toUpperCase()).sort();
+          setWsActiveSymbols((prev) => {
+            if (prev.length !== next.length) return next;
+            if (prev.join(",") === next.join(",")) return prev;
+            return next;
+          });
+        }
         if (msg.action === "TRADE_UPDATE" && msg.done) {
           setClosingId(null);
           if (msg.status?.startsWith("Trade failed")) {
