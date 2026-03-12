@@ -1,4 +1,6 @@
 import { createHash } from "crypto";
+import fs from "fs";
+import path from "path";
 
 export interface ApiKeysData {
   binanceApiKey?: string;
@@ -25,7 +27,52 @@ function hashPassword(password: string): string {
   }
 }
 
-// In-memory user store. In production, replace with a database.
+const USERS_FILE = path.join(process.cwd(), "users.json");
+
+function getDefaultUsersArray(): UserRecord[] {
+  const demoHash = hashPassword("demo123");
+  return [
+    {
+      id: "1",
+      email: "admin@tradeict.com",
+      passwordHash: demoHash,
+      name: "Admin User",
+      mobile: "",
+    },
+    {
+      id: "2",
+      email: "admin@tradeictearner.online",
+      passwordHash: demoHash,
+      name: "Admin",
+      mobile: "",
+    },
+  ];
+}
+
+function loadUsers(): UserRecord[] {
+  try {
+    const raw = fs.readFileSync(USERS_FILE, "utf8");
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) return getDefaultUsersArray();
+    return parsed as UserRecord[];
+  } catch {
+    const defaults = getDefaultUsersArray();
+    try {
+      fs.writeFileSync(USERS_FILE, JSON.stringify(defaults, null, 2), "utf8");
+    } catch {}
+    return defaults;
+  }
+}
+
+function saveUsers(usersArray: UserRecord[]): void {
+  try {
+    fs.writeFileSync(USERS_FILE, JSON.stringify(usersArray, null, 2), "utf8");
+  } catch (err) {
+    console.error("[auth-users] saveUsers failed:", err);
+    throw err;
+  }
+}
+
 const users = new Map<string, UserRecord>();
 let defaultUserInitialized = false;
 
@@ -33,22 +80,11 @@ function ensureDefaultUser(): void {
   if (defaultUserInitialized) return;
   defaultUserInitialized = true;
   try {
-    const demoHash = hashPassword("demo123");
-    users.set("admin@tradeict.com", {
-      id: "1",
-      email: "admin@tradeict.com",
-      passwordHash: demoHash,
-      name: "Admin User",
-      mobile: "",
-    });
-    const earnerHash = hashPassword("demo123");
-    users.set("admin@tradeictearner.online", {
-      id: "2",
-      email: "admin@tradeictearner.online",
-      passwordHash: earnerHash,
-      name: "Admin",
-      mobile: "",
-    });
+    const list = loadUsers();
+    for (const u of list) {
+      const key = u.email?.trim().toLowerCase();
+      if (key) users.set(key, u);
+    }
   } catch (err) {
     console.error("[auth-users] ensureDefaultUser failed:", err);
     throw err;
@@ -111,6 +147,7 @@ export function updateUser(
       bybitApiSecret: typeof updates.apiKeys.bybitApiSecret === "string" ? updates.apiKeys.bybitApiSecret : "",
     };
   }
+  saveUsers(Array.from(users.values()));
   return user;
 }
 
@@ -132,5 +169,6 @@ export function createUser(
     mobile: mobile.trim(),
   };
   users.set(normalized, user);
+  saveUsers(Array.from(users.values()));
   return user;
 }

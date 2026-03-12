@@ -26,6 +26,9 @@ yarn-error.log*
 # local env files
 .env*.local
 
+# persisted user data (contains hashed passwords and API keys)
+users.json
+
 # vercel
 .vercel
 

@@ -83,7 +83,7 @@ type ApiKeyField = "binanceApiKey" | "binanceApiSecret" | "bybitApiKey" | "bybit
 
 export default function SettingsPage() {
   const router = useRouter();
-  const { apiKeys: contextApiKeys, refreshApiKeys } = useApiKeys();
+  const { apiKeys: contextApiKeys, refreshApiKeys, loading: profileLoading } = useApiKeys();
   const [settings, setSettings] = useState<SettingsState>(DEFAULT_SETTINGS);
   const [apiKeys, setApiKeys] = useState<ApiKeysState>(DEFAULT_API_KEYS);
   const [hydrated, setHydrated] = useState(false);
@@ -99,16 +99,16 @@ export default function SettingsPage() {
     setHydrated(true);
   }, []);
 
+  // Sync local API key inputs when profile has finished loading from the server (avoids overwriting with empty before fetch completes).
   useEffect(() => {
-    if (contextApiKeys.binanceApiKey !== undefined) {
-      setApiKeys({
-        binanceApiKey: contextApiKeys.binanceApiKey ?? "",
-        binanceApiSecret: contextApiKeys.binanceApiSecret ?? "",
-        bybitApiKey: contextApiKeys.bybitApiKey ?? "",
-        bybitApiSecret: contextApiKeys.bybitApiSecret ?? "",
-      });
-    }
-  }, [contextApiKeys.binanceApiKey, contextApiKeys.binanceApiSecret, contextApiKeys.bybitApiKey, contextApiKeys.bybitApiSecret]);
+    if (profileLoading) return;
+    setApiKeys({
+      binanceApiKey: contextApiKeys.binanceApiKey ?? "",
+      binanceApiSecret: contextApiKeys.binanceApiSecret ?? "",
+      bybitApiKey: contextApiKeys.bybitApiKey ?? "",
+      bybitApiSecret: contextApiKeys.bybitApiSecret ?? "",
+    });
+  }, [profileLoading, contextApiKeys.binanceApiKey, contextApiKeys.binanceApiSecret, contextApiKeys.bybitApiKey, contextApiKeys.bybitApiSecret]);
 
   useEffect(() => {
     if (!hydrated) return;
