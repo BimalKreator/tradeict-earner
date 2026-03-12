@@ -693,7 +693,6 @@ export class PrivateWSManager {
     const timestamp = String(Date.now());
     const recvWindow = "5000";
 
-    // Switch to execution/list for instant fill data without indexing delays
     const queryString = `category=linear&orderId=${encodeURIComponent(orderId)}`;
     const sign = signBybitV5Get(
       this.credentials.bybit.apiSecret,
@@ -703,6 +702,7 @@ export class PrivateWSManager {
       queryString
     );
 
+    // Check execution list for instant fills
     const res = await fetch(`${BYBIT_BASE}/v5/execution/list?${queryString}`, {
       headers: {
         "X-BAPI-API-KEY": this.credentials.bybit.apiKey,
@@ -713,18 +713,36 @@ export class PrivateWSManager {
     });
     const data = await res.json();
 
-    if (!data || !data.result || !Array.isArray(data.result.list) || data.result.list.length === 0) {
-      console.log(`[CHUNK-SYSTEM] Bybit order ${orderId} not found in execution list. Assuming 0 fill.`);
-      return 0;
-    }
-
-    // IOC orders can have multiple partial fills across different price levels; sum them up.
     let totalFilled = 0;
-    for (const exec of data.result.list) {
-      totalFilled += Number(exec.execQty || 0);
+    if (data?.result?.list && Array.isArray(data.result.list)) {
+      for (const exec of data.result.list) {
+        totalFilled += Number(exec.execQty || 0);
+      }
     }
 
-    console.log(`[CHUNK-SYSTEM] Bybit order ${orderId} execution list total filled: ${totalFilled}`);
+    if (totalFilled === 0) {
+      // Order didn't fill. Let's find out exactly why from the history endpoint.
+      const histSign = signBybitV5Get(this.credentials.bybit.apiSecret, timestamp, this.credentials.bybit.apiKey, recvWindow, queryString);
+      const histRes = await fetch(`${BYBIT_BASE}/v5/order/history?${queryString}`, {
+        headers: {
+          "X-BAPI-API-KEY": this.credentials.bybit.apiKey,
+          "X-BAPI-SIGN": histSign,
+          "X-BAPI-TIMESTAMP": timestamp,
+          "X-BAPI-RECV-WINDOW": recvWindow,
+        },
+      });
+      const histData = await histRes.json();
+
+      if (histData?.result?.list?.length > 0) {
+        const order = histData.result.list[0];
+        console.log(`[CHUNK-SYSTEM] Bybit order ${orderId} failed to fill. Status: ${order.orderStatus}, Reject Reason: ${order.rejectReason || "None"}`);
+      } else {
+        console.log(`[CHUNK-SYSTEM] Bybit order ${orderId} not found in execution list or history. Assuming 0 fill.`);
+      }
+    } else {
+      console.log(`[CHUNK-SYSTEM] Bybit order ${orderId} execution list total filled: ${totalFilled}`);
+    }
+
     return totalFilled;
   }
 

@@ -2,5 +2,6 @@
   "autoExit": true,
   "stoplossPercent": 5,
   "targetPercent": 2,
-  "slippagePercent": 0.1
+  "slippagePercent": 0.1,
+  "feesPercent": 0.1
 }
