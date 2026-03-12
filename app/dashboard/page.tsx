@@ -44,6 +44,12 @@ interface GroupedPosition {
 interface SettingsState {
   stoplossPercent: number;
   targetPercent: number;
+  feesPercent?: number;
+}
+
+function formatNumber(num: number | undefined | null): string {
+  if (num == null) return "0.0000";
+  return num.toLocaleString(undefined, { minimumFractionDigits: 4, maximumFractionDigits: 4 });
 }
 
 function getApiKeysFromStorage(): {
@@ -70,17 +76,18 @@ function getApiKeysFromStorage(): {
 }
 
 function loadSettings(): SettingsState {
-  if (typeof window === "undefined") return { stoplossPercent: 2, targetPercent: 1.5 };
+  if (typeof window === "undefined") return { stoplossPercent: 2, targetPercent: 1.5, feesPercent: 0.1 };
   try {
     const raw = localStorage.getItem(SETTINGS_STORAGE_KEY);
-    if (!raw) return { stoplossPercent: 2, targetPercent: 1.5 };
-    const p = JSON.parse(raw) as Partial<SettingsState>;
+    if (!raw) return { stoplossPercent: 2, targetPercent: 1.5, feesPercent: 0.1 };
+    const p = JSON.parse(raw) as Partial<SettingsState & { feesPercent?: number }>;
     return {
       stoplossPercent: typeof p.stoplossPercent === "number" ? p.stoplossPercent : 2,
       targetPercent: typeof p.targetPercent === "number" ? p.targetPercent : 1.5,
+      feesPercent: typeof p.feesPercent === "number" ? p.feesPercent : 0.1,
     };
   } catch {
-    return { stoplossPercent: 2, targetPercent: 1.5 };
+    return { stoplossPercent: 2, targetPercent: 1.5, feesPercent: 0.1 };
   }
 }
 
@@ -140,7 +147,7 @@ export default function DashboardPage() {
   const [expandedSymbol, setExpandedSymbol] = useState<string | null>(null);
   const [closingId, setClosingId] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
-  const [settings, setSettings] = useState<SettingsState>({ stoplossPercent: 2, targetPercent: 1.5 });
+  const [settings, setSettings] = useState<SettingsState>({ stoplossPercent: 2, targetPercent: 1.5, feesPercent: 0.1 });
   const wsRef = useRef<WebSocket | null>(null);
   const toastRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -323,27 +330,25 @@ export default function DashboardPage() {
           <table className="w-full min-w-[800px]">
             <thead>
               <tr className="text-left text-slate-400 text-xs font-medium uppercase tracking-wider border-b border-white/[0.06]">
-                <th className="p-4">Token</th>
-                <th className="p-4 text-right">Total Qty</th>
-                <th className="p-4">Direction</th>
-                <th className="p-4 text-right">Used Margin</th>
-                <th className="p-4 text-right">Stoploss (USD)</th>
-                <th className="p-4 text-right">Target (USD)</th>
+                <th className="p-4">Pair</th>
+                <th className="p-4 text-right">Qty</th>
+                <th className="p-4">Binance</th>
+                <th className="p-4">Bybit</th>
                 <th className="p-4 text-right">Combined PnL</th>
-                <th className="p-4 w-20">Details</th>
+                <th className="p-4 w-12"></th>
                 <th className="p-4 w-24">Exit</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={9} className="p-8 text-center text-slate-500">
+                  <td colSpan={7} className="p-8 text-center text-slate-500">
                     Loading positions…
                   </td>
                 </tr>
               ) : positions.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="p-8 text-center text-slate-500">
+                  <td colSpan={7} className="p-8 text-center text-slate-500">
                     No open positions. Save API keys in Settings and open trades from the Screener.
                   </td>
                 </tr>
@@ -351,9 +356,8 @@ export default function DashboardPage() {
                 positions.map((pos) => {
                   const livePnl = liveGroupPnl(pos, stateBySymbol(pos.symbol));
                   const wsState = stateBySymbol(pos.symbol);
-                  const notional = pos.totalQuantity * pos.entryPrice;
-                  const stoplossAmt = (notional * settings.stoplossPercent) / 100;
-                  const targetAmt = (notional * settings.targetPercent) / 100;
+                  const combinedPnl = livePnl;
+                  const totalMargin = pos.usedMargin ?? 0;
                   const isExpanded = expandedSymbol === pos.symbol;
 
                   return (
@@ -366,26 +370,46 @@ export default function DashboardPage() {
                           {pos.totalQuantity.toLocaleString(undefined, { maximumFractionDigits: 6 })}
                         </td>
                         <td className="p-4 text-sm">
-                          <div className={pos.binance?.side === "Long" ? "text-emerald-400" : "text-red-400"}>
-                            {pos.binance ? pos.binance.side : "—"}
-                          </div>
-                          <div className={pos.bybit?.side === "Long" ? "text-emerald-400" : "text-red-400"}>
-                            {pos.bybit ? pos.bybit.side : "—"}
-                          </div>
+                          {pos.binance ? (
+                            <>
+                              <div className="flex items-center gap-1.5 mb-1">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                                <span className="text-white font-medium">Binance</span>
+                                <span className={`text-[10px] px-1.5 py-0.5 rounded ml-1 ${pos.binance.side === "BUY" || pos.binance.side === "Long" ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30" : "bg-red-500/20 text-red-400 border border-red-500/30"}`}>
+                                  {pos.binance.side === "BUY" ? "Long" : pos.binance.side === "SELL" ? "Short" : pos.binance.side}
+                                </span>
+                              </div>
+                              <div className="text-slate-400">Entry: <span className="text-slate-200">${formatNumber(pos.binance.entryPrice)}</span></div>
+                              <div className="text-slate-400">Margin: <span className="text-slate-200">${formatNumber(pos.binance.marginUsed)}</span></div>
+                            </>
+                          ) : (
+                            <span className="text-slate-500">—</span>
+                          )}
                         </td>
-                        <td className="p-4 text-right text-slate-300">
-                          ${(pos.usedMargin ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        </td>
-                        <td className="p-4 text-right text-red-300/90">
-                          ${stoplossAmt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        </td>
-                        <td className="p-4 text-right text-emerald-300/90">
-                          ${targetAmt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        <td className="p-4 text-sm">
+                          {pos.bybit ? (
+                            <>
+                              <div className="flex items-center gap-1.5 mb-1">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                                <span className="text-white font-medium">Bybit</span>
+                                <span className={`text-[10px] px-1.5 py-0.5 rounded ml-1 ${pos.bybit.side === "Buy" || pos.bybit.side === "Long" ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30" : "bg-red-500/20 text-red-400 border border-red-500/30"}`}>
+                                  {pos.bybit.side === "Buy" ? "Long" : pos.bybit.side === "Sell" ? "Short" : pos.bybit.side}
+                                </span>
+                              </div>
+                              <div className="text-slate-400">Entry: <span className="text-slate-200">${formatNumber(pos.bybit.entryPrice)}</span></div>
+                              <div className="text-slate-400">Margin: <span className="text-slate-200">${formatNumber(pos.bybit.marginUsed)}</span></div>
+                            </>
+                          ) : (
+                            <span className="text-slate-500">—</span>
+                          )}
                         </td>
                         <td className="p-4 text-right">
-                          <span className={livePnl >= 0 ? "text-emerald-400" : "text-red-400"}>
-                            {livePnl >= 0 ? "+" : ""}${livePnl.toFixed(2)}
-                          </span>
+                          <div className={`text-base font-bold ${combinedPnl >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                            {combinedPnl >= 0 ? "+" : ""}${combinedPnl.toFixed(4)}
+                          </div>
+                          <div className={`text-xs mt-0.5 ${combinedPnl >= 0 ? "text-emerald-400/80" : "text-red-400/80"}`}>
+                            {totalMargin > 0 ? (combinedPnl >= 0 ? "+" : "") + ((combinedPnl / totalMargin) * 100).toFixed(4) + "%" : "0.0000%"}
+                          </div>
                         </td>
                         <td className="p-4">
                           <button
@@ -410,8 +434,30 @@ export default function DashboardPage() {
                       </tr>
                       {isExpanded && (
                         <tr className="bg-white/[0.04] border-b border-white/[0.04]">
-                          <td colSpan={9} className="p-0">
+                          <td colSpan={7} className="p-0">
                             <div className="px-4 pb-4 pt-1 transition-all duration-200 ease-out">
+                              {(() => {
+                                const stoplossPct = (settings.stoplossPercent ?? 2) / 100;
+                                const targetPct = (settings.targetPercent ?? 1.5) / 100;
+                                const feesPct = (settings.feesPercent ?? 0.1) / 100;
+                                const avgEntry = pos.entryPrice;
+                                const totalMargin = pos.usedMargin ?? 0;
+                                const tradeValue = pos.totalQuantity * avgEntry;
+                                const stoplossAmt = totalMargin * stoplossPct;
+                                const targetAmt = totalMargin * targetPct + tradeValue * feesPct;
+                                return (
+                                  <div className="flex gap-4 mb-4">
+                                    <div className="rounded-lg border border-white/[0.04] bg-white/[0.02] p-3 text-center">
+                                      <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Stoploss (USD)</p>
+                                      <p className="text-red-400 font-medium">${stoplossAmt.toFixed(4)}</p>
+                                    </div>
+                                    <div className="rounded-lg border border-white/[0.04] bg-white/[0.02] p-3 text-center">
+                                      <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Target (USD)</p>
+                                      <p className="text-emerald-400 font-medium">${targetAmt.toFixed(4)}</p>
+                                    </div>
+                                  </div>
+                                );
+                              })()}
                               <div className="rounded-xl border border-white/[0.08] overflow-hidden">
                                 <table className="w-full text-sm">
                                   <thead>
