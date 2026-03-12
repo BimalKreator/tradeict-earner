@@ -27,6 +27,8 @@ export interface ExecutionSettings {
   targetPercent?: number;
   /** Slippage tolerance as percentage (e.g. 0.05 = 0.05%). */
   slippagePercent?: number;
+  /** Total fees as percentage of trade value (e.g. 0.1 = 0.1%). */
+  feesPercent?: number;
 }
 
 export interface ExchangeCredentials {

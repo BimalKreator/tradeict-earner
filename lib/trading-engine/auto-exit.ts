@@ -310,10 +310,15 @@ export function startAutoExitMonitor(
     const combinedPnl = combinedPnlFromL2(pos, snapshot);
     const stoplossPct = (settings.stoplossPercent ?? 2) / 100;
     const targetPct = (settings.targetPercent ?? 1.5) / 100;
-    // Use notional (position value) so threshold matches dashboard; dashboard uses notional * percent.
-    const notional = pos.totalQuantity * pos.entryPrice;
-    const stoplossAmount = notional * stoplossPct;
-    const targetAmount = notional * targetPct;
+    const feesPct = (settings.feesPercent ?? 0.1) / 100;
+
+    const tradeValue = pos.totalQuantity * pos.entryPrice;
+
+    // Stoploss = Margin used x stoploss%
+    const stoplossAmount = pos.usedMargin * stoplossPct;
+
+    // Target = (Margin used x Target%) + (Trade Value x Fees%)
+    const targetAmount = (pos.usedMargin * targetPct) + (tradeValue * feesPct);
 
     if (combinedPnl <= -stoplossAmount || combinedPnl >= targetAmount) {
       exitLocks.add(pos.symbol);

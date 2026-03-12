@@ -57,6 +57,7 @@ export interface SettingsState {
   stoplossPercent: number;
   targetPercent: number;
   slippagePercent: number;
+  feesPercent: number;
 }
 
 const DEFAULT_SETTINGS: SettingsState = {
@@ -68,6 +69,7 @@ const DEFAULT_SETTINGS: SettingsState = {
   stoplossPercent: 2,
   targetPercent: 1.5,
   slippagePercent: 0.05,
+  feesPercent: 0.1,
 };
 
 function loadSettings(): SettingsState {
@@ -85,6 +87,7 @@ function loadSettings(): SettingsState {
       stoplossPercent: typeof parsed.stoplossPercent === "number" ? parsed.stoplossPercent : DEFAULT_SETTINGS.stoplossPercent,
       targetPercent: typeof parsed.targetPercent === "number" ? parsed.targetPercent : DEFAULT_SETTINGS.targetPercent,
       slippagePercent: typeof parsed.slippagePercent === "number" ? parsed.slippagePercent : DEFAULT_SETTINGS.slippagePercent,
+      feesPercent: typeof parsed.feesPercent === "number" ? parsed.feesPercent : DEFAULT_SETTINGS.feesPercent,
     };
   } catch {
     return DEFAULT_SETTINGS;
@@ -132,6 +135,7 @@ export default function SettingsPage() {
               stoplossPercent: settings.stoplossPercent,
               targetPercent: settings.targetPercent,
               slippagePercent: settings.slippagePercent,
+              feesPercent: settings.feesPercent,
             },
           })
         );
@@ -345,6 +349,17 @@ export default function SettingsPage() {
                 step={0.01}
                 value={settings.slippagePercent}
                 onChange={(e) => update("slippagePercent", Number(e.target.value) || 0)}
+                className={inputClass}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-slate-300">Fees % (Total)</label>
+              <input
+                type="number"
+                min={0}
+                step={0.01}
+                value={settings.feesPercent}
+                onChange={(e) => update("feesPercent", Number(e.target.value) || 0)}
                 className={inputClass}
               />
             </div>

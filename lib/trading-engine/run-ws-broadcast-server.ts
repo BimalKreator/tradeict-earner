@@ -64,6 +64,7 @@ function loadAutoExitSettings(): Partial<ExecutionSettings> {
     stoplossPercent: typeof process.env.STOPLOSS_PERCENT !== "undefined" ? parseFloat(process.env.STOPLOSS_PERCENT) || 2 : 2,
     targetPercent: typeof process.env.TARGET_PERCENT !== "undefined" ? parseFloat(process.env.TARGET_PERCENT) || 1.5 : 1.5,
     slippagePercent: typeof process.env.SLIPPAGE_PERCENT !== "undefined" ? parseFloat(process.env.SLIPPAGE_PERCENT) || 0.05 : 0.05,
+    feesPercent: typeof process.env.FEES_PERCENT !== "undefined" ? parseFloat(process.env.FEES_PERCENT) || 0.1 : 0.1,
   };
   try {
     if (fs.existsSync(SETTINGS_FILE)) {
@@ -73,6 +74,7 @@ function loadAutoExitSettings(): Partial<ExecutionSettings> {
       if (typeof data.stoplossPercent === "number" && data.stoplossPercent >= 0) defaults.stoplossPercent = data.stoplossPercent;
       if (typeof data.targetPercent === "number" && data.targetPercent >= 0) defaults.targetPercent = data.targetPercent;
       if (typeof data.slippagePercent === "number" && data.slippagePercent >= 0) defaults.slippagePercent = data.slippagePercent;
+      if (typeof data.feesPercent === "number" && data.feesPercent >= 0) defaults.feesPercent = data.feesPercent;
     }
   } catch (e) {
     console.warn("[WS Server] Could not load auto-exit-settings.json:", e);
@@ -95,6 +97,7 @@ const DEFAULT_EXECUTION_SETTINGS: ExecutionSettings = {
   bybitToBinanceDelayMs: 10,
   chunkLiquidityFraction: 0.5,
   slippagePercent: 0.05,
+  feesPercent: 0.1,
 };
 
 async function fetchOrderbookSnapshot(symbol: string): Promise<OrderbookSnapshot> {
@@ -164,6 +167,7 @@ async function runManualTrade(
       },
     };
     (credentials as { slippagePercent?: number }).slippagePercent = autoExitSettings.slippagePercent ?? 0.05;
+    (credentials as { feesPercent?: number }).feesPercent = autoExitSettings.feesPercent ?? 0.1;
     lastCredentials = credentials;
 
     console.log("[CHUNK-SYSTEM] Manual trade requested via WS: symbol=" + symbol + " side=" + side + " isExit=" + !!isExit);
@@ -313,12 +317,13 @@ async function main() {
           }
           return;
         }
-        const payloadMsg = msg.payload as { autoExit?: boolean; stoplossPercent?: number; targetPercent?: number; slippagePercent?: number } | undefined;
+        const payloadMsg = msg.payload as { autoExit?: boolean; stoplossPercent?: number; targetPercent?: number; slippagePercent?: number; feesPercent?: number } | undefined;
         if (msg.action === "set_auto_exit_settings" && payloadMsg) {
           if (typeof payloadMsg.autoExit === "boolean") autoExitSettings.autoExit = payloadMsg.autoExit;
           if (typeof payloadMsg.stoplossPercent === "number" && payloadMsg.stoplossPercent >= 0) autoExitSettings.stoplossPercent = payloadMsg.stoplossPercent;
           if (typeof payloadMsg.targetPercent === "number" && payloadMsg.targetPercent >= 0) autoExitSettings.targetPercent = payloadMsg.targetPercent;
           if (typeof payloadMsg.slippagePercent === "number" && payloadMsg.slippagePercent >= 0) autoExitSettings.slippagePercent = payloadMsg.slippagePercent;
+          if (typeof payloadMsg.feesPercent === "number" && payloadMsg.feesPercent >= 0) autoExitSettings.feesPercent = payloadMsg.feesPercent;
           saveAutoExitSettings();
           console.log("[WS Server] Auto-Exit settings updated from client: autoExit=" + autoExitSettings.autoExit);
           return;

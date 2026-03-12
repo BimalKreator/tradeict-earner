@@ -18,12 +18,14 @@ function useSyncAutoExitOnLoad() {
       let stoplossPercent = 2;
       let targetPercent = 1.5;
       let slippagePercent = 0.05;
+      let feesPercent = 0.1;
       if (raw) {
-        const parsed = JSON.parse(raw) as { autoExit?: boolean; stoplossPercent?: number; targetPercent?: number; slippagePercent?: number };
+        const parsed = JSON.parse(raw) as { autoExit?: boolean; stoplossPercent?: number; targetPercent?: number; slippagePercent?: number; feesPercent?: number };
         if (typeof parsed.autoExit === "boolean") autoExit = parsed.autoExit;
         if (typeof parsed.stoplossPercent === "number" && parsed.stoplossPercent >= 0) stoplossPercent = parsed.stoplossPercent;
         if (typeof parsed.targetPercent === "number" && parsed.targetPercent >= 0) targetPercent = parsed.targetPercent;
         if (typeof parsed.slippagePercent === "number" && parsed.slippagePercent >= 0) slippagePercent = parsed.slippagePercent;
+        if (typeof parsed.feesPercent === "number" && parsed.feesPercent >= 0) feesPercent = parsed.feesPercent;
       }
       const wsUrl = `ws://${window.location.hostname}:8080`;
       const ws = new WebSocket(wsUrl);
@@ -31,7 +33,7 @@ function useSyncAutoExitOnLoad() {
         ws.send(
           JSON.stringify({
             action: "set_auto_exit_settings",
-            payload: { autoExit, stoplossPercent, targetPercent, slippagePercent },
+            payload: { autoExit, stoplossPercent, targetPercent, slippagePercent, feesPercent },
           })
         );
         setTimeout(() => ws.close(), 500);
