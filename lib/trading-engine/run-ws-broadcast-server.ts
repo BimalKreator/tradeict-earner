@@ -432,7 +432,8 @@ async function main() {
           if (
             !payload?.symbol ||
             !payload.side ||
-            (payload.side !== "Long" && payload.side !== "Short") ||
+            typeof payload.side !== "string" ||
+            payload.side.trim() === "" ||
             !payload.binanceApiKey ||
             !payload.binanceApiSecret ||
             !payload.bybitApiKey ||
