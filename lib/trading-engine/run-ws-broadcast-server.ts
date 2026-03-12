@@ -361,7 +361,7 @@ async function main() {
     vwapTargetAmount: 10_000,
     maxSymbols: 50,
     onStateUpdate(states) {
-      broadcast({ type: "state", states, ts: Date.now() });
+      broadcast({ type: "state", states, ts: Date.now(), maxTradeSlot: autoExitSettings.maxTradeSlot });
     },
   });
 
@@ -472,7 +472,7 @@ async function main() {
     // Send current state immediately
     const states = manager.getStates();
     try {
-      ws.send(JSON.stringify({ type: "state", states, ts: Date.now() }));
+      ws.send(JSON.stringify({ type: "state", states, ts: Date.now(), maxTradeSlot: autoExitSettings.maxTradeSlot }));
     } catch (e) {
       console.error("[WS Server] Initial send error:", e);
     }

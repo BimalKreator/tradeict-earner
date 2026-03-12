@@ -20,6 +20,10 @@ export const metadata: Metadata = {
     telephone: false,
   },
   manifest: "/manifest.json",
+  icons: {
+    icon: "/icons/icon-512.png",
+    apple: "/icons/icon-512.png",
+  },
 };
 
 export const viewport: Viewport = {
@@ -37,9 +41,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <head>
-        <link rel="apple-touch-icon" href="/icons/icon-192.png" />
-      </head>
+      <head />
       <body className="antialiased min-h-screen">
         <SWRegister />
         <Providers>

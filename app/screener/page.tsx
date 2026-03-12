@@ -19,20 +19,7 @@ type FundingFilter = "all" | "favourable";
 const FAV_FUNDING_STORAGE_KEY = "tradeict-earner-fav-funding";
 const BANNED_TOKENS_STORAGE_KEY = "tradeict-earner-banned-tokens";
 const API_KEYS_STORAGE_KEY = "tradeict-earner-api-keys";
-const SETTINGS_STORAGE_KEY = "tradeict-earner-settings";
 const PAGE_SIZE = 15;
-
-function loadSettings(): { maxTradeSlot: number } {
-  if (typeof window === "undefined") return { maxTradeSlot: 5 };
-  try {
-    const raw = localStorage.getItem(SETTINGS_STORAGE_KEY);
-    if (!raw) return { maxTradeSlot: 5 };
-    const p = JSON.parse(raw) as { maxTradeSlot?: number };
-    return { maxTradeSlot: typeof p.maxTradeSlot === "number" ? p.maxTradeSlot : 5 };
-  } catch {
-    return { maxTradeSlot: 5 };
-  }
-}
 
 interface TradeRow {
   state: SymbolState;
@@ -143,12 +130,16 @@ export default function ScreenerPage() {
         const msg = JSON.parse(event.data as string) as {
           type?: string;
           states?: SymbolState[];
+          maxTradeSlot?: number;
           action?: string;
           status?: string;
           done?: boolean;
         };
         if (msg.type === "state" && Array.isArray(msg.states)) {
           setStates(msg.states);
+          if (typeof msg.maxTradeSlot === "number") {
+            setMaxSlots(msg.maxTradeSlot);
+          }
         }
         if (msg.action === "TRADE_UPDATE" && msg.status != null) {
           const isError = msg.status.startsWith("Trade failed");
@@ -403,7 +394,6 @@ export default function ScreenerPage() {
   }, [pageIndex, currentPage]);
 
   useEffect(() => {
-    setMaxSlots(Math.max(1, loadSettings().maxTradeSlot || 5));
     let mounted = true;
     const fetchPositions = async () => {
       const keys = getApiKeysFromStorage();
