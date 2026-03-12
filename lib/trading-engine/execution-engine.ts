@@ -980,10 +980,12 @@ export async function executeChunkTrade(
   }
   const binanceSide = isBinanceBuy ? "BUY" : "SELL";
   const bybitSide = isBybitBuy ? "Buy" : "Sell";
-  const isBuy = isBinanceBuy;
-  const orderbookSide: OrderSide = isBinanceBuy ? "Long" : "Short";
-  const priceBybitBase = getBestPrice(orderbook, orderbookSide);
-  const priceBinanceBase = getBestPrice(orderbook, orderbookSide);
+
+  const bybitOrderbookSide: OrderSide = isBybitBuy ? "Long" : "Short";
+  const binanceOrderbookSide: OrderSide = isBinanceBuy ? "Long" : "Short";
+
+  const priceBybitBase = getBestPrice(orderbook, bybitOrderbookSide);
+  const priceBinanceBase = getBestPrice(orderbook, binanceOrderbookSide);
 
   if (priceBybitBase <= 0 || priceBinanceBase <= 0) {
     console.log(`${P} Abort: no orderbook price (Bybit=${priceBybitBase} Binance=${priceBinanceBase})`);
@@ -993,8 +995,8 @@ export async function executeChunkTrade(
   }
 
   const slipPct = (settings.slippagePercent ?? 0.05) / 100;
-  const execPriceBybitRaw = isBuy ? priceBybitBase * (1 + slipPct) : priceBybitBase * (1 - slipPct);
-  const execPriceBinanceRaw = isBuy ? priceBinanceBase * (1 + slipPct) : priceBinanceBase * (1 - slipPct);
+  const execPriceBybitRaw = isBybitBuy ? priceBybitBase * (1 + slipPct) : priceBybitBase * (1 - slipPct);
+  const execPriceBinanceRaw = isBinanceBuy ? priceBinanceBase * (1 + slipPct) : priceBinanceBase * (1 - slipPct);
 
   const execPriceBybit = formatPrice(execPriceBybitRaw, bybitTickSize);
   const execPriceBinance = formatPrice(execPriceBinanceRaw, binanceTickSize);
@@ -1203,7 +1205,7 @@ export async function executeChunkTrade(
     return results;
   }
 
-  const firstRowQty = getFirstRowQty(orderbook, orderbookSide);
+  const firstRowQty = getFirstRowQty(orderbook, bybitOrderbookSide);
   console.log(`${P} Chunk 2+: firstRowQty=${firstRowQty} frac=${frac} (liquidity fraction for subsequent chunks)`);
 
   for (let i = 0; i < 10; i++) {
@@ -1214,15 +1216,15 @@ export async function executeChunkTrade(
       break;
     }
 
-    const priceBybitNext = getBestPrice(orderbook, orderbookSide);
-    const priceBinanceNext = getBestPrice(orderbook, orderbookSide);
+    const priceBybitNext = getBestPrice(orderbook, bybitOrderbookSide);
+    const priceBinanceNext = getBestPrice(orderbook, binanceOrderbookSide);
     if (priceBybitNext <= 0 || priceBinanceNext <= 0) {
       console.log(`${P} Chunk ${i + 2}: no price, stopping.`);
       break;
     }
     const slipPctNext = (settings.slippagePercent ?? 0.05) / 100;
-    const execBybitNextRaw = isBuy ? priceBybitNext * (1 + slipPctNext) : priceBybitNext * (1 - slipPctNext);
-    const execBinanceNextRaw = isBuy ? priceBinanceNext * (1 + slipPctNext) : priceBinanceNext * (1 - slipPctNext);
+    const execBybitNextRaw = isBybitBuy ? priceBybitNext * (1 + slipPctNext) : priceBybitNext * (1 - slipPctNext);
+    const execBinanceNextRaw = isBinanceBuy ? priceBinanceNext * (1 + slipPctNext) : priceBinanceNext * (1 - slipPctNext);
     const execPriceBybitNext = formatPrice(execBybitNextRaw, bybitTickSize);
     const execPriceBinanceNext = formatPrice(execBinanceNextRaw, binanceTickSize);
 
