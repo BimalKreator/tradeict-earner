@@ -216,35 +216,50 @@ async function runManualTrade(
     const bybitL2 = binanceL2;
 
     const settings = { ...DEFAULT_EXECUTION_SETTINGS, ...autoExitSettings, manualQuantity: quantity };
-    const results = await executeChunkTrade(
-      symbol,
-      side as OrderSide,
-      orderbook,
-      settings,
-      credentials,
-      privateWsManager,
-      binanceBalance,
-      bybitBalance,
-      binanceL2,
-      bybitL2,
-      (message) => sendTradeUpdate(ws, message),
-      isExit
-    );
-    const success = results.length > 0 && results.some((r) => r.success);
-    if (success) {
-      sendTradeUpdate(ws, "Trade completed", true);
-    } else {
-      const err = results[0]?.error ?? "Execution failed";
-      sendTradeUpdate(ws, `Trade failed: ${err}`, true);
+    try {
+      const results = await executeChunkTrade(
+        symbol,
+        side as OrderSide,
+        orderbook,
+        settings,
+        credentials,
+        privateWsManager,
+        binanceBalance,
+        bybitBalance,
+        binanceL2,
+        bybitL2,
+        (msg) => {
+          try {
+            if (ws.readyState === 1) ws.send(JSON.stringify({ action: "TRADE_UPDATE", status: msg }));
+          } catch {}
+        },
+        isExit
+      );
+      const success = results.length > 0 && results.some((r) => r.success);
+      if (success) {
+        sendTradeUpdate(ws, "Trade execution cycle complete", true);
+      } else {
+        const err = results[0]?.error ?? "Execution failed";
+        sendTradeUpdate(ws, `Trade failed: ${err}`, true);
+      }
+    } catch (tradeErr) {
+      const errMsg = tradeErr instanceof Error ? tradeErr.message : String(tradeErr);
+      console.error("[WS Server] [CHUNK-SYSTEM] Manual trade execution error:", errMsg);
+      try {
+        if (ws.readyState === 1) ws.send(JSON.stringify({ action: "TRADE_UPDATE", status: `Trade failed: ${errMsg}`, done: true }));
+      } catch {}
+    } finally {
+      isTradeExecuting = false;
     }
   } catch (e) {
     const errMsg = e instanceof Error ? e.message : String(e);
     console.error("[WS Server] [CHUNK-SYSTEM] runManualTrade error:", errMsg);
     try {
-      sendTradeUpdate(ws, `Trade failed: ${errMsg}`, true);
+      if (ws.readyState === 1) ws.send(JSON.stringify({ action: "TRADE_UPDATE", status: `Trade failed: ${errMsg}`, done: true }));
     } catch (sendErr) {
       console.error("[WS Server] sendTradeUpdate after error:", sendErr);
     }
+    isTradeExecuting = false;
   } finally {
     isTradeExecuting = false;
   }

@@ -992,8 +992,9 @@ export async function executeChunkTrade(
   console.log(`${P} Requested Lev: ${requestedLev}, Max Allowed: ${maxAllowedLev}, Using: ${lev}`);
 
   let targetTotalQty = 0;
-  if (settings.manualQuantity && settings.manualQuantity > 0) {
-    targetTotalQty = parseFloat(formatQuantity(settings.manualQuantity, Math.max(bybitStepSize, binanceStepSize)));
+  const manQty = Number(settings.manualQuantity) || 0;
+  if (manQty > 0) {
+    targetTotalQty = parseFloat(formatQuantity(manQty, Math.max(bybitStepSize, binanceStepSize)));
     console.log(`${P} Manual Trade Override: Target Total Qty = ${targetTotalQty}`);
   } else {
     const capPct = Math.max(0, Math.min(100, settings.capitalPercent ?? 10)) / 100;
