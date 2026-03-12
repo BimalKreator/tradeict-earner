@@ -18,7 +18,20 @@ type FundingFilter = "all" | "favourable";
 const FAV_FUNDING_STORAGE_KEY = "tradeict-earner-fav-funding";
 const BANNED_TOKENS_STORAGE_KEY = "tradeict-earner-banned-tokens";
 const API_KEYS_STORAGE_KEY = "tradeict-earner-api-keys";
+const SETTINGS_STORAGE_KEY = "tradeict-earner-settings";
 const PAGE_SIZE = 15;
+
+function loadSettings(): { maxTradeSlot: number } {
+  if (typeof window === "undefined") return { maxTradeSlot: 5 };
+  try {
+    const raw = localStorage.getItem(SETTINGS_STORAGE_KEY);
+    if (!raw) return { maxTradeSlot: 5 };
+    const p = JSON.parse(raw) as { maxTradeSlot?: number };
+    return { maxTradeSlot: typeof p.maxTradeSlot === "number" ? p.maxTradeSlot : 5 };
+  } catch {
+    return { maxTradeSlot: 5 };
+  }
+}
 
 interface TradeRow {
   state: SymbolState;
@@ -108,6 +121,8 @@ export default function ScreenerPage() {
   const [tradeLeverage, setTradeLeverage] = useState(3);
   const [tradeSubmitting, setTradeSubmitting] = useState(false);
   const [tradeToast, setTradeToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+  const [activePositions, setActivePositions] = useState<Set<string>>(new Set());
+  const [maxSlots, setMaxSlots] = useState(5);
 
   const wsRef = useRef<WebSocket | null>(null);
   const tradeToastRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -329,6 +344,20 @@ export default function ScreenerPage() {
       });
   }, [states, tokenSearch, minL2SpreadPct, fundingType, onlySafeOpportunities, bannedTokens]);
 
+  const nextTradeSymbols = useMemo(() => {
+    const availableSlots = Math.max(0, maxSlots - activePositions.size);
+    if (availableSlots === 0) return new Set<string>();
+
+    const nextSet = new Set<string>();
+    for (const row of filteredRows) {
+      if (!activePositions.has(row.state.symbol) && row.state.has3xLiquidity) {
+        nextSet.add(row.state.symbol);
+        if (nextSet.size >= availableSlots) break;
+      }
+    }
+    return nextSet;
+  }, [filteredRows, activePositions, maxSlots]);
+
   const totalPages = Math.max(1, Math.ceil(filteredRows.length / PAGE_SIZE));
   const pageIndex = Math.min(currentPage, totalPages - 1);
   const paginatedRows = useMemo(
@@ -339,6 +368,35 @@ export default function ScreenerPage() {
   useEffect(() => {
     if (pageIndex !== currentPage) setCurrentPage(pageIndex);
   }, [pageIndex, currentPage]);
+
+  useEffect(() => {
+    setMaxSlots(loadSettings().maxTradeSlot);
+    let mounted = true;
+    const fetchPositions = async () => {
+      const keys = getApiKeysFromStorage();
+      if (!keys.binanceApiKey || !keys.bybitApiKey) return;
+      try {
+        const res = await fetch("/api/positions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(keys),
+        });
+        const data = await res.json();
+        if (mounted && data.positions && Array.isArray(data.positions)) {
+          const active = new Set<string>(data.positions.map((p: { symbol: string }) => p.symbol));
+          setActivePositions(active);
+        }
+      } catch {
+        // ignore
+      }
+    };
+    fetchPositions();
+    const id = setInterval(fetchPositions, 10000);
+    return () => {
+      mounted = false;
+      clearInterval(id);
+    };
+  }, []);
 
   return (
     <div className="space-y-6 lg:space-y-8">
@@ -462,7 +520,19 @@ export default function ScreenerPage() {
                     key={s.symbol}
                     className="border-b border-white/[0.04] last:border-0 hover:bg-white/[0.02] transition-colors"
                   >
-                    <td className="p-4 font-medium text-white">{s.symbol}</td>
+                    <td className="p-4 font-medium text-white">
+                      <div className="flex items-center gap-2">
+                        {s.symbol}
+                        {nextTradeSymbols.has(s.symbol) && (
+                          <span
+                            className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-500/20 text-blue-400 border border-blue-500/40 uppercase tracking-wider"
+                            title="Next in line for Auto-Trade"
+                          >
+                            NEXT
+                          </span>
+                        )}
+                      </div>
+                    </td>
                     <td className="p-4 text-slate-300">
                       {s.binanceVWAP != null
                         ? `$${s.binanceVWAP.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })}`

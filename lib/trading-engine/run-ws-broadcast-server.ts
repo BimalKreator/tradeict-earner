@@ -313,13 +313,14 @@ async function main() {
         return;
       }
 
+      // 2. Screener Logic: Get top token based on L2 Spread (Matching the Frontend Screener)
       const states = manager.getStates();
       const eligibleTokens = states
-        .filter((s) => s.has3xLiquidity && !activeSymbols.has(s.symbol))
+        .filter((s) => s.has3xLiquidity && !activeSymbols.has(s.symbol) && s.binanceVWAP != null && s.bybitVWAP != null)
         .sort((a, b) => {
-          const diffA = Math.abs((a.binanceFunding ?? 0) - (a.bybitFunding ?? 0));
-          const diffB = Math.abs((b.binanceFunding ?? 0) - (b.bybitFunding ?? 0));
-          return diffB - diffA;
+          const spreadA = Math.abs(((a.bybitVWAP! - a.binanceVWAP!) / a.binanceVWAP!) * 100);
+          const spreadB = Math.abs(((b.bybitVWAP! - b.binanceVWAP!) / b.binanceVWAP!) * 100);
+          return spreadB - spreadA; // Highest L2 spread first
         });
 
       if (eligibleTokens.length > 0) {
