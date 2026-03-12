@@ -130,24 +130,36 @@ function groupPositions(binance: RawPosition[], bybit: RawPosition[]): GroupedPo
   return out.sort((a, b) => a.symbol.localeCompare(b.symbol));
 }
 
-function getVWAP(levels: [string, string][], targetNotional: number): number {
-  let notionalSum = 0;
-  let qtySum = 0;
-  for (const [pStr, qStr] of levels) {
+/**
+ * Deep Exit VWAP by quantity: walk the book until we fill targetQty volume.
+ * Used for conservative auto-exit trigger PnL (targetQty = position qty * 2).
+ * - Long (sell): use bids, best first → sort descending by price.
+ * - Short (buy): use asks, best first → sort ascending by price.
+ * Levels must be [price, qty] strings. Returns 0 if no levels or no fill.
+ */
+function getDeepExitVWAPByQuantity(
+  levels: [string, string][],
+  targetQty: number,
+  side: "Long" | "Short"
+): number {
+  if (!levels.length || targetQty <= 0) return 0;
+  const sorted =
+    side === "Long"
+      ? [...levels].sort((a, b) => parseFloat(b[0]) - parseFloat(a[0])) // bids: best (highest) first
+      : [...levels].sort((a, b) => parseFloat(a[0]) - parseFloat(b[0])); // asks: best (lowest) first
+  let cumulativeQty = 0;
+  let cumulativeValue = 0;
+  for (const [pStr, qStr] of sorted) {
     const p = parseFloat(pStr);
     const q = parseFloat(qStr);
-    const levelNotional = p * q;
-    if (notionalSum + levelNotional >= targetNotional) {
-      const neededNotional = targetNotional - notionalSum;
-      const neededQty = neededNotional / p;
-      notionalSum += neededNotional;
-      qtySum += neededQty;
-      break;
-    }
-    notionalSum += levelNotional;
-    qtySum += q;
+    if (p <= 0 || q <= 0) continue;
+    const take = Math.min(q, targetQty - cumulativeQty);
+    if (take <= 0) break;
+    cumulativeValue += p * take;
+    cumulativeQty += take;
+    if (cumulativeQty >= targetQty) break;
   }
-  return qtySum > 0 ? notionalSum / qtySum : 0;
+  return cumulativeQty > 0 ? cumulativeValue / cumulativeQty : 0;
 }
 
 function combinedPnlFromL2(pos: GroupedPosition, orderbook: OrderbookSnapshot): number {
@@ -155,18 +167,18 @@ function combinedPnlFromL2(pos: GroupedPosition, orderbook: OrderbookSnapshot): 
   let pnl = 0;
   if (pos.binance) {
     const b = pos.binance;
-    const targetNotional = b.quantity * b.entryPrice;
+    const targetQty = b.quantity * 2;
     const levels = b.side === "Long" ? orderbook.bids : orderbook.asks;
-    const exitVwap = getVWAP(levels, targetNotional) || parseFloat(levels[0]?.[0] || "0");
+    const exitVwap = getDeepExitVWAPByQuantity(levels, targetQty, b.side) || parseFloat(levels[0]?.[0] || "0");
     if (exitVwap > 0) {
       pnl += b.side === "Long" ? (exitVwap - b.entryPrice) * b.quantity : (b.entryPrice - exitVwap) * b.quantity;
     }
   }
   if (pos.bybit) {
     const y = pos.bybit;
-    const targetNotional = y.quantity * y.entryPrice;
+    const targetQty = y.quantity * 2;
     const levels = y.side === "Long" ? orderbook.bids : orderbook.asks;
-    const exitVwap = getVWAP(levels, targetNotional) || parseFloat(levels[0]?.[0] || "0");
+    const exitVwap = getDeepExitVWAPByQuantity(levels, targetQty, y.side) || parseFloat(levels[0]?.[0] || "0");
     if (exitVwap > 0) {
       pnl += y.side === "Long" ? (exitVwap - y.entryPrice) * y.quantity : (y.entryPrice - exitVwap) * y.quantity;
     }
@@ -174,7 +186,11 @@ function combinedPnlFromL2(pos: GroupedPosition, orderbook: OrderbookSnapshot): 
   return pnl;
 }
 
-/** Combined PnL using each exchange's own orderbook for its leg (matches dashboard logic). */
+/**
+ * Combined unrealized PnL for auto-exit triggers using Deep Exit VWAP only.
+ * Per leg: targetQty = position quantity * 2; Long → sell → bid VWAP, Short → buy → ask VWAP.
+ * Execution (chunk close) is unchanged and still uses best bid/ask in chunks.
+ */
 function combinedPnlFromL2TwoBooks(
   pos: GroupedPosition,
   binanceSnapshot: OrderbookSnapshot | null,
@@ -183,18 +199,18 @@ function combinedPnlFromL2TwoBooks(
   let pnl = 0;
   if (pos.binance && binanceSnapshot?.bids?.length && binanceSnapshot?.asks?.length) {
     const b = pos.binance;
-    const targetNotional = b.quantity * b.entryPrice;
+    const targetQty = b.quantity * 2;
     const levels = b.side === "Long" ? binanceSnapshot.bids : binanceSnapshot.asks;
-    const exitVwap = getVWAP(levels, targetNotional) || parseFloat(levels[0]?.[0] || "0");
+    const exitVwap = getDeepExitVWAPByQuantity(levels, targetQty, b.side) || parseFloat(levels[0]?.[0] || "0");
     if (exitVwap > 0) {
       pnl += b.side === "Long" ? (exitVwap - b.entryPrice) * b.quantity : (b.entryPrice - exitVwap) * b.quantity;
     }
   }
   if (pos.bybit && bybitSnapshot?.bids?.length && bybitSnapshot?.asks?.length) {
     const y = pos.bybit;
-    const targetNotional = y.quantity * y.entryPrice;
+    const targetQty = y.quantity * 2;
     const levels = y.side === "Long" ? bybitSnapshot.bids : bybitSnapshot.asks;
-    const exitVwap = getVWAP(levels, targetNotional) || parseFloat(levels[0]?.[0] || "0");
+    const exitVwap = getDeepExitVWAPByQuantity(levels, targetQty, y.side) || parseFloat(levels[0]?.[0] || "0");
     if (exitVwap > 0) {
       pnl += y.side === "Long" ? (exitVwap - y.entryPrice) * y.quantity : (y.entryPrice - exitVwap) * y.quantity;
     }

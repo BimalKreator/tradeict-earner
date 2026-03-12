@@ -188,6 +188,27 @@ export default function ScreenerPage() {
     };
   }, [tradeAmount]);
 
+  // Sync screener filters to backend so auto-trade uses same rules as "Next" labels
+  useEffect(() => {
+    const ws = wsRef.current;
+    if (!ws || ws.readyState !== WebSocket.OPEN) return;
+    try {
+      ws.send(
+        JSON.stringify({
+          action: "update_screener_filters",
+          filters: {
+            minL2SpreadPct,
+            fundingType,
+            bannedTokens: Array.from(bannedTokens),
+            onlySafeOpportunities,
+          },
+        })
+      );
+    } catch {
+      // ignore send errors
+    }
+  }, [minL2SpreadPct, fundingType, bannedTokens, onlySafeOpportunities, connected]);
+
   // Persist Fav Funding filter to localStorage
   useEffect(() => {
     try {

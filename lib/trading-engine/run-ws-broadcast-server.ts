@@ -41,6 +41,96 @@ const PORT = 8080;
 const BINANCE_DEPTH = "https://fapi.binance.com/fapi/v1/depth";
 
 const SETTINGS_FILE = path.join(process.cwd(), "auto-exit-settings.json");
+const SCREENER_FILTERS_FILE = path.join(process.cwd(), "screener-filters.json");
+
+export interface ScreenerFilters {
+  minL2SpreadPct?: number;
+  fundingType?: "all" | "favourable";
+  bannedTokens?: string[];
+  onlySafeOpportunities?: boolean;
+}
+
+/** Screener filters from frontend; used by auto-trade to pick same tokens as "Next". */
+let screenerFilters: ScreenerFilters = loadScreenerFilters();
+
+function loadScreenerFilters(): ScreenerFilters {
+  try {
+    if (fs.existsSync(SCREENER_FILTERS_FILE)) {
+      const raw = fs.readFileSync(SCREENER_FILTERS_FILE, "utf-8");
+      const data = JSON.parse(raw) as ScreenerFilters;
+      return {
+        minL2SpreadPct: typeof data.minL2SpreadPct === "number" ? data.minL2SpreadPct : 0,
+        fundingType: data.fundingType === "favourable" ? "favourable" : "all",
+        bannedTokens: Array.isArray(data.bannedTokens) ? data.bannedTokens : [],
+        onlySafeOpportunities: !!data.onlySafeOpportunities,
+      };
+    }
+  } catch (e) {
+    console.warn("[WS Server] Could not load screener-filters.json:", e);
+  }
+  return {};
+}
+
+function saveScreenerFilters(): void {
+  try {
+    fs.writeFileSync(SCREENER_FILTERS_FILE, JSON.stringify(screenerFilters, null, 2), "utf-8");
+  } catch (e) {
+    console.error("[WS Server] Could not write screener-filters.json:", e);
+  }
+}
+
+/** Mirror of frontend isFavourableFunding: net funding profit for current direction > 0 */
+function isFavourableFunding(
+  binanceVWAP: number | null,
+  bybitVWAP: number | null,
+  binanceFunding: number | null,
+  bybitFunding: number | null
+): boolean {
+  if (binanceVWAP == null || bybitVWAP == null) return false;
+  const bFunding = binanceFunding ?? 0;
+  const yFunding = bybitFunding ?? 0;
+  if (bybitVWAP > binanceVWAP) return yFunding - bFunding > 0;
+  if (binanceVWAP > bybitVWAP) return bFunding - yFunding > 0;
+  return false;
+}
+
+/** Mirror of frontend: filter and sort states like screener (for auto-trade candidate). */
+function filterAndSortEligibleForAutoTrade(
+  states: Array<{
+    symbol: string;
+    binanceVWAP: number | null;
+    bybitVWAP: number | null;
+    binanceFunding: number | null;
+    bybitFunding: number | null;
+    spreadStableMs: number;
+    has3xLiquidity: boolean;
+  }>,
+  activeSymbols: Set<string>,
+  filters: ScreenerFilters
+): typeof states {
+  const bannedSet = new Set((filters.bannedTokens ?? []).map((s) => String(s).toUpperCase()));
+  const minSpread = typeof filters.minL2SpreadPct === "number" ? filters.minL2SpreadPct : 0;
+  const fundingType = filters.fundingType === "favourable" ? "favourable" : "all";
+  const onlySafe = !!filters.onlySafeOpportunities;
+
+  return states
+    .filter((s) => {
+      const sym = String(s.symbol || "").toUpperCase();
+      if (!sym || activeSymbols.has(sym)) return false;
+      if (!s.has3xLiquidity || s.binanceVWAP == null || s.bybitVWAP == null) return false;
+      if (bannedSet.has(sym)) return false;
+      const l2SpreadPct = ((s.bybitVWAP - s.binanceVWAP) / s.binanceVWAP) * 100;
+      if (Math.abs(l2SpreadPct) < minSpread) return false;
+      if (fundingType === "favourable" && !isFavourableFunding(s.binanceVWAP, s.bybitVWAP, s.binanceFunding, s.bybitFunding)) return false;
+      if (onlySafe && ((s.spreadStableMs ?? 0) < 2000 || !s.has3xLiquidity)) return false;
+      return true;
+    })
+    .sort((a, b) => {
+      const spreadA = Math.abs(((a.bybitVWAP! - a.binanceVWAP!) / a.binanceVWAP!) * 100);
+      const spreadB = Math.abs(((b.bybitVWAP! - b.binanceVWAP!) / b.binanceVWAP!) * 100);
+      return spreadB - spreadA;
+    });
+}
 
 /** Persistent private WS for 24/7 HFT; reused across trades, never stopped. */
 let privateWsManager: PrivateWSManager | null = null;
@@ -329,15 +419,9 @@ async function main() {
         return;
       }
 
-      // 2. Screener Logic: Get top token based on L2 Spread (Matching the Frontend Screener)
+      // 2. Screener Logic: Use same filters as frontend (min spread, favourable funding, banned, only safe)
       const states = manager.getStates();
-      const eligibleTokens = states
-        .filter((s) => s.has3xLiquidity && !activeSymbols.has(s.symbol) && s.binanceVWAP != null && s.bybitVWAP != null)
-        .sort((a, b) => {
-          const spreadA = Math.abs(((a.bybitVWAP! - a.binanceVWAP!) / a.binanceVWAP!) * 100);
-          const spreadB = Math.abs(((b.bybitVWAP! - b.binanceVWAP!) / b.binanceVWAP!) * 100);
-          return spreadB - spreadA; // Highest L2 spread first
-        });
+      const eligibleTokens = filterAndSortEligibleForAutoTrade(states, activeSymbols, screenerFilters);
 
       if (eligibleTokens.length > 0) {
         const topToken = eligibleTokens[0].symbol;
@@ -411,6 +495,20 @@ async function main() {
           const amount = Number(msg.amount);
           if (Number.isFinite(amount) && amount > 0) {
             manager.setVwapTargetAmount(amount);
+          }
+          return;
+        }
+        if (msg.action === "update_screener_filters") {
+          const filtersPayload = (msg as { filters?: ScreenerFilters }).filters;
+          if (filtersPayload && typeof filtersPayload === "object") {
+            screenerFilters = {
+              minL2SpreadPct: typeof filtersPayload.minL2SpreadPct === "number" ? filtersPayload.minL2SpreadPct : 0,
+              fundingType: filtersPayload.fundingType === "favourable" ? "favourable" : "all",
+              bannedTokens: Array.isArray(filtersPayload.bannedTokens) ? filtersPayload.bannedTokens : [],
+              onlySafeOpportunities: !!filtersPayload.onlySafeOpportunities,
+            };
+            saveScreenerFilters();
+            console.log("[WS Server] Screener filters updated: minL2SpreadPct=" + screenerFilters.minL2SpreadPct + " fundingType=" + screenerFilters.fundingType + " banned=" + (screenerFilters.bannedTokens?.length ?? 0) + " onlySafe=" + screenerFilters.onlySafeOpportunities);
           }
           return;
         }

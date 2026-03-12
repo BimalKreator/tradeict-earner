@@ -91,7 +91,7 @@ function LoginForm() {
       <div className="w-full max-w-md space-y-6">
         <div className="glass-panel p-8 space-y-6">
           <div className="text-center">
-            <Image src="/icons/icon-192.png" alt="Tradeict Earner Logo" width={48} height={48} className="mx-auto shrink-0 rounded-xl" />
+            <Image src="/icons/icon-192.png" alt="Tradeict Earner" width={192} height={192} className="mx-auto shrink-0 rounded-xl w-48 h-48 object-contain" />
             <p className="text-slate-400 text-sm mt-3">
               {isRegistering ? "Create your account" : "Sign in to continue"}
             </p>
