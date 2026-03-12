@@ -1340,7 +1340,8 @@ export async function executeCloseTrade(
   credentials: ExchangeCredentials,
   privateWs: PrivateWSManager,
   fetchOrderbook: (symbol: string) => Promise<OrderbookSnapshot>,
-  onProgress?: (msg: string) => void
+  onProgress?: (msg: string) => void,
+  userEmail?: string
 ): Promise<boolean> {
   const P = "[CHUNK-SYSTEM]";
   const symNorm = normalizeSymbolForMatch(symbol);
@@ -1491,7 +1492,7 @@ export async function executeCloseTrade(
   const fullyClosed = binanceOpen <= 0 && bybitOpen <= 0;
   if (fullyClosed) {
     onProgress?.("Position fully closed.");
-    logClosedTrade(symbol, credentials, startTime, startQty, binanceEntryPrice, bybitEntryPrice, totalMarginUsed).catch(() => {});
+    logClosedTrade(symbol, credentials, startTime, startQty, binanceEntryPrice, bybitEntryPrice, totalMarginUsed, userEmail).catch(() => {});
   } else {
     onProgress?.(`Exit incomplete after ${maxAttempts} attempts (Bybit: ${bybitOpen} Binance: ${binanceOpen}).`);
   }
@@ -1509,7 +1510,8 @@ async function logClosedTrade(
   qty: number,
   binanceEntry: number,
   bybitEntry: number,
-  totalMarginUsed: number
+  totalMarginUsed: number,
+  userEmail?: string
 ): Promise<void> {
   try {
     await sleep(3000); // Allow exchange databases to index the fill
@@ -1590,6 +1592,7 @@ async function logClosedTrade(
       bybitPnl,
       combinedPnlUsd,
       combinedPnlPct,
+      ...(userEmail != null && userEmail !== "" && { userEmail }),
     };
     const logPath = path.join(process.cwd(), "trade-logs.json");
     let logs: unknown[] = [];

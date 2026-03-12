@@ -157,11 +157,12 @@ async function runManualTrade(
     bybitApiSecret: string;
     isExit?: boolean;
     quantity?: number;
+    userEmail?: string;
   }
 ) {
   isTradeExecuting = true;
   try {
-    const { symbol, side, isExit, quantity } = payload;
+    const { symbol, side, isExit, quantity, userEmail } = payload;
     const credentials: ExchangeCredentials = {
       binance: {
         apiKey: payload.binanceApiKey,
@@ -194,7 +195,7 @@ async function runManualTrade(
 
     if (isCloseFlow) {
       sendTradeUpdate(ws, "Exiting…");
-      const ok = await executeCloseTrade(symbol, credentials, privateWsManager, fetchOrderbookSnapshot, (msg) => sendTradeUpdate(ws, msg));
+      const ok = await executeCloseTrade(symbol, credentials, privateWsManager, fetchOrderbookSnapshot, (msg) => sendTradeUpdate(ws, msg), userEmail);
       if (ok) {
         sendTradeUpdate(ws, "Trade completed", true);
       } else {
@@ -443,6 +444,7 @@ async function main() {
             isExit?: boolean;
             quantity?: number;
             leverage?: number;
+            userEmail?: string;
           } | undefined;
           if (
             !payload?.symbol ||

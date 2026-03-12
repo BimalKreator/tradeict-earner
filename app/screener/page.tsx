@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useSession } from "next-auth/react";
 
 export interface SymbolState {
   symbol: string;
@@ -123,6 +124,7 @@ export default function ScreenerPage() {
   const [tradeToast, setTradeToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
   const [activePositions, setActivePositions] = useState<Set<string>>(new Set());
   const [maxSlots, setMaxSlots] = useState(5);
+  const { data: session } = useSession();
 
   const wsRef = useRef<WebSocket | null>(null);
   const tradeToastRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -297,6 +299,7 @@ export default function ScreenerPage() {
             side,
             quantity: parseFloat(tradeQty) || 0,
             leverage: tradeLeverage,
+            userEmail: session?.user?.email ?? undefined,
             ...keys,
           },
         })

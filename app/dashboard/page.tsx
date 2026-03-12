@@ -1,6 +1,7 @@
 "use client";
 
 import { Fragment, useCallback, useEffect, useRef, useState } from "react";
+import { useSession } from "next-auth/react";
 
 const API_KEYS_STORAGE_KEY = "tradeict-earner-api-keys";
 const SETTINGS_STORAGE_KEY = "tradeict-earner-settings";
@@ -148,6 +149,7 @@ export default function DashboardPage() {
   const [closingId, setClosingId] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
   const [settings, setSettings] = useState<SettingsState>({ stoplossPercent: 2, targetPercent: 1.5, feesPercent: 0.1 });
+  const { data: session } = useSession();
   const wsRef = useRef<WebSocket | null>(null);
   const toastRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -259,6 +261,7 @@ export default function DashboardPage() {
               side: exitSide,
               quantity: pos.totalQuantity,
               isExit: true,
+              userEmail: session?.user?.email ?? undefined,
               ...keys,
             },
           })
@@ -268,7 +271,7 @@ export default function DashboardPage() {
         setClosingId(null);
       }
     },
-    [showToast]
+    [showToast, session]
   );
 
   const stateBySymbol = useCallback(

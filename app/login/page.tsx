@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useState } from "react";
+import Image from "next/image";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 
@@ -90,8 +91,8 @@ function LoginForm() {
       <div className="w-full max-w-md space-y-6">
         <div className="glass-panel p-8 space-y-6">
           <div className="text-center">
-            <h1 className="text-2xl md:text-3xl font-bold text-white">Tradeict Earner</h1>
-            <p className="text-slate-400 text-sm mt-1">
+            <Image src="/icons/icon-192.png" alt="Tradeict Earner Logo" width={48} height={48} className="mx-auto shrink-0 rounded-xl" />
+            <p className="text-slate-400 text-sm mt-3">
               {isRegistering ? "Create your account" : "Sign in to continue"}
             </p>
           </div>

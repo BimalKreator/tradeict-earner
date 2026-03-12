@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
@@ -194,6 +195,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       <aside className="hidden md:flex md:flex-col md:fixed md:inset-y-0 md:left-0 md:w-56 md:border-r md:border-white/[0.06] md:bg-navy-900/80 md:backdrop-blur-glass z-30">
         <div className="p-4 border-b border-white/[0.06]">
           <Link href="/" className="flex items-center gap-2">
+            <Image src="/icons/icon-192.png" alt="Tradeict Earner Logo" width={32} height={32} className="shrink-0 rounded-lg" />
             <span className="text-lg font-bold text-white tracking-tight">Tradeict Earner</span>
           </Link>
         </div>
@@ -248,7 +250,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       <main className="flex-1 flex flex-col min-h-screen md:pl-56 pb-20 md:pb-0">
         {/* Mobile header with Profile */}
         <div className="md:hidden flex items-center justify-between px-4 py-3 border-b border-white/[0.06] bg-navy-900/80">
-          <Link href="/" className="text-lg font-bold text-white">Tradeict Earner</Link>
+          <Link href="/" className="flex items-center gap-2">
+            <Image src="/icons/icon-192.png" alt="Tradeict Earner Logo" width={32} height={32} className="shrink-0 rounded-lg" />
+            <span className="text-lg font-bold text-white">Tradeict Earner</span>
+          </Link>
           <div className="relative" ref={profileRefMobile}>
             <button
               type="button"
