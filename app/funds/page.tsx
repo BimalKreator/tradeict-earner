@@ -1,8 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 const API_KEYS_STORAGE_KEY = "tradeict-earner-api-keys";
+const OPENING_BALANCES_KEY = "tradeict-earner-opening-balances";
+
+const DEFAULT_OPENING_BINANCE = 65.15;
+const DEFAULT_OPENING_BYBIT = 51.3;
 
 interface BalanceMetrics {
   total: number;
@@ -37,10 +41,29 @@ function fmt(n: number): string {
   return `$${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
+function loadOpeningBalances(): { binance: number; bybit: number } {
+  if (typeof window === "undefined") return { binance: DEFAULT_OPENING_BINANCE, bybit: DEFAULT_OPENING_BYBIT };
+  try {
+    const raw = localStorage.getItem(OPENING_BALANCES_KEY);
+    if (!raw) return { binance: DEFAULT_OPENING_BINANCE, bybit: DEFAULT_OPENING_BYBIT };
+    const p = JSON.parse(raw) as { binance?: number; bybit?: number };
+    return {
+      binance: typeof p.binance === "number" && Number.isFinite(p.binance) ? p.binance : DEFAULT_OPENING_BINANCE,
+      bybit: typeof p.bybit === "number" && Number.isFinite(p.bybit) ? p.bybit : DEFAULT_OPENING_BYBIT,
+    };
+  } catch {
+    return { binance: DEFAULT_OPENING_BINANCE, bybit: DEFAULT_OPENING_BYBIT };
+  }
+}
+
 export default function FundsPage() {
   const [binance, setBinance] = useState<BalanceMetrics | null>(null);
   const [bybit, setBybit] = useState<BalanceMetrics | null>(null);
   const [loading, setLoading] = useState(true);
+  const [binanceOpening, setBinanceOpening] = useState<number>(DEFAULT_OPENING_BINANCE);
+  const [bybitOpening, setBybitOpening] = useState<number>(DEFAULT_OPENING_BYBIT);
+  const [saveToast, setSaveToast] = useState<string | null>(null);
+  const saveToastRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fetchBalances = useCallback(() => {
     const keys = getApiKeysFromStorage();
@@ -92,6 +115,29 @@ export default function FundsPage() {
   useEffect(() => {
     fetchBalances();
   }, [fetchBalances]);
+
+  useEffect(() => {
+    const { binance: b, bybit: y } = loadOpeningBalances();
+    setBinanceOpening(b);
+    setBybitOpening(y);
+  }, []);
+
+  const saveOpeningBalances = useCallback(() => {
+    try {
+      localStorage.setItem(
+        OPENING_BALANCES_KEY,
+        JSON.stringify({ binance: binanceOpening, bybit: bybitOpening })
+      );
+      setSaveToast("Opening balances saved.");
+      if (saveToastRef.current) clearTimeout(saveToastRef.current);
+      saveToastRef.current = setTimeout(() => {
+        setSaveToast(null);
+        saveToastRef.current = null;
+      }, 3000);
+    } catch {
+      setSaveToast("Failed to save.");
+    }
+  }, [binanceOpening, bybitOpening]);
 
   const hasData = binance !== null || bybit !== null;
   const bTotal = binance?.total ?? 0;
@@ -158,6 +204,50 @@ export default function FundsPage() {
               </tbody>
             </table>
           </div>
+        )}
+      </div>
+
+      {/* Opening Balances (Profit Calculation) */}
+      <div className="glass-panel p-6 md:p-8">
+        <h2 className="text-lg font-semibold text-white border-b border-white/[0.06] pb-3 mb-4">
+          Opening Balances (Profit Calculation)
+        </h2>
+        <p className="text-slate-400 text-sm mb-4">
+          Set the balances you started the day with. Used on the Dashboard for &quot;Today&apos;s Profit&quot;.
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-1.5">Binance opening (USDT)</label>
+            <input
+              type="number"
+              min={0}
+              step={0.01}
+              value={binanceOpening}
+              onChange={(e) => setBinanceOpening(Number(e.target.value) || 0)}
+              className="w-full rounded-xl border border-white/[0.1] bg-white/[0.06] px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-1.5">Bybit opening (USDT)</label>
+            <input
+              type="number"
+              min={0}
+              step={0.01}
+              value={bybitOpening}
+              onChange={(e) => setBybitOpening(Number(e.target.value) || 0)}
+              className="w-full rounded-xl border border-white/[0.1] bg-white/[0.06] px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+            />
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={saveOpeningBalances}
+          className="glass-button px-4 py-2.5 rounded-xl text-sm font-medium text-white border border-white/[0.1]"
+        >
+          Save Balances
+        </button>
+        {saveToast && (
+          <p className="mt-3 text-sm text-emerald-400">{saveToast}</p>
         )}
       </div>
 

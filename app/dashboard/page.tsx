@@ -5,6 +5,10 @@ import { useSession } from "next-auth/react";
 
 const API_KEYS_STORAGE_KEY = "tradeict-earner-api-keys";
 const SETTINGS_STORAGE_KEY = "tradeict-earner-settings";
+const OPENING_BALANCES_KEY = "tradeict-earner-opening-balances";
+
+const DEFAULT_OPENING_BINANCE = 65.15;
+const DEFAULT_OPENING_BYBIT = 51.3;
 
 interface SymbolState {
   symbol: string;
@@ -92,6 +96,21 @@ function loadSettings(): SettingsState {
   }
 }
 
+function loadOpeningBalances(): { binance: number; bybit: number } {
+  if (typeof window === "undefined") return { binance: DEFAULT_OPENING_BINANCE, bybit: DEFAULT_OPENING_BYBIT };
+  try {
+    const raw = localStorage.getItem(OPENING_BALANCES_KEY);
+    if (!raw) return { binance: DEFAULT_OPENING_BINANCE, bybit: DEFAULT_OPENING_BYBIT };
+    const p = JSON.parse(raw) as { binance?: number; bybit?: number };
+    return {
+      binance: typeof p.binance === "number" && Number.isFinite(p.binance) ? p.binance : DEFAULT_OPENING_BINANCE,
+      bybit: typeof p.bybit === "number" && Number.isFinite(p.bybit) ? p.bybit : DEFAULT_OPENING_BYBIT,
+    };
+  } catch {
+    return { binance: DEFAULT_OPENING_BINANCE, bybit: DEFAULT_OPENING_BYBIT };
+  }
+}
+
 /** Live group PnL using WS VWAP as mark (tick-by-tick). */
 function liveGroupPnl(
   pos: GroupedPosition,
@@ -149,6 +168,11 @@ export default function DashboardPage() {
   const [closingId, setClosingId] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
   const [settings, setSettings] = useState<SettingsState>({ stoplossPercent: 2, targetPercent: 1.5, feesPercent: 0.1 });
+  const [openingBalances, setOpeningBalances] = useState<{ binance: number; bybit: number }>({
+    binance: DEFAULT_OPENING_BINANCE,
+    bybit: DEFAULT_OPENING_BYBIT,
+  });
+  const [balances, setBalances] = useState<{ binance: number; bybit: number } | null>(null);
   const { data: session } = useSession();
   const wsRef = useRef<WebSocket | null>(null);
   const toastRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -178,7 +202,43 @@ export default function DashboardPage() {
 
   useEffect(() => {
     setSettings(loadSettings());
+    setOpeningBalances(loadOpeningBalances());
   }, []);
+
+  useEffect(() => {
+    const onFocus = () => setOpeningBalances(loadOpeningBalances());
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, []);
+
+  const fetchBalances = useCallback(() => {
+    const keys = getApiKeysFromStorage();
+    if (!keys.binanceApiKey || !keys.binanceApiSecret || !keys.bybitApiKey || !keys.bybitApiSecret) {
+      setBalances(null);
+      return;
+    }
+    fetch("/api/settings/balances", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(keys),
+    })
+      .then((r) => r.json())
+      .then((data: { binance?: { total?: number }; bybit?: { total?: number }; error?: string }) => {
+        if (data.error || (data.binance == null && data.bybit == null)) {
+          setBalances(null);
+          return;
+        }
+        setBalances({
+          binance: typeof data.binance?.total === "number" ? data.binance.total : 0,
+          bybit: typeof data.bybit?.total === "number" ? data.bybit.total : 0,
+        });
+      })
+      .catch(() => setBalances(null));
+  }, []);
+
+  useEffect(() => {
+    fetchBalances();
+  }, [fetchBalances]);
 
   useEffect(() => {
     fetchPositions();
@@ -283,21 +343,47 @@ export default function DashboardPage() {
   const totalUsedMargin = positions.reduce((sum, pos) => sum + (pos.usedMargin ?? 0), 0);
   const totalPnlFormatted = totalPnl >= 0 ? `+$${totalPnl.toFixed(2)}` : `-$${Math.abs(totalPnl).toFixed(2)}`;
 
+  const totalOpening = openingBalances.binance + openingBalances.bybit;
+  const totalCurrent = (balances?.binance ?? 0) + (balances?.bybit ?? 0);
+  const todaysProfit = balances != null ? totalCurrent - totalOpening : null;
+  const todaysProfitFormatted =
+    todaysProfit != null
+      ? (todaysProfit >= 0 ? `+$${todaysProfit.toFixed(2)}` : `-$${Math.abs(todaysProfit).toFixed(2)}`)
+      : "—";
+  const openingBreakdown = `Total Opening: $${totalOpening.toFixed(2)} (Binance: $${openingBalances.binance.toFixed(2)} | Bybit: $${openingBalances.bybit.toFixed(2)})`;
+
   return (
     <div className="space-y-6 lg:space-y-8">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <h1 className="text-2xl md:text-3xl font-bold text-white">Dashboard</h1>
       </div>
 
-      {/* Total PnL hero */}
-      <div className="glass-panel p-6 md:p-8">
-        <p className="text-slate-400 text-sm font-medium uppercase tracking-wider mb-1">Total unrealized PnL</p>
-        <p className={`text-3xl md:text-4xl font-bold ${totalPnl >= 0 ? "text-emerald-400" : "text-red-400"}`}>
-          {loading ? "—" : totalPnlFormatted}
-        </p>
-        <p className="text-slate-500 text-sm mt-2">
-          {connected ? "Tick-by-tick (live VWAP)" : "From exchange mark price"}
-        </p>
+      {/* Summary cards: Total unrealized PnL + Today's Profit */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+        <div className="glass-panel p-6 md:p-8">
+          <p className="text-slate-400 text-sm font-medium uppercase tracking-wider mb-1">Total unrealized PnL</p>
+          <p className={`text-3xl md:text-4xl font-bold ${totalPnl >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+            {loading ? "—" : totalPnlFormatted}
+          </p>
+          <p className="text-slate-500 text-sm mt-2">
+            {connected ? "Tick-by-tick (live VWAP)" : "From exchange mark price"}
+          </p>
+        </div>
+        <div className="glass-panel p-6 md:p-8">
+          <p className="text-slate-400 text-sm font-medium uppercase tracking-wider mb-1">Today&apos;s Profit</p>
+          <p
+            className={`text-3xl md:text-4xl font-bold ${
+              todaysProfit != null
+                ? todaysProfit >= 0
+                  ? "text-emerald-400"
+                  : "text-red-400"
+                : "text-slate-400"
+            }`}
+          >
+            {todaysProfitFormatted}
+          </p>
+          <p className="text-slate-500 text-sm mt-2">{openingBreakdown}</p>
+        </div>
       </div>
 
       {/* Active Positions section */}
