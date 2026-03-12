@@ -15,6 +15,17 @@ const BINANCE_EXCHANGE_INFO = "https://fapi.binance.com/fapi/v1/exchangeInfo";
 const BYBIT_INSTRUMENTS = "https://api.bybit.com/v5/market/instruments-info?category=linear";
 const MAX_ORDERBOOK_LEVELS = 20;
 
+const FETCH_HEADERS: Record<string, string> = {
+  "User-Agent":
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+  Accept: "application/json",
+};
+
+const WS_HEADERS = {
+  "User-Agent":
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+};
+
 /** Default trade amount (in quote/USDT) used for VWAP calculation */
 const DEFAULT_VWAP_TARGET_AMOUNT = 10_000;
 
@@ -89,39 +100,57 @@ function trimOrderbookState(ob: OrderbookState, maxLevels: number) {
 
 /**
  * Fetch common USDT-margined perpetual symbols between Binance Futures and Bybit Linear.
+ * Uses realistic headers and retries once on failure.
  */
 export async function fetchCommonUsdtPerpetualSymbols(): Promise<string[]> {
-  const [binanceRes, bybitRes] = await Promise.all([
-    fetch(BINANCE_EXCHANGE_INFO),
-    fetch(BYBIT_INSTRUMENTS),
-  ]);
+  const maxRetries = 2;
 
-  if (!binanceRes.ok || !bybitRes.ok) {
-    throw new Error("Failed to fetch exchange info");
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const [binanceRes, bybitRes] = await Promise.all([
+        fetch(BINANCE_EXCHANGE_INFO, { headers: FETCH_HEADERS }),
+        fetch(BYBIT_INSTRUMENTS, { headers: FETCH_HEADERS }),
+      ]);
+
+      if (!binanceRes.ok || !bybitRes.ok) {
+        throw new Error(
+          `HTTP ${binanceRes.status}/${bybitRes.status} (attempt ${attempt}/${maxRetries})`
+        );
+      }
+
+      const binanceData = (await binanceRes.json()) as {
+        symbols?: { symbol: string; contractType?: string; quoteAsset?: string }[];
+      };
+      const bybitData = (await bybitRes.json()) as {
+        result?: { list?: { symbol: string; contractType?: string; status?: string }[] };
+      };
+
+      const binanceSet = new Set(
+        (binanceData.symbols ?? [])
+          .filter((s) => (s.contractType ?? "") === "PERPETUAL" && (s.quoteAsset ?? "") === "USDT")
+          .map((s) => s.symbol)
+      );
+
+      const bybitSet = new Set(
+        (bybitData.result?.list ?? [])
+          .filter((s) => (s.contractType ?? "").includes("Perpetual") && (s.status ?? "") === "Trading")
+          .map((s) => s.symbol)
+          .filter((s) => s.endsWith("USDT"))
+      );
+
+      const common = Array.from(binanceSet).filter((s) => bybitSet.has(s));
+      return common.sort();
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      if (attempt === maxRetries) {
+        throw new Error(`Failed to fetch exchange info inside fetchCommonUsdtPerpetualSymbols. ${msg}`);
+      }
+      console.warn(`[WsManager] Exchange info fetch attempt ${attempt} failed: ${msg}. Retrying in 2s...`);
+      await new Promise((r) => setTimeout(r, 2000));
+    }
   }
 
-  const binanceData = (await binanceRes.json()) as {
-    symbols?: { symbol: string; contractType?: string; quoteAsset?: string }[];
-  };
-  const bybitData = (await bybitRes.json()) as {
-    result?: { list?: { symbol: string; contractType?: string; status?: string }[] };
-  };
-
-  const binanceSet = new Set(
-    (binanceData.symbols ?? [])
-      .filter((s) => (s.contractType ?? "") === "PERPETUAL" && (s.quoteAsset ?? "") === "USDT")
-      .map((s) => s.symbol)
-  );
-
-  const bybitSet = new Set(
-    (bybitData.result?.list ?? [])
-      .filter((s) => (s.contractType ?? "").includes("Perpetual") && (s.status ?? "") === "Trading")
-      .map((s) => s.symbol)
-      .filter((s) => s.endsWith("USDT"))
-  );
-
-  const common = Array.from(binanceSet).filter((s) => bybitSet.has(s));
-  return common.sort();
+  throw new Error("Failed to fetch exchange info inside fetchCommonUsdtPerpetualSymbols.");
 }
 
 export class WsManager {
@@ -146,6 +175,9 @@ export class WsManager {
   /** Per-symbol: timestamp (ms) when spread first went above threshold, or null. */
   private spreadAboveThresholdSince = new Map<string, number | null>();
 
+  /** Set to true in stop() so close handlers do not reconnect. */
+  private stopped = false;
+
   constructor(options: WsManagerOptions = {}) {
     this.vwapTargetAmount = options.vwapTargetAmount ?? DEFAULT_VWAP_TARGET_AMOUNT;
     this.onStateUpdate = options.onStateUpdate;
@@ -159,6 +191,7 @@ export class WsManager {
    * depth (top 20) and funding for each common symbol.
    */
   async start(): Promise<string[]> {
+    this.stopped = false;
     const all = await fetchCommonUsdtPerpetualSymbols();
     if (all.length === 0) {
       throw new Error("No common USDT perpetual symbols found");
@@ -199,7 +232,9 @@ export class WsManager {
       streams.push(`${lower}@markPrice`);
     }
     const url = `${BINANCE_FUTURES_WS}?streams=${streams.join("/")}`;
-    this.binanceWs = new WebSocket(url);
+    this.binanceWs = new WebSocket(url, {
+      headers: { ...WS_HEADERS, Origin: "https://fstream.binance.com" },
+    });
 
     this.binanceWs.on("open", () => {
       console.log("[WsManager] Binance Futures WebSocket connected");
@@ -234,12 +269,19 @@ export class WsManager {
 
     this.binanceWs.on("error", (err) => console.error("[WsManager] Binance WS error:", err));
     this.binanceWs.on("close", () => {
+      this.binanceWs = null;
       console.log("[WsManager] Binance WebSocket closed");
+      if (!this.stopped) {
+        console.log("[WsManager] Reconnecting Binance in 5s...");
+        setTimeout(() => this.connectBinance(), 5000);
+      }
     });
   }
 
   private connectBybit(): void {
-    this.bybitWs = new WebSocket(BYBIT_LINEAR_WS);
+    this.bybitWs = new WebSocket(BYBIT_LINEAR_WS, {
+      headers: { ...WS_HEADERS, Origin: "https://www.bybit.com" },
+    });
 
     this.bybitWs.on("open", () => {
       console.log("[WsManager] Bybit Linear WebSocket connected");
@@ -291,7 +333,12 @@ export class WsManager {
 
     this.bybitWs.on("error", (err) => console.error("[WsManager] Bybit WS error:", err));
     this.bybitWs.on("close", () => {
+      this.bybitWs = null;
       console.log("[WsManager] Bybit WebSocket closed");
+      if (!this.stopped) {
+        console.log("[WsManager] Reconnecting Bybit in 5s...");
+        setTimeout(() => this.connectBybit(), 5000);
+      }
     });
   }
 
@@ -391,6 +438,9 @@ export class WsManager {
   }
 
   stop(): void {
+    this.stopped = true;
+    this.binanceWs?.removeAllListeners();
+    this.bybitWs?.removeAllListeners();
     this.binanceWs?.close();
     this.bybitWs?.close();
     this.binanceWs = null;
