@@ -18,6 +18,9 @@ type FundingFilter = "all" | "favourable";
 
 const FAV_FUNDING_STORAGE_KEY = "tradeict-earner-fav-funding";
 const BANNED_TOKENS_STORAGE_KEY = "tradeict-earner-banned-tokens";
+const TRADE_AMOUNT_STORAGE_KEY = "tradeict-earner-trade-amount";
+const MIN_L2_SPREAD_STORAGE_KEY = "tradeict-earner-min-l2-spread-pct";
+const ONLY_SAFE_STORAGE_KEY = "tradeict-earner-only-safe-opportunities";
 const API_KEYS_STORAGE_KEY = "tradeict-earner-api-keys";
 const PAGE_SIZE = 15;
 
@@ -78,9 +81,29 @@ function BanIcon({ className }: { className?: string }) {
 export default function ScreenerPage() {
   const [states, setStates] = useState<SymbolState[]>([]);
   const [connected, setConnected] = useState(false);
-  const [tradeAmount, setTradeAmount] = useState(10000);
+  const [tradeAmount, setTradeAmount] = useState<number>(() => {
+    if (typeof window === "undefined") return 10000;
+    try {
+      const s = localStorage.getItem(TRADE_AMOUNT_STORAGE_KEY);
+      if (s != null) {
+        const n = Number(s);
+        if (Number.isFinite(n) && n > 0) return n;
+      }
+    } catch {}
+    return 10000;
+  });
   const [tokenSearch, setTokenSearch] = useState("");
-  const [minL2SpreadPct, setMinL2SpreadPct] = useState<number>(0);
+  const [minL2SpreadPct, setMinL2SpreadPct] = useState<number>(() => {
+    if (typeof window === "undefined") return 0;
+    try {
+      const s = localStorage.getItem(MIN_L2_SPREAD_STORAGE_KEY);
+      if (s != null) {
+        const n = Number(s);
+        if (Number.isFinite(n) && n >= 0) return n;
+      }
+    } catch {}
+    return 0;
+  });
   const [fundingType, setFundingType] = useState<FundingFilter>(() => {
     if (typeof window === "undefined") return "all";
     try {
@@ -89,7 +112,15 @@ export default function ScreenerPage() {
     } catch {}
     return "all";
   });
-  const [onlySafeOpportunities, setOnlySafeOpportunities] = useState(false);
+  const [onlySafeOpportunities, setOnlySafeOpportunities] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    try {
+      const s = localStorage.getItem(ONLY_SAFE_STORAGE_KEY);
+      if (s === "true") return true;
+      if (s === "false") return false;
+    } catch {}
+    return false;
+  });
   const [bannedTokens, setBannedTokens] = useState<Set<string>>(() => {
     if (typeof window === "undefined") return new Set();
     try {
@@ -183,12 +214,11 @@ export default function ScreenerPage() {
     };
   }, [tradeAmount]);
 
-  // Sync screener filters to backend so auto-trade uses same rules as "Next" labels
+  // Sync screener filters to backend on connect and when any filter changes
   useEffect(() => {
-    const ws = wsRef.current;
-    if (!ws || ws.readyState !== WebSocket.OPEN) return;
+    if (!connected || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
     try {
-      ws.send(
+      wsRef.current.send(
         JSON.stringify({
           action: "update_screener_filters",
           filters: {
@@ -202,7 +232,7 @@ export default function ScreenerPage() {
     } catch {
       // ignore send errors
     }
-  }, [minL2SpreadPct, fundingType, bannedTokens, onlySafeOpportunities, connected]);
+  }, [connected, minL2SpreadPct, fundingType, bannedTokens, onlySafeOpportunities]);
 
   // Persist Fav Funding filter to localStorage
   useEffect(() => {
@@ -217,6 +247,27 @@ export default function ScreenerPage() {
       localStorage.setItem(BANNED_TOKENS_STORAGE_KEY, JSON.stringify(Array.from(bannedTokens)));
     } catch {}
   }, [bannedTokens]);
+
+  // Persist trade amount to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem(TRADE_AMOUNT_STORAGE_KEY, String(tradeAmount));
+    } catch {}
+  }, [tradeAmount]);
+
+  // Persist min L2 spread to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem(MIN_L2_SPREAD_STORAGE_KEY, String(minL2SpreadPct));
+    } catch {}
+  }, [minL2SpreadPct]);
+
+  // Persist only safe opportunities to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem(ONLY_SAFE_STORAGE_KEY, onlySafeOpportunities ? "true" : "false");
+    } catch {}
+  }, [onlySafeOpportunities]);
 
   const banToken = (symbol: string) => {
     setBannedTokens((prev) => new Set(prev).add(symbol));
@@ -365,6 +416,7 @@ export default function ScreenerPage() {
       });
   }, [states, tokenSearch, minL2SpreadPct, fundingType, onlySafeOpportunities, bannedTokens]);
 
+  // NEXT labels: only tokens with has3xLiquidity (and not already in activePositions)
   const nextTradeSymbols = useMemo(() => {
     const slotsLimit = Math.max(1, maxSlots);
     const availableSlots = Math.max(0, slotsLimit - activePositions.size);
@@ -375,10 +427,8 @@ export default function ScreenerPage() {
 
     for (const row of filteredRows) {
       const sym = norm(row.state.symbol);
-      const isSafe = row.state.has3xLiquidity !== false;
-
-      if (!sym || !isSafe) continue;
-      if (activePositions.has(sym)) continue;
+      if (row.state.has3xLiquidity === false) continue;
+      if (!sym || activePositions.has(sym)) continue;
 
       nextSet.add(sym);
       if (nextSet.size >= availableSlots) break;
