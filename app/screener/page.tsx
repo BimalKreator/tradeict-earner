@@ -295,6 +295,8 @@ export default function ScreenerPage() {
           payload: {
             symbol: tradeModal.row.state.symbol,
             side,
+            quantity: parseFloat(tradeQty) || 0,
+            leverage: tradeLeverage,
             ...keys,
           },
         })

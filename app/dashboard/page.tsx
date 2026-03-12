@@ -381,6 +381,7 @@ export default function DashboardPage() {
                               </div>
                               <div className="text-slate-400">Entry: <span className="text-slate-200">${formatNumber(pos.binance.entryPrice)}</span></div>
                               <div className="text-slate-400">Margin: <span className="text-slate-200">${formatNumber(pos.binance.marginUsed)}</span></div>
+                              <div className="text-slate-400">PnL: <span className={pos.binance.unrealizedPnl >= 0 ? "text-emerald-400" : "text-red-400"}>{pos.binance.unrealizedPnl >= 0 ? "+" : ""}${formatNumber(pos.binance.unrealizedPnl)}</span></div>
                             </>
                           ) : (
                             <span className="text-slate-500">—</span>
@@ -398,6 +399,7 @@ export default function DashboardPage() {
                               </div>
                               <div className="text-slate-400">Entry: <span className="text-slate-200">${formatNumber(pos.bybit.entryPrice)}</span></div>
                               <div className="text-slate-400">Margin: <span className="text-slate-200">${formatNumber(pos.bybit.marginUsed)}</span></div>
+                              <div className="text-slate-400">PnL: <span className={pos.bybit.unrealizedPnl >= 0 ? "text-emerald-400" : "text-red-400"}>{pos.bybit.unrealizedPnl >= 0 ? "+" : ""}${formatNumber(pos.bybit.unrealizedPnl)}</span></div>
                             </>
                           ) : (
                             <span className="text-slate-500">—</span>
@@ -440,82 +442,37 @@ export default function DashboardPage() {
                                 const stoplossPct = (settings.stoplossPercent ?? 2) / 100;
                                 const targetPct = (settings.targetPercent ?? 1.5) / 100;
                                 const feesPct = (settings.feesPercent ?? 0.1) / 100;
-                                const avgEntry = pos.entryPrice;
                                 const totalMargin = pos.usedMargin ?? 0;
-                                const tradeValue = pos.totalQuantity * avgEntry;
+                                const tradeValue = pos.totalQuantity * pos.entryPrice;
                                 const stoplossAmt = totalMargin * stoplossPct;
                                 const targetAmt = totalMargin * targetPct + tradeValue * feesPct;
                                 return (
-                                  <div className="flex gap-4 mb-4">
-                                    <div className="rounded-lg border border-white/[0.04] bg-white/[0.02] p-3 text-center">
-                                      <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Stoploss (USD)</p>
-                                      <p className="text-red-400 font-medium">${stoplossAmt.toFixed(4)}</p>
-                                    </div>
-                                    <div className="rounded-lg border border-white/[0.04] bg-white/[0.02] p-3 text-center">
-                                      <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Target (USD)</p>
-                                      <p className="text-emerald-400 font-medium">${targetAmt.toFixed(4)}</p>
+                                  <div className="p-4 bg-slate-900/50">
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                                      <div className="rounded-lg border border-white/[0.04] bg-white/[0.02] p-3 text-center">
+                                        <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Combined Liq. Price</p>
+                                        <p className="text-slate-300 font-medium text-sm">
+                                          {pos.binance?.liquidationPrice != null || pos.bybit?.liquidationPrice != null ? (
+                                            <>
+                                              B: {pos.binance?.liquidationPrice != null ? `$${formatNumber(pos.binance.liquidationPrice)}` : "—"} / Y: {pos.bybit?.liquidationPrice != null ? `$${formatNumber(pos.bybit.liquidationPrice)}` : "—"}
+                                            </>
+                                          ) : (
+                                            "—"
+                                          )}
+                                        </p>
+                                      </div>
+                                      <div className="rounded-lg border border-white/[0.04] bg-white/[0.02] p-3 text-center">
+                                        <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Stoploss (USD)</p>
+                                        <p className="text-red-400 font-medium">-${stoplossAmt.toFixed(4)}</p>
+                                      </div>
+                                      <div className="rounded-lg border border-white/[0.04] bg-white/[0.02] p-3 text-center">
+                                        <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Target (USD)</p>
+                                        <p className="text-emerald-400 font-medium">+${targetAmt.toFixed(4)}</p>
+                                      </div>
                                     </div>
                                   </div>
                                 );
                               })()}
-                              <div className="rounded-xl border border-white/[0.08] overflow-hidden">
-                                <table className="w-full text-sm">
-                                  <thead>
-                                    <tr className="text-slate-400 text-xs uppercase tracking-wider border-b border-white/[0.06]">
-                                      <th className="p-3 text-left">Exchange</th>
-                                      <th className="p-3 text-right">Entry</th>
-                                      <th className="p-3 text-right">Qty</th>
-                                      <th className="p-3 text-right">Margin Used</th>
-                                      <th className="p-3 text-right">Live L2 Price</th>
-                                      <th className="p-3 text-right">Unrealized PnL</th>
-                                    </tr>
-                                  </thead>
-                                  <tbody>
-                                    {pos.binance && (
-                                      <tr className="border-b border-white/[0.04] last:border-0">
-                                        <td className="p-3 font-medium text-amber-300/90">Binance</td>
-                                        <td className="p-3 text-right text-slate-300">
-                                          ${pos.binance.entryPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })}
-                                        </td>
-                                        <td className="p-3 text-right text-slate-300">{pos.binance.quantity.toLocaleString(undefined, { maximumFractionDigits: 6 })}</td>
-                                        <td className="p-3 text-right text-slate-300">
-                                          ${pos.binance.marginUsed.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                                        </td>
-                                        <td className="p-3 text-right text-slate-200">
-                                          {(wsState?.binanceVWAP ?? pos.binance.markPrice).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })}
-                                        </td>
-                                        <td className="p-3 text-right">
-                                          <span className={legPnl(pos.binance, wsState?.binanceVWAP ?? null) >= 0 ? "text-emerald-400" : "text-red-400"}>
-                                            {legPnl(pos.binance, wsState?.binanceVWAP ?? null) >= 0 ? "+" : ""}
-                                            ${legPnl(pos.binance, wsState?.binanceVWAP ?? null).toFixed(2)}
-                                          </span>
-                                        </td>
-                                      </tr>
-                                    )}
-                                    {pos.bybit && (
-                                      <tr className="border-b border-white/[0.04] last:border-0">
-                                        <td className="p-3 font-medium text-blue-300/90">Bybit</td>
-                                        <td className="p-3 text-right text-slate-300">
-                                          ${pos.bybit.entryPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })}
-                                        </td>
-                                        <td className="p-3 text-right text-slate-300">{pos.bybit.quantity.toLocaleString(undefined, { maximumFractionDigits: 6 })}</td>
-                                        <td className="p-3 text-right text-slate-300">
-                                          ${pos.bybit.marginUsed.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                                        </td>
-                                        <td className="p-3 text-right text-slate-200">
-                                          {(wsState?.bybitVWAP ?? pos.bybit.markPrice).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })}
-                                        </td>
-                                        <td className="p-3 text-right">
-                                          <span className={legPnl(pos.bybit, wsState?.bybitVWAP ?? null) >= 0 ? "text-emerald-400" : "text-red-400"}>
-                                            {legPnl(pos.bybit, wsState?.bybitVWAP ?? null) >= 0 ? "+" : ""}
-                                            ${legPnl(pos.bybit, wsState?.bybitVWAP ?? null).toFixed(2)}
-                                          </span>
-                                        </td>
-                                      </tr>
-                                    )}
-                                  </tbody>
-                                </table>
-                              </div>
                             </div>
                           </td>
                         </tr>
