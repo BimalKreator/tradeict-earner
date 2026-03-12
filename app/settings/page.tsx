@@ -131,6 +131,7 @@ export default function SettingsPage() {
           JSON.stringify({
             action: "set_auto_exit_settings",
             payload: {
+              autoTrade: settings.autoTrade,
               autoExit: settings.autoExit,
               stoplossPercent: settings.stoplossPercent,
               targetPercent: settings.targetPercent,
@@ -138,6 +139,7 @@ export default function SettingsPage() {
               feesPercent: settings.feesPercent,
               leverage: settings.leverage,
               capitalPercent: settings.capitalPercent,
+              maxTradeSlot: settings.maxTradeSlot,
             },
           })
         );

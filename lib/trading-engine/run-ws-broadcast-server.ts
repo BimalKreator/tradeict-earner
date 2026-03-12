@@ -25,6 +25,8 @@ import {
   executeCloseTrade,
   getBinanceBalance,
   getBybitBalance,
+  getBinancePositions,
+  getBybitPositions,
   type ExchangeCredentials,
   type ExecutionSettings,
   type OrderbookSnapshot,
@@ -65,6 +67,8 @@ function loadAutoExitSettings(): Partial<ExecutionSettings> {
     targetPercent: typeof process.env.TARGET_PERCENT !== "undefined" ? parseFloat(process.env.TARGET_PERCENT) || 1.5 : 1.5,
     slippagePercent: typeof process.env.SLIPPAGE_PERCENT !== "undefined" ? parseFloat(process.env.SLIPPAGE_PERCENT) || 0.05 : 0.05,
     feesPercent: typeof process.env.FEES_PERCENT !== "undefined" ? parseFloat(process.env.FEES_PERCENT) || 0.1 : 0.1,
+    autoTrade: false,
+    maxTradeSlot: 5,
   };
   try {
     if (fs.existsSync(SETTINGS_FILE)) {
@@ -75,6 +79,8 @@ function loadAutoExitSettings(): Partial<ExecutionSettings> {
       if (typeof data.targetPercent === "number" && data.targetPercent >= 0) defaults.targetPercent = data.targetPercent;
       if (typeof data.slippagePercent === "number" && data.slippagePercent >= 0) defaults.slippagePercent = data.slippagePercent;
       if (typeof data.feesPercent === "number" && data.feesPercent >= 0) defaults.feesPercent = data.feesPercent;
+      if (typeof data.autoTrade === "boolean") defaults.autoTrade = data.autoTrade;
+      if (typeof data.maxTradeSlot === "number") defaults.maxTradeSlot = data.maxTradeSlot;
     }
   } catch (e) {
     console.warn("[WS Server] Could not load auto-exit-settings.json:", e);
@@ -209,7 +215,7 @@ async function runManualTrade(
     const binanceL2 = side === "Long" ? bestAsk : bestBid;
     const bybitL2 = binanceL2;
 
-    const settings = { ...DEFAULT_EXECUTION_SETTINGS, ...autoExitSettings };
+    const settings = { ...DEFAULT_EXECUTION_SETTINGS, ...autoExitSettings, manualQuantity: quantity };
     const results = await executeChunkTrade(
       symbol,
       side as OrderSide,
@@ -284,6 +290,75 @@ async function main() {
     await privateWsManager.start();
   }
 
+  let isAutoTradeRunning = false;
+  setInterval(async () => {
+    if (!autoExitSettings.autoTrade || isTradeExecuting || isAutoTradeRunning) return;
+    if (!lastCredentials || !privateWsManager || !privateWsManager.isConnected()) return;
+
+    isAutoTradeRunning = true;
+    try {
+      const [binancePositions, bybitPositions] = await Promise.all([
+        getBinancePositions(lastCredentials.binance.apiKey, lastCredentials.binance.apiSecret).catch(() => []),
+        getBybitPositions(lastCredentials.bybit.apiKey, lastCredentials.bybit.apiSecret).catch(() => []),
+      ]);
+
+      const activeSymbols = new Set([
+        ...binancePositions.map((p) => p.symbol),
+        ...bybitPositions.map((p) => p.symbol),
+      ]);
+      const maxSlots = autoExitSettings.maxTradeSlot ?? 5;
+
+      if (activeSymbols.size >= maxSlots) {
+        isAutoTradeRunning = false;
+        return;
+      }
+
+      const states = manager.getStates();
+      const eligibleTokens = states
+        .filter((s) => s.has3xLiquidity && !activeSymbols.has(s.symbol))
+        .sort((a, b) => {
+          const diffA = Math.abs((a.binanceFunding ?? 0) - (a.bybitFunding ?? 0));
+          const diffB = Math.abs((b.binanceFunding ?? 0) - (b.bybitFunding ?? 0));
+          return diffB - diffA;
+        });
+
+      if (eligibleTokens.length > 0) {
+        const topToken = eligibleTokens[0].symbol;
+        console.log(`[AUTO-TRADE] Empty slot found (${activeSymbols.size}/${maxSlots}). Initiating trade for Top Token: ${topToken}`);
+
+        isTradeExecuting = true;
+        try {
+          const orderbook = await fetchOrderbookSnapshot(topToken);
+          const binanceData = await getBinanceBalance(lastCredentials.binance.apiKey, lastCredentials.binance.apiSecret);
+          const bybitData = await getBybitBalance(lastCredentials.bybit.apiKey, lastCredentials.bybit.apiSecret);
+          const bestAsk = orderbook.asks[0]?.[0] ? parseFloat(orderbook.asks[0][0]) : 0;
+
+          const settings = { ...DEFAULT_EXECUTION_SETTINGS, ...autoExitSettings, manualQuantity: undefined };
+
+          await executeChunkTrade(
+            topToken,
+            "Long",
+            orderbook,
+            settings,
+            lastCredentials,
+            privateWsManager,
+            binanceData.available,
+            bybitData.available,
+            bestAsk,
+            bestAsk,
+            (msg) => console.log(`[AUTO-TRADE] ${msg}`)
+          );
+        } finally {
+          isTradeExecuting = false;
+        }
+      }
+    } catch (err) {
+      console.error("[AUTO-TRADE] Error:", err);
+    } finally {
+      isAutoTradeRunning = false;
+    }
+  }, 10000);
+
   wss.on("connection", (ws) => {
     clients.add(ws);
     console.log(`[WS Server] Client connected. Total: ${clients.size}`);
@@ -317,7 +392,7 @@ async function main() {
           }
           return;
         }
-        const payloadMsg = msg.payload as { autoExit?: boolean; stoplossPercent?: number; targetPercent?: number; slippagePercent?: number; feesPercent?: number; leverage?: number; capitalPercent?: number } | undefined;
+        const payloadMsg = msg.payload as { autoExit?: boolean; stoplossPercent?: number; targetPercent?: number; slippagePercent?: number; feesPercent?: number; leverage?: number; capitalPercent?: number; autoTrade?: boolean; maxTradeSlot?: number } | undefined;
         if (msg.action === "set_auto_exit_settings" && payloadMsg) {
           if (typeof payloadMsg.autoExit === "boolean") autoExitSettings.autoExit = payloadMsg.autoExit;
           if (typeof payloadMsg.stoplossPercent === "number" && payloadMsg.stoplossPercent >= 0) autoExitSettings.stoplossPercent = payloadMsg.stoplossPercent;
@@ -326,6 +401,8 @@ async function main() {
           if (typeof payloadMsg.feesPercent === "number" && payloadMsg.feesPercent >= 0) autoExitSettings.feesPercent = payloadMsg.feesPercent;
           if (typeof payloadMsg.leverage === "number") autoExitSettings.leverage = payloadMsg.leverage;
           if (typeof payloadMsg.capitalPercent === "number") autoExitSettings.capitalPercent = payloadMsg.capitalPercent;
+          if (typeof payloadMsg.autoTrade === "boolean") autoExitSettings.autoTrade = payloadMsg.autoTrade;
+          if (typeof payloadMsg.maxTradeSlot === "number") autoExitSettings.maxTradeSlot = payloadMsg.maxTradeSlot;
           saveAutoExitSettings();
           console.log("[WS Server] Auto-Exit settings updated from client: autoExit=" + autoExitSettings.autoExit);
           return;

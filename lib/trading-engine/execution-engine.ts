@@ -31,6 +31,12 @@ export interface ExecutionSettings {
   feesPercent?: number;
   /** Leverage (e.g. 3). */
   leverage?: number;
+  /** Override: use this quantity instead of balance-based target (manual trade). */
+  manualQuantity?: number;
+  /** Max number of concurrent trade slots (for auto-trade). */
+  maxTradeSlot?: number;
+  /** Enable auto-trade loop (server fills slots from screener). */
+  autoTrade?: boolean;
 }
 
 export interface ExchangeCredentials {
@@ -961,14 +967,31 @@ export async function executeChunkTrade(
   const execPriceBybit = formatPrice(execPriceBybitRaw, bybitTickSize);
   const execPriceBinance = formatPrice(execPriceBinanceRaw, binanceTickSize);
 
-  const lev = settings.leverage ?? 1;
-  const capPct = Math.max(0, Math.min(100, settings.capitalPercent ?? 10)) / 100;
-  const minBal = Math.min(binanceBalance, bybitBalance);
-  const targetNotional = minBal * capPct * lev;
-  const targetQtyRaw = targetNotional / priceBybitBase;
-  const targetTotalQty = parseFloat(formatQuantity(targetQtyRaw, Math.max(bybitStepSize, binanceStepSize)));
+  // Dynamic Leverage: Pick the minimum allowed between user settings and both exchanges
+  const maxAllowedLev = await calculateLeverage(symbol, credentials.binance.apiKey, credentials.binance.apiSecret);
+  const requestedLev = settings.leverage ?? 1;
+  const lev = Math.min(requestedLev, maxAllowedLev);
+  console.log(`${P} Requested Lev: ${requestedLev}, Max Allowed: ${maxAllowedLev}, Using: ${lev}`);
 
-  console.log(`${P} Target Notional=$${targetNotional.toFixed(2)}, Target Total Qty=${targetTotalQty} (Cap%: ${capPct * 100}%, Lev: ${lev})`);
+  let targetTotalQty = 0;
+  if (settings.manualQuantity && settings.manualQuantity > 0) {
+    targetTotalQty = parseFloat(formatQuantity(settings.manualQuantity, Math.max(bybitStepSize, binanceStepSize)));
+    console.log(`${P} Manual Trade Override: Target Total Qty = ${targetTotalQty}`);
+  } else {
+    const capPct = Math.max(0, Math.min(100, settings.capitalPercent ?? 10)) / 100;
+    const minBal = Math.min(binanceBalance, bybitBalance);
+    const targetNotional = minBal * capPct * lev;
+    const targetQtyRaw = targetNotional / priceBybitBase;
+    targetTotalQty = parseFloat(formatQuantity(targetQtyRaw, Math.max(bybitStepSize, binanceStepSize)));
+    console.log(`${P} Auto Target Notional=$${targetNotional.toFixed(2)}, Target Total Qty=${targetTotalQty} (Cap%: ${capPct * 100}%, Lev: ${lev})`);
+  }
+
+  if (targetTotalQty <= 0) {
+    console.log(`${P} Abort: target total qty is 0`);
+    onProgress?.("Trade failed: Target quantity is 0");
+    results.push({ success: false, error: "Target quantity is 0" });
+    return results;
+  }
 
   let cumulativeFilled = 0;
 

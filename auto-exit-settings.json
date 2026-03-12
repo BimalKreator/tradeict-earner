@@ -3,5 +3,7 @@
   "stoplossPercent": 5,
   "targetPercent": 1,
   "slippagePercent": 0.5,
-  "feesPercent": 0.2
+  "feesPercent": 0.2,
+  "leverage": 3,
+  "capitalPercent": 10
 }

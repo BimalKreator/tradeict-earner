@@ -21,8 +21,10 @@ function useSyncAutoExitOnLoad() {
       let feesPercent = 0.1;
       let leverage = 3;
       let capitalPercent = 10;
+      let autoTrade = false;
+      let maxTradeSlot = 5;
       if (raw) {
-        const parsed = JSON.parse(raw) as { autoExit?: boolean; stoplossPercent?: number; targetPercent?: number; slippagePercent?: number; feesPercent?: number; leverage?: number; capitalPercent?: number };
+        const parsed = JSON.parse(raw) as { autoExit?: boolean; stoplossPercent?: number; targetPercent?: number; slippagePercent?: number; feesPercent?: number; leverage?: number; capitalPercent?: number; autoTrade?: boolean; maxTradeSlot?: number };
         if (typeof parsed.autoExit === "boolean") autoExit = parsed.autoExit;
         if (typeof parsed.stoplossPercent === "number" && parsed.stoplossPercent >= 0) stoplossPercent = parsed.stoplossPercent;
         if (typeof parsed.targetPercent === "number" && parsed.targetPercent >= 0) targetPercent = parsed.targetPercent;
@@ -30,6 +32,8 @@ function useSyncAutoExitOnLoad() {
         if (typeof parsed.feesPercent === "number" && parsed.feesPercent >= 0) feesPercent = parsed.feesPercent;
         if (typeof parsed.leverage === "number") leverage = parsed.leverage;
         if (typeof parsed.capitalPercent === "number") capitalPercent = parsed.capitalPercent;
+        if (typeof parsed.autoTrade === "boolean") autoTrade = parsed.autoTrade;
+        if (typeof parsed.maxTradeSlot === "number") maxTradeSlot = parsed.maxTradeSlot;
       }
       const wsUrl = `ws://${window.location.hostname}:8080`;
       const ws = new WebSocket(wsUrl);
@@ -37,7 +41,7 @@ function useSyncAutoExitOnLoad() {
         ws.send(
           JSON.stringify({
             action: "set_auto_exit_settings",
-            payload: { autoExit, stoplossPercent, targetPercent, slippagePercent, feesPercent, leverage, capitalPercent },
+            payload: { autoExit, stoplossPercent, targetPercent, slippagePercent, feesPercent, leverage, capitalPercent, autoTrade, maxTradeSlot },
           })
         );
         setTimeout(() => ws.close(), 500);
