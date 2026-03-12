@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 
 const SETTINGS_STORAGE_KEY = "tradeict-earner-settings";
 const API_KEYS_STORAGE_KEY = "tradeict-earner-api-keys";
@@ -103,6 +104,7 @@ function saveSettings(s: SettingsState): void {
 type ApiKeyField = "binanceApiKey" | "binanceApiSecret" | "bybitApiKey" | "bybitApiSecret";
 
 export default function SettingsPage() {
+  const router = useRouter();
   const [settings, setSettings] = useState<SettingsState>(DEFAULT_SETTINGS);
   const [apiKeys, setApiKeys] = useState<ApiKeysState>(DEFAULT_API_KEYS);
   const [hydrated, setHydrated] = useState(false);
@@ -227,14 +229,33 @@ export default function SettingsPage() {
   const hasBinanceKeys = !!(apiKeys.binanceApiKey?.trim() && apiKeys.binanceApiSecret?.trim());
   const hasBybitKeys = !!(apiKeys.bybitApiKey?.trim() && apiKeys.bybitApiSecret?.trim());
 
+  const handleLogout = useCallback(() => {
+    try {
+      localStorage.removeItem(API_KEYS_STORAGE_KEY);
+      setApiKeys(DEFAULT_API_KEYS);
+      router.push("/login");
+    } catch {
+      router.push("/login");
+    }
+  }, [router]);
+
   const inputClass =
     "w-full rounded-xl border border-white/[0.1] bg-white/[0.06] px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50";
 
   return (
     <div className="space-y-6 lg:space-y-8">
-      <div>
-        <h1 className="text-2xl md:text-3xl font-bold text-white">Settings</h1>
-        <p className="text-slate-400 text-sm mt-1">Bot configuration — saved in this browser</p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-bold text-white">Settings</h1>
+          <p className="text-slate-400 text-sm mt-1">Bot configuration — saved in this browser</p>
+        </div>
+        <button
+          type="button"
+          onClick={handleLogout}
+          className="shrink-0 px-4 py-2.5 rounded-xl text-sm font-medium text-red-300 border border-red-500/40 bg-red-500/10 hover:bg-red-500/20 transition-colors"
+        >
+          Logout
+        </button>
       </div>
 
       <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
