@@ -330,10 +330,9 @@ export default function DashboardPage() {
           <table className="w-full min-w-[800px]">
             <thead>
               <tr className="text-left text-slate-400 text-xs font-medium uppercase tracking-wider border-b border-white/[0.06]">
-                <th className="p-4">Pair</th>
-                <th className="p-4 text-right">Qty</th>
-                <th className="p-4">Binance</th>
-                <th className="p-4">Bybit</th>
+                <th className="p-4">Token Name</th>
+                <th className="p-4 text-right">Stoploss Amount (USD)</th>
+                <th className="p-4 text-right">Target Amount (USD)</th>
                 <th className="p-4 text-right">Combined PnL</th>
                 <th className="p-4 w-12"></th>
                 <th className="p-4 w-24">Exit</th>
@@ -342,76 +341,44 @@ export default function DashboardPage() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="p-8 text-center text-slate-500">
+                  <td colSpan={6} className="p-8 text-center text-slate-500">
                     Loading positions…
                   </td>
                 </tr>
               ) : positions.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="p-8 text-center text-slate-500">
+                  <td colSpan={6} className="p-8 text-center text-slate-500">
                     No open positions. Save API keys in Settings and open trades from the Screener.
                   </td>
                 </tr>
               ) : (
                 positions.map((pos) => {
-                  const livePnl = liveGroupPnl(pos, stateBySymbol(pos.symbol));
                   const wsState = stateBySymbol(pos.symbol);
-                  const combinedPnl = livePnl;
+                  const combinedPnl = liveGroupPnl(pos, wsState);
                   const totalMargin = pos.usedMargin ?? 0;
+                  const stoplossPct = (settings.stoplossPercent ?? 2) / 100;
+                  const targetPct = (settings.targetPercent ?? 1.5) / 100;
+                  const feesPct = (settings.feesPercent ?? 0.1) / 100;
+                  const tradeValue = pos.totalQuantity * pos.entryPrice;
+                  const stoplossAmt = totalMargin * stoplossPct;
+                  const targetAmt = totalMargin * targetPct + tradeValue * feesPct;
                   const isExpanded = expandedSymbol === pos.symbol;
 
                   return (
                     <Fragment key={pos.symbol}>
-                      <tr
-                        className="border-b border-white/[0.04] hover:bg-white/[0.02] transition-colors"
-                      >
+                      <tr className="border-b border-white/[0.04] hover:bg-white/[0.02] transition-colors">
                         <td className="p-4 font-medium text-white">{pos.symbol}</td>
-                        <td className="p-4 text-right text-slate-300">
-                          {pos.totalQuantity.toLocaleString(undefined, { maximumFractionDigits: 6 })}
-                        </td>
-                        <td className="p-4 text-sm">
-                          {pos.binance ? (
-                            <>
-                              <div className="flex items-center gap-1.5 mb-1">
-                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                                <span className="text-white font-medium">Binance</span>
-                                <span className={`text-[10px] px-1.5 py-0.5 rounded ml-1 ${pos.binance.side === "Long" ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30" : "bg-red-500/20 text-red-400 border border-red-500/30"}`}>
-                                  {pos.binance.side}
-                                </span>
-                              </div>
-                              <div className="text-slate-400">Entry: <span className="text-slate-200">${formatNumber(pos.binance.entryPrice)}</span></div>
-                              <div className="text-slate-400">Margin: <span className="text-slate-200">${formatNumber(pos.binance.marginUsed)}</span></div>
-                              <div className="text-slate-400">PnL: <span className={pos.binance.unrealizedPnl >= 0 ? "text-emerald-400" : "text-red-400"}>{pos.binance.unrealizedPnl >= 0 ? "+" : ""}${formatNumber(pos.binance.unrealizedPnl)}</span></div>
-                            </>
-                          ) : (
-                            <span className="text-slate-500">—</span>
-                          )}
-                        </td>
-                        <td className="p-4 text-sm">
-                          {pos.bybit ? (
-                            <>
-                              <div className="flex items-center gap-1.5 mb-1">
-                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                                <span className="text-white font-medium">Bybit</span>
-                                <span className={`text-[10px] px-1.5 py-0.5 rounded ml-1 ${pos.bybit.side === "Long" ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30" : "bg-red-500/20 text-red-400 border border-red-500/30"}`}>
-                                  {pos.bybit.side}
-                                </span>
-                              </div>
-                              <div className="text-slate-400">Entry: <span className="text-slate-200">${formatNumber(pos.bybit.entryPrice)}</span></div>
-                              <div className="text-slate-400">Margin: <span className="text-slate-200">${formatNumber(pos.bybit.marginUsed)}</span></div>
-                              <div className="text-slate-400">PnL: <span className={pos.bybit.unrealizedPnl >= 0 ? "text-emerald-400" : "text-red-400"}>{pos.bybit.unrealizedPnl >= 0 ? "+" : ""}${formatNumber(pos.bybit.unrealizedPnl)}</span></div>
-                            </>
-                          ) : (
-                            <span className="text-slate-500">—</span>
-                          )}
-                        </td>
+                        <td className="p-4 text-right text-red-300/90">${stoplossAmt.toFixed(4)}</td>
+                        <td className="p-4 text-right text-emerald-300/90">${targetAmt.toFixed(4)}</td>
                         <td className="p-4 text-right">
                           <div className={`text-base font-bold ${combinedPnl >= 0 ? "text-emerald-400" : "text-red-400"}`}>
                             {combinedPnl >= 0 ? "+" : ""}${combinedPnl.toFixed(4)}
                           </div>
-                          <div className={`text-xs mt-0.5 ${combinedPnl >= 0 ? "text-emerald-400/80" : "text-red-400/80"}`}>
-                            {totalMargin > 0 ? (combinedPnl >= 0 ? "+" : "") + ((combinedPnl / totalMargin) * 100).toFixed(4) + "%" : "0.0000%"}
-                          </div>
+                          {totalMargin > 0 && (
+                            <div className={`text-xs mt-0.5 ${combinedPnl >= 0 ? "text-emerald-400/80" : "text-red-400/80"}`}>
+                              {(combinedPnl >= 0 ? "+" : "") + ((combinedPnl / totalMargin) * 100).toFixed(4)}%
+                            </div>
+                          )}
                         </td>
                         <td className="p-4">
                           <button
@@ -436,43 +403,64 @@ export default function DashboardPage() {
                       </tr>
                       {isExpanded && (
                         <tr className="bg-white/[0.04] border-b border-white/[0.04]">
-                          <td colSpan={7} className="p-0">
-                            <div className="px-4 pb-4 pt-1 transition-all duration-200 ease-out">
-                              {(() => {
-                                const stoplossPct = (settings.stoplossPercent ?? 2) / 100;
-                                const targetPct = (settings.targetPercent ?? 1.5) / 100;
-                                const feesPct = (settings.feesPercent ?? 0.1) / 100;
-                                const totalMargin = pos.usedMargin ?? 0;
-                                const tradeValue = pos.totalQuantity * pos.entryPrice;
-                                const stoplossAmt = totalMargin * stoplossPct;
-                                const targetAmt = totalMargin * targetPct + tradeValue * feesPct;
-                                return (
-                                  <div className="p-4 bg-slate-900/50">
-                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                                      <div className="rounded-lg border border-white/[0.04] bg-white/[0.02] p-3 text-center">
-                                        <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Combined Liq. Price</p>
-                                        <p className="text-slate-300 font-medium text-sm">
-                                          {pos.binance?.liquidationPrice != null || pos.bybit?.liquidationPrice != null ? (
-                                            <>
-                                              B: {pos.binance?.liquidationPrice != null ? `$${formatNumber(pos.binance.liquidationPrice)}` : "—"} / Y: {pos.bybit?.liquidationPrice != null ? `$${formatNumber(pos.bybit.liquidationPrice)}` : "—"}
-                                            </>
-                                          ) : (
-                                            "—"
-                                          )}
-                                        </p>
-                                      </div>
-                                      <div className="rounded-lg border border-white/[0.04] bg-white/[0.02] p-3 text-center">
-                                        <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Stoploss (USD)</p>
-                                        <p className="text-red-400 font-medium">-${stoplossAmt.toFixed(4)}</p>
-                                      </div>
-                                      <div className="rounded-lg border border-white/[0.04] bg-white/[0.02] p-3 text-center">
-                                        <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Target (USD)</p>
-                                        <p className="text-emerald-400 font-medium">+${targetAmt.toFixed(4)}</p>
-                                      </div>
-                                    </div>
-                                  </div>
-                                );
-                              })()}
+                          <td colSpan={6} className="p-0">
+                            <div className="px-4 pb-4 pt-1">
+                              <table className="w-full text-sm border-collapse">
+                                <thead>
+                                  <tr className="text-slate-400 text-xs uppercase tracking-wider border-b border-white/[0.06]">
+                                    <th className="p-3 text-left">Exchange</th>
+                                    <th className="p-3 text-left">Trade Side</th>
+                                    <th className="p-3 text-right">Quantity</th>
+                                    <th className="p-3 text-right">Entry Price</th>
+                                    <th className="p-3 text-right">Liquidation Price</th>
+                                    <th className="p-3 text-right">Margin Used</th>
+                                    <th className="p-3 text-right">Realtime L2 VWAP</th>
+                                    <th className="p-3 text-right">Unrealised PnL</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {pos.binance && (
+                                    <tr className="border-b border-white/[0.04]">
+                                      <td className="p-3 font-medium text-amber-300/90">Binance</td>
+                                      <td className="p-3">
+                                        <span className={`text-[10px] px-1.5 py-0.5 rounded ${pos.binance.side === "Long" ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30" : "bg-red-500/20 text-red-400 border border-red-500/30"}`}>
+                                          {pos.binance.side}
+                                        </span>
+                                      </td>
+                                      <td className="p-3 text-right text-slate-300">{pos.binance.quantity.toLocaleString(undefined, { maximumFractionDigits: 6 })}</td>
+                                      <td className="p-3 text-right text-slate-300">${formatNumber(pos.binance.entryPrice)}</td>
+                                      <td className="p-3 text-right text-slate-300">${formatNumber(pos.binance.liquidationPrice)}</td>
+                                      <td className="p-3 text-right text-slate-300">${formatNumber(pos.binance.marginUsed)}</td>
+                                      <td className="p-3 text-right text-slate-200">${formatNumber(wsState?.binanceVWAP ?? pos.binance.markPrice)}</td>
+                                      <td className="p-3 text-right">
+                                        <span className={legPnl(pos.binance, wsState?.binanceVWAP ?? null) >= 0 ? "text-emerald-400" : "text-red-400"}>
+                                          {legPnl(pos.binance, wsState?.binanceVWAP ?? null) >= 0 ? "+" : ""}${legPnl(pos.binance, wsState?.binanceVWAP ?? null).toFixed(4)}
+                                        </span>
+                                      </td>
+                                    </tr>
+                                  )}
+                                  {pos.bybit && (
+                                    <tr className="border-b border-white/[0.04] last:border-0">
+                                      <td className="p-3 font-medium text-blue-300/90">Bybit</td>
+                                      <td className="p-3">
+                                        <span className={`text-[10px] px-1.5 py-0.5 rounded ${pos.bybit.side === "Long" ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30" : "bg-red-500/20 text-red-400 border border-red-500/30"}`}>
+                                          {pos.bybit.side}
+                                        </span>
+                                      </td>
+                                      <td className="p-3 text-right text-slate-300">{pos.bybit.quantity.toLocaleString(undefined, { maximumFractionDigits: 6 })}</td>
+                                      <td className="p-3 text-right text-slate-300">${formatNumber(pos.bybit.entryPrice)}</td>
+                                      <td className="p-3 text-right text-slate-300">${formatNumber(pos.bybit.liquidationPrice)}</td>
+                                      <td className="p-3 text-right text-slate-300">${formatNumber(pos.bybit.marginUsed)}</td>
+                                      <td className="p-3 text-right text-slate-200">${formatNumber(wsState?.bybitVWAP ?? pos.bybit.markPrice)}</td>
+                                      <td className="p-3 text-right">
+                                        <span className={legPnl(pos.bybit, wsState?.bybitVWAP ?? null) >= 0 ? "text-emerald-400" : "text-red-400"}>
+                                          {legPnl(pos.bybit, wsState?.bybitVWAP ?? null) >= 0 ? "+" : ""}${legPnl(pos.bybit, wsState?.bybitVWAP ?? null).toFixed(4)}
+                                        </span>
+                                      </td>
+                                    </tr>
+                                  )}
+                                </tbody>
+                              </table>
                             </div>
                           </td>
                         </tr>

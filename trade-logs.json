@@ -1,5 +1,19 @@
 [
   {
+    "id": "e6c90f8c-7d3d-4774-8615-c1a86a9dd346",
+    "symbol": "ATHUSDT",
+    "qty": 12000,
+    "timestamp": 1773327486553,
+    "binanceEntry": 0.005782,
+    "binanceExit": 0.00581,
+    "binancePnl": 0.33599999999999997,
+    "bybitEntry": 0.00578309,
+    "bybitExit": 0.005814,
+    "bybitPnl": -0.44751078,
+    "combinedPnlUsd": -0.11151078000000003,
+    "combinedPnlPct": -0.5313916157417192
+  },
+  {
     "id": "770f06de-4a0b-40f3-aaf3-35f3339add29",
     "symbol": "ALPINEUSDT",
     "qty": 34.7,
