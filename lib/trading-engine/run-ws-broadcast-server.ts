@@ -336,9 +336,14 @@ async function main() {
 
           const settings = { ...DEFAULT_EXECUTION_SETTINGS, ...autoExitSettings, manualQuantity: undefined };
 
+          // Determine the correct arbitrage direction based on L2 prices
+          const topState = eligibleTokens[0];
+          const l2SpreadPct = ((topState.bybitVWAP! - topState.binanceVWAP!) / topState.binanceVWAP!) * 100;
+          const autoSide = l2SpreadPct > 0 ? "Long Binance / Short Bybit" : "Long Bybit / Short Binance";
+
           await executeChunkTrade(
             topToken,
-            "Long",
+            autoSide as OrderSide,
             orderbook,
             settings,
             lastCredentials,

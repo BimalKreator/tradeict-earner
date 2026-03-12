@@ -556,9 +556,8 @@ export default function ScreenerPage() {
                     </td>
                     <td className="p-4">
                       {l2SpreadPct != null ? (
-                        <span className={l2SpreadPct >= 0 ? "text-emerald-400" : "text-red-400"}>
-                          {l2SpreadPct >= 0 ? "+" : ""}
-                          {l2SpreadPct.toFixed(4)}%
+                        <span className="text-emerald-400 font-medium">
+                          +{Math.abs(l2SpreadPct).toFixed(4)}%
                         </span>
                       ) : (
                         <span className="text-slate-500">—</span>
