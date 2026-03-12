@@ -325,6 +325,7 @@ export default function DashboardPage() {
               <tr className="text-left text-slate-400 text-xs font-medium uppercase tracking-wider border-b border-white/[0.06]">
                 <th className="p-4">Token</th>
                 <th className="p-4 text-right">Total Qty</th>
+                <th className="p-4">Direction</th>
                 <th className="p-4 text-right">Used Margin</th>
                 <th className="p-4 text-right">Stoploss (USD)</th>
                 <th className="p-4 text-right">Target (USD)</th>
@@ -336,13 +337,13 @@ export default function DashboardPage() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={8} className="p-8 text-center text-slate-500">
+                  <td colSpan={9} className="p-8 text-center text-slate-500">
                     Loading positions…
                   </td>
                 </tr>
               ) : positions.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="p-8 text-center text-slate-500">
+                  <td colSpan={9} className="p-8 text-center text-slate-500">
                     No open positions. Save API keys in Settings and open trades from the Screener.
                   </td>
                 </tr>
@@ -363,6 +364,14 @@ export default function DashboardPage() {
                         <td className="p-4 font-medium text-white">{pos.symbol}</td>
                         <td className="p-4 text-right text-slate-300">
                           {pos.totalQuantity.toLocaleString(undefined, { maximumFractionDigits: 6 })}
+                        </td>
+                        <td className="p-4 text-sm">
+                          <div className={pos.binance?.side === "Long" ? "text-emerald-400" : "text-red-400"}>
+                            {pos.binance ? pos.binance.side : "—"}
+                          </div>
+                          <div className={pos.bybit?.side === "Long" ? "text-emerald-400" : "text-red-400"}>
+                            {pos.bybit ? pos.bybit.side : "—"}
+                          </div>
                         </td>
                         <td className="p-4 text-right text-slate-300">
                           ${(pos.usedMargin ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -401,7 +410,7 @@ export default function DashboardPage() {
                       </tr>
                       {isExpanded && (
                         <tr className="bg-white/[0.04] border-b border-white/[0.04]">
-                          <td colSpan={8} className="p-0">
+                          <td colSpan={9} className="p-0">
                             <div className="px-4 pb-4 pt-1 transition-all duration-200 ease-out">
                               <div className="rounded-xl border border-white/[0.08] overflow-hidden">
                                 <table className="w-full text-sm">

@@ -949,11 +949,27 @@ export async function executeChunkTrade(
   ]);
   console.log(`${P} Step sizes: Bybit=${bybitStepSize} Binance=${binanceStepSize}`);
 
-  const isBuy = side === "Long";
-  const binanceSide = isBuy ? "BUY" : "SELL";
-  const bybitSide = isBuy ? "Buy" : "Sell";
-  const priceBybitBase = getBestPrice(orderbook, side);
-  const priceBinanceBase = getBestPrice(orderbook, side);
+  let isBinanceBuy = true;
+  let isBybitBuy = false;
+  if (side.includes("Short Binance")) {
+    isBinanceBuy = false;
+    isBybitBuy = true;
+  } else if (side.includes("Long Binance")) {
+    isBinanceBuy = true;
+    isBybitBuy = false;
+  } else if (side === "Long") {
+    isBinanceBuy = true;
+    isBybitBuy = false;
+  } else if (side === "Short") {
+    isBinanceBuy = false;
+    isBybitBuy = true;
+  }
+  const binanceSide = isBinanceBuy ? "BUY" : "SELL";
+  const bybitSide = isBybitBuy ? "Buy" : "Sell";
+  const isBuy = isBinanceBuy;
+  const orderbookSide: OrderSide = isBinanceBuy ? "Long" : "Short";
+  const priceBybitBase = getBestPrice(orderbook, orderbookSide);
+  const priceBinanceBase = getBestPrice(orderbook, orderbookSide);
 
   if (priceBybitBase <= 0 || priceBinanceBase <= 0) {
     console.log(`${P} Abort: no orderbook price (Bybit=${priceBybitBase} Binance=${priceBinanceBase})`);
@@ -1172,7 +1188,7 @@ export async function executeChunkTrade(
     return results;
   }
 
-  const firstRowQty = getFirstRowQty(orderbook, side);
+  const firstRowQty = getFirstRowQty(orderbook, orderbookSide);
   console.log(`${P} Chunk 2+: firstRowQty=${firstRowQty} frac=${frac} (liquidity fraction for subsequent chunks)`);
 
   for (let i = 0; i < 10; i++) {
@@ -1183,8 +1199,8 @@ export async function executeChunkTrade(
       break;
     }
 
-    const priceBybitNext = getBestPrice(orderbook, side);
-    const priceBinanceNext = getBestPrice(orderbook, side);
+    const priceBybitNext = getBestPrice(orderbook, orderbookSide);
+    const priceBinanceNext = getBestPrice(orderbook, orderbookSide);
     if (priceBybitNext <= 0 || priceBinanceNext <= 0) {
       console.log(`${P} Chunk ${i + 2}: no price, stopping.`);
       break;

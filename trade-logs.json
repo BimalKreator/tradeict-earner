@@ -1,0 +1,30 @@
+[
+  {
+    "id": "770f06de-4a0b-40f3-aaf3-35f3339add29",
+    "symbol": "ALPINEUSDT",
+    "qty": 34.7,
+    "timestamp": 1773320162306,
+    "binanceEntry": 0.4442,
+    "binanceExit": 0.4456,
+    "binancePnl": 0.04844,
+    "bybitEntry": 0.4444,
+    "bybitExit": 0.4453,
+    "bybitPnl": -0.00272986,
+    "combinedPnlUsd": 0.045710139999999996,
+    "combinedPnlPct": 0.9833325683182838
+  },
+  {
+    "id": "5eccdda6-557d-453b-b62f-1ac6df11adb6",
+    "symbol": "4USDT",
+    "qty": 1892,
+    "timestamp": 1773319876746,
+    "binanceEntry": 0.008162,
+    "binanceExit": 0.008131,
+    "binancePnl": 0.058652,
+    "bybitEntry": 0.00812439,
+    "bybitExit": 0.008101,
+    "bybitPnl": 0.01124631,
+    "combinedPnlUsd": 0.06989831,
+    "combinedPnlPct": 0.45431584459662033
+  }
+]

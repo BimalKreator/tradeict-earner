@@ -286,7 +286,7 @@ export default function ScreenerPage() {
       showTradeToast("Not connected to trade server", "error");
       return;
     }
-    const side = tradeModal.row.direction.startsWith("Long Binance") ? "Long" : "Short";
+    const side = tradeModal.row.direction;
     setTradeSubmitting(true);
     try {
       ws.send(
@@ -350,14 +350,17 @@ export default function ScreenerPage() {
     if (availableSlots === 0) return new Set<string>();
 
     const nextSet = new Set<string>();
+    const norm = (s: string) => String(s || "").toUpperCase();
+
     for (const row of filteredRows) {
-      const sym = String(row.state.symbol || "").toUpperCase();
+      const sym = norm(row.state.symbol);
       const isSafe = row.state.has3xLiquidity !== false;
 
-      if (sym && !activePositions.has(sym) && isSafe) {
-        nextSet.add(sym);
-        if (nextSet.size >= availableSlots) break;
-      }
+      if (!sym || !isSafe) continue;
+      if (activePositions.has(sym)) continue;
+
+      nextSet.add(sym);
+      if (nextSet.size >= availableSlots) break;
     }
     return nextSet;
   }, [filteredRows, activePositions, maxSlots]);
