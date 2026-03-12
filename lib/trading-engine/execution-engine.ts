@@ -1009,12 +1009,24 @@ export async function executeChunkTrade(
 
   let targetTotalQty = 0;
   const manQty = Number(settings.manualQuantity) || 0;
+  const minBal = Math.min(binanceBalance, bybitBalance);
+
   if (manQty > 0) {
     targetTotalQty = parseFloat(formatQuantity(manQty, Math.max(bybitStepSize, binanceStepSize)));
-    console.log(`${P} Manual Trade Override: Target Total Qty = ${targetTotalQty}`);
+    const requiredNotional = targetTotalQty * priceBybitBase;
+    const requiredMargin = requiredNotional / lev;
+
+    console.log(`${P} Manual Trade Override: Target Qty=${targetTotalQty}, Required Margin=$${requiredMargin.toFixed(2)} (Avail=$${minBal.toFixed(2)}, Lev: ${lev})`);
+
+    if (requiredMargin > minBal) {
+      console.log(`${P} Insufficient absolute balance for manual quantity. Capping to max available.`);
+      const maxPossibleNotional = minBal * lev;
+      const maxPossibleQtyRaw = maxPossibleNotional / priceBybitBase;
+      targetTotalQty = parseFloat(formatQuantity(maxPossibleQtyRaw, Math.max(bybitStepSize, binanceStepSize)));
+      console.log(`${P} Adjusted Manual Target Total Qty=${targetTotalQty}`);
+    }
   } else {
     const capPct = Math.max(0, Math.min(100, settings.capitalPercent ?? 10)) / 100;
-    const minBal = Math.min(binanceBalance, bybitBalance);
     const targetNotional = minBal * capPct * lev;
     const targetQtyRaw = targetNotional / priceBybitBase;
     targetTotalQty = parseFloat(formatQuantity(targetQtyRaw, Math.max(bybitStepSize, binanceStepSize)));
