@@ -131,6 +131,7 @@ export default function ScreenerPage() {
           type?: string;
           states?: SymbolState[];
           maxTradeSlot?: number;
+          activePositions?: string[];
           action?: string;
           status?: string;
           done?: boolean;
@@ -139,6 +140,9 @@ export default function ScreenerPage() {
           setStates(msg.states);
           if (typeof msg.maxTradeSlot === "number") {
             setMaxSlots(msg.maxTradeSlot);
+          }
+          if (Array.isArray(msg.activePositions)) {
+            setActivePositions(new Set(msg.activePositions.map((s) => String(s).toUpperCase())));
           }
         }
         if (msg.action === "TRADE_UPDATE" && msg.status != null) {
@@ -392,38 +396,6 @@ export default function ScreenerPage() {
   useEffect(() => {
     if (pageIndex !== currentPage) setCurrentPage(pageIndex);
   }, [pageIndex, currentPage]);
-
-  useEffect(() => {
-    let mounted = true;
-    const fetchPositions = async () => {
-      const keys = getApiKeysFromStorage();
-      if (!keys.binanceApiKey || !keys.bybitApiKey) return;
-      try {
-        const res = await fetch("/api/positions", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(keys),
-        });
-        const data = await res.json();
-        const active = new Set<string>();
-        if (mounted && data.positions && Array.isArray(data.positions)) {
-          data.positions.forEach((p: { symbol?: string }) => {
-            const sym = String(p.symbol || "").toUpperCase();
-            if (sym) active.add(sym);
-          });
-          setActivePositions(active);
-        }
-      } catch (e) {
-        console.error("Failed to fetch active positions for badges:", e);
-      }
-    };
-    fetchPositions();
-    const id = setInterval(fetchPositions, 10000);
-    return () => {
-      mounted = false;
-      clearInterval(id);
-    };
-  }, []);
 
   return (
     <div className="space-y-6 lg:space-y-8">

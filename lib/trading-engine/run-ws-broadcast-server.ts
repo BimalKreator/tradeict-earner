@@ -147,6 +147,9 @@ let lastCredentials: ExchangeCredentials | null =
 /** Prevents concurrent trades (spam clicks). */
 let isTradeExecuting = false;
 
+/** Active position symbols + symbol currently being executed; broadcast so frontend NEXT labels stay in sync. */
+let cachedActivePositions: string[] = [];
+
 /** Dynamic settings for auto-exit (persisted to SETTINGS_PATH, read on startup). */
 let autoExitSettings: Partial<ExecutionSettings> = loadAutoExitSettings();
 
@@ -294,6 +297,9 @@ async function runManualTrade(
       return;
     }
 
+    const symUpper = String(symbol || "").toUpperCase();
+    if (symUpper) cachedActivePositions = Array.from(new Set([...cachedActivePositions, symUpper]));
+
     const [orderbook, binanceData, bybitData] = await Promise.all([
       fetchOrderbookSnapshot(symbol),
       getBinanceBalance(payload.binanceApiKey, payload.binanceApiSecret),
@@ -361,7 +367,13 @@ async function main() {
     vwapTargetAmount: 10_000,
     maxSymbols: 50,
     onStateUpdate(states) {
-      broadcast({ type: "state", states, ts: Date.now(), maxTradeSlot: autoExitSettings.maxTradeSlot });
+      broadcast({
+        type: "state",
+        states,
+        ts: Date.now(),
+        maxTradeSlot: autoExitSettings.maxTradeSlot,
+        activePositions: [...cachedActivePositions],
+      });
     },
   });
 
@@ -412,6 +424,7 @@ async function main() {
         ...binancePositions.map((p) => p.symbol),
         ...bybitPositions.map((p) => p.symbol),
       ]);
+      cachedActivePositions = Array.from(activeSymbols);
       const maxSlots = autoExitSettings.maxTradeSlot ?? 5;
 
       if (activeSymbols.size >= maxSlots) {
@@ -427,6 +440,7 @@ async function main() {
         const topToken = eligibleTokens[0].symbol;
         console.log(`[AUTO-TRADE] Empty slot found (${activeSymbols.size}/${maxSlots}). Initiating trade for Top Token: ${topToken}`);
 
+        cachedActivePositions = Array.from(new Set([...cachedActivePositions, topToken]));
         isTradeExecuting = true;
         try {
           const orderbook = await fetchOrderbookSnapshot(topToken);
@@ -472,7 +486,15 @@ async function main() {
     // Send current state immediately
     const states = manager.getStates();
     try {
-      ws.send(JSON.stringify({ type: "state", states, ts: Date.now(), maxTradeSlot: autoExitSettings.maxTradeSlot }));
+      ws.send(
+      JSON.stringify({
+        type: "state",
+        states,
+        ts: Date.now(),
+        maxTradeSlot: autoExitSettings.maxTradeSlot,
+        activePositions: [...cachedActivePositions],
+      })
+    );
     } catch (e) {
       console.error("[WS Server] Initial send error:", e);
     }
