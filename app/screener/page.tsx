@@ -345,17 +345,19 @@ export default function ScreenerPage() {
   }, [states, tokenSearch, minL2SpreadPct, fundingType, onlySafeOpportunities, bannedTokens]);
 
   const nextTradeSymbols = useMemo(() => {
-    const availableSlots = Math.max(0, maxSlots - activePositions.size);
+    const slotsLimit = Math.max(1, maxSlots);
+    const availableSlots = Math.max(0, slotsLimit - activePositions.size);
     if (availableSlots === 0) return new Set<string>();
 
     const nextSet = new Set<string>();
-    const norm = (s: string) => (s || "").toUpperCase();
     for (const row of filteredRows) {
-      const sym = norm(row.state.symbol);
-      if (!sym || !row.state.has3xLiquidity) continue;
-      if (activePositions.has(sym)) continue;
-      nextSet.add(sym);
-      if (nextSet.size >= availableSlots) break;
+      const sym = String(row.state.symbol || "").toUpperCase();
+      const isSafe = row.state.has3xLiquidity !== false;
+
+      if (sym && !activePositions.has(sym) && isSafe) {
+        nextSet.add(sym);
+        if (nextSet.size >= availableSlots) break;
+      }
     }
     return nextSet;
   }, [filteredRows, activePositions, maxSlots]);
@@ -384,14 +386,16 @@ export default function ScreenerPage() {
           body: JSON.stringify(keys),
         });
         const data = await res.json();
+        const active = new Set<string>();
         if (mounted && data.positions && Array.isArray(data.positions)) {
-          const active = new Set<string>(
-            data.positions.map((p: { symbol?: string }) => (p.symbol || "").toUpperCase())
-          );
+          data.positions.forEach((p: { symbol?: string }) => {
+            const sym = String(p.symbol || "").toUpperCase();
+            if (sym) active.add(sym);
+          });
           setActivePositions(active);
         }
-      } catch {
-        // ignore
+      } catch (e) {
+        console.error("Failed to fetch active positions for badges:", e);
       }
     };
     fetchPositions();
@@ -527,7 +531,7 @@ export default function ScreenerPage() {
                     <td className="p-4 font-medium text-white">
                       <div className="flex items-center gap-2">
                         {s.symbol}
-                        {nextTradeSymbols.has((s.symbol || "").toUpperCase()) && (
+                        {nextTradeSymbols.has(String(s.symbol || "").toUpperCase()) && (
                           <span
                             className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-500/20 text-blue-400 border border-blue-500/40 uppercase tracking-wider"
                             title="Next in line for Auto-Trade"

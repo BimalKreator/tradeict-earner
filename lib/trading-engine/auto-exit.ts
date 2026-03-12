@@ -304,7 +304,7 @@ export function startAutoExitMonitor(
         }
         applyDepthDelta(ob, b, "bids");
         applyDepthDelta(ob, a, "asks");
-        onDepthUpdate(symbol, true);
+        onDepthUpdate(symbol);
       } catch (e) {
         console.error("[CHUNK-SYSTEM] Auto-Exit Bybit message error:", e);
       }
@@ -323,7 +323,7 @@ export function startAutoExitMonitor(
     }
   };
 
-  const onDepthUpdate = (symbol: string, useBybitBook = false) => {
+  const onDepthUpdate = (symbol: string) => {
     const ctx = getContext();
     if (!ctx) return;
     const settings = getSettings();
@@ -332,14 +332,18 @@ export function startAutoExitMonitor(
     const pos = cachedPositions.find((p) => normalizeSymbol(p.symbol) === symbol);
     if (!pos || exitLocks.has(pos.symbol)) return;
 
-    const obBinance = binanceOrderbooks.get(symbol);
-    const obBybit = bybitOrderbooks.get(symbol);
-    const snapshotBinance = obBinance && obBinance.bids.size > 0 && obBinance.asks.size > 0 ? orderbookToSnapshot(symbol, obBinance) : null;
-    const snapshotBybit = obBybit && obBybit.bids.size > 0 && obBybit.asks.size > 0 ? orderbookToSnapshot(symbol, obBybit) : null;
-    if (!snapshotBinance && !snapshotBybit) return;
+    const binanceObRaw = binanceOrderbooks.get(symbol);
+    const bybitObRaw = bybitOrderbooks.get(symbol);
 
-    // Use each exchange's orderbook for its own leg (matches dashboard Combined PnL)
-    const combinedPnl = combinedPnlFromL2TwoBooks(pos, snapshotBinance, snapshotBybit);
+    if (!binanceObRaw && !bybitObRaw) return;
+
+    const binanceSnap = binanceObRaw && binanceObRaw.bids.size > 0 ? orderbookToSnapshot(symbol, binanceObRaw) : null;
+    const bybitSnap = bybitObRaw && bybitObRaw.bids.size > 0 ? orderbookToSnapshot(symbol, bybitObRaw) : null;
+
+    if (pos.binance && !binanceSnap) return;
+    if (pos.bybit && !bybitSnap) return;
+
+    const combinedPnl = combinedPnlFromL2TwoBooks(pos, binanceSnap, bybitSnap);
     const stoplossPct = (settings.stoplossPercent ?? 2) / 100;
     const targetPct = (settings.targetPercent ?? 1.5) / 100;
     const feesPct = (settings.feesPercent ?? 0.1) / 100;
