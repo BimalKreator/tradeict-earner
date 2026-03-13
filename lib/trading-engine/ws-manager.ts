@@ -185,6 +185,10 @@ export class WsManager {
   /** Set to true in stop() so close handlers do not reconnect. */
   private stopped = false;
 
+  /** REST poller for funding intervals (3 chunks, one every 10 min). */
+  private fundingPollerInterval: ReturnType<typeof setInterval> | null = null;
+  private currentFundingChunkIndex = 0;
+
   constructor(options: WsManagerOptions = {}) {
     this.vwapTargetAmount = options.vwapTargetAmount ?? DEFAULT_VWAP_TARGET_AMOUNT;
     this.onStateUpdate = options.onStateUpdate;
@@ -213,7 +217,68 @@ export class WsManager {
 
     this.connectBinance();
     this.connectBybit();
+    await this.startFundingIntervalPoller();
     return this.symbols;
+  }
+
+  /** Fetch funding interval for one symbol via REST (current - previous funding time). */
+  private async fetchFundingIntervalRest(symbol: string): Promise<void> {
+    try {
+      const headers = { "User-Agent": "Mozilla/5.0", Accept: "application/json" };
+
+      const binRes = await fetch(
+        `https://fapi.binance.com/fapi/v1/fundingRate?symbol=${symbol}&limit=2`,
+        { headers }
+      );
+      if (binRes.ok) {
+        const binData = (await binRes.json()) as { fundingTime: number }[];
+        if (Array.isArray(binData) && binData.length >= 2) {
+          const t1 = Number(binData[0].fundingTime);
+          const t2 = Number(binData[1].fundingTime);
+          if (t1 && t2) this.binanceIntervals.set(symbol, Math.abs(t1 - t2));
+        }
+      }
+
+      const bybRes = await fetch(
+        `https://api.bybit.com/v5/market/funding/history?category=linear&symbol=${symbol}&limit=2`,
+        { headers }
+      );
+      if (bybRes.ok) {
+        const bybData = (await bybRes.json()) as { result?: { list?: { fundingRateTimestamp: string | number }[] } };
+        const list = bybData?.result?.list;
+        if (Array.isArray(list) && list.length >= 2) {
+          const t1 = Number(list[0].fundingRateTimestamp);
+          const t2 = Number(list[1].fundingRateTimestamp);
+          if (t1 && t2) this.bybitIntervals.set(symbol, Math.abs(t1 - t2));
+        }
+      }
+    } catch (err) {
+      console.error(`[WsManager] Failed to fetch REST funding interval for ${symbol}`, err);
+    }
+  }
+
+  /** Run one chunk of REST funding interval fetches; then schedule next chunk in 10 min. */
+  private async startFundingIntervalPoller(): Promise<void> {
+    const chunkSize = Math.ceil(this.symbols.length / 3);
+    const chunks = [
+      this.symbols.slice(0, chunkSize),
+      this.symbols.slice(chunkSize, chunkSize * 2),
+      this.symbols.slice(chunkSize * 2),
+    ].filter((c) => c.length > 0);
+
+    const processChunk = async (): Promise<void> => {
+      if (chunks.length === 0) return;
+      const chunk = chunks[this.currentFundingChunkIndex];
+      for (const symbol of chunk) {
+        await this.fetchFundingIntervalRest(symbol);
+        await new Promise((r) => setTimeout(r, 500));
+      }
+      this.recomputeAll();
+      this.currentFundingChunkIndex = (this.currentFundingChunkIndex + 1) % chunks.length;
+    };
+
+    await processChunk();
+    this.fundingPollerInterval = setInterval(processChunk, 10 * 60 * 1000);
   }
 
   private ensureState(symbol: string): void {
@@ -475,6 +540,10 @@ export class WsManager {
 
   stop(): void {
     this.stopped = true;
+    if (this.fundingPollerInterval) {
+      clearInterval(this.fundingPollerInterval);
+      this.fundingPollerInterval = null;
+    }
     this.binanceWs?.removeAllListeners();
     this.bybitWs?.removeAllListeners();
     this.binanceWs?.close();
