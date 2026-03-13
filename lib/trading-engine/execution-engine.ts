@@ -130,8 +130,17 @@ function signBybitV5Get(
 // Binance REST: listenKey, order, balance, leverage
 // ---------------------------------------------------------------------------
 
+const BINANCE_LISTENKEY_CACHE_MS = 30 * 60 * 1000; // 30 minutes (Binance allows up to 60)
+let cachedListenKey: string | null = null;
+let listenKeyTimestamp = 0;
+let listenKeyApiKey = "";
+
 export async function createBinanceListenKey(apiKey: string, apiSecret: string): Promise<string> {
-  const timestamp = Date.now();
+  const now = Date.now();
+  if (cachedListenKey && listenKeyApiKey === apiKey && now - listenKeyTimestamp < BINANCE_LISTENKEY_CACHE_MS) {
+    return cachedListenKey;
+  }
+  const timestamp = now;
   const query = `timestamp=${timestamp}`;
   const signature = signBinance(apiSecret, query);
   const res = await fetch(`${BINANCE_BASE}/fapi/v1/listenKey?${query}&signature=${signature}`, {
@@ -141,6 +150,9 @@ export async function createBinanceListenKey(apiKey: string, apiSecret: string):
   if (!res.ok) throw new Error(`Binance listenKey: ${res.status} ${await res.text()}`);
   const data = (await res.json()) as { listenKey?: string };
   if (!data.listenKey) throw new Error("Binance listenKey missing");
+  cachedListenKey = data.listenKey;
+  listenKeyTimestamp = Date.now();
+  listenKeyApiKey = apiKey;
   return data.listenKey;
 }
 
@@ -785,8 +797,16 @@ export class PrivateWSManager {
   }
 
   stop(): void {
-    this.binanceWs?.close();
-    this.bybitWs?.close();
+    try {
+      this.binanceWs?.close();
+    } catch {
+      // Ignore if connection already dead
+    }
+    try {
+      this.bybitWs?.close();
+    } catch {
+      // Ignore if connection already dead
+    }
     this.binanceWs = null;
     this.bybitWs = null;
     this.orderConfirmations.forEach((p) => p.reject(new Error("PrivateWS closed")));

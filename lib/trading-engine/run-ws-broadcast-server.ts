@@ -157,6 +157,9 @@ function filterAndSortEligibleForAutoTrade(
 /** Persistent private WS for 24/7 HFT; reused across trades, never stopped. */
 let privateWsManager: PrivateWSManager | null = null;
 
+/** Timestamp of last Private WS reconnect attempt (for 60s cool-down to avoid Binance 418). */
+let lastReconnectAttempt = 0;
+
 /** Last credentials used (for auto-exit monitor). Initialized from env when both API keys present. */
 let lastCredentials: ExchangeCredentials | null =
   process.env.BINANCE_API_KEY && process.env.BYBIT_API_KEY
@@ -512,6 +515,12 @@ async function main() {
   const getContext = () => {
     if (!lastCredentials) return null;
     if (!privateWsManager || !privateWsManager.isConnected()) {
+      const now = Date.now();
+      // Only allow 1 reconnect attempt every 60 seconds to avoid Binance 418 IP bans
+      if (now - lastReconnectAttempt < 60000) {
+        return null; // Skip silently if in cool-down
+      }
+      lastReconnectAttempt = now;
       console.log("[CHUNK-SYSTEM] Auto-Exit: Private WS disconnected. Reconnecting...");
       if (privateWsManager) privateWsManager.stop();
       privateWsManager = new PrivateWSManager(lastCredentials);
