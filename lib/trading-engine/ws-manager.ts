@@ -169,6 +169,13 @@ export class WsManager {
   private binanceFunding = new Map<string, number>();
   private bybitFunding = new Map<string, number>();
 
+  /** Next funding time (ms) per symbol; used to detect interval jumps. */
+  private binanceNextFunding = new Map<string, number>();
+  private bybitNextFunding = new Map<string, number>();
+  /** Computed funding interval (ms) per symbol when nextFundingTime jumps. */
+  private binanceIntervals = new Map<string, number>();
+  private bybitIntervals = new Map<string, number>();
+
   /** Latest state per symbol, for broadcast. */
   private state = new Map<string, SymbolState>();
 
@@ -217,6 +224,8 @@ export class WsManager {
         bybitVWAP: null,
         binanceFunding: null,
         bybitFunding: null,
+        binanceFundingInterval: 28800000,
+        bybitFundingInterval: 28800000,
         lastUpdate: 0,
         spreadStableMs: 0,
         has3xLiquidity: false,
@@ -260,6 +269,14 @@ export class WsManager {
         } else if (stream.endsWith("@markPrice")) {
           const r = d.r as string | undefined;
           if (r != null) this.binanceFunding.set(symbol, parseFloat(r));
+          const T = d.T as number | undefined;
+          if (T != null && typeof T === "number") {
+            const oldT = this.binanceNextFunding.get(symbol);
+            if (oldT != null && T > oldT) {
+              this.binanceIntervals.set(symbol, T - oldT);
+            }
+            this.binanceNextFunding.set(symbol, T);
+          }
           this.recomputeAndEmit(symbol, "binance");
         }
       } catch (e) {
@@ -324,6 +341,14 @@ export class WsManager {
           if (!this.symbols.includes(symbol) || !d) return;
           const fr = d.fundingRate as string | undefined;
           if (fr != null) this.bybitFunding.set(symbol, parseFloat(fr));
+          const T = Number(d.nextFundingTime);
+          if (T && !isNaN(T)) {
+            const oldT = this.bybitNextFunding.get(symbol);
+            if (oldT != null && T > oldT) {
+              this.bybitIntervals.set(symbol, T - oldT);
+            }
+            this.bybitNextFunding.set(symbol, T);
+          }
           this.recomputeAndEmit(symbol, "bybit");
         }
       } catch (e) {
@@ -373,6 +398,8 @@ export class WsManager {
     s.bybitVWAP = bybitVWAP;
     s.binanceFunding = this.binanceFunding.get(symbol) ?? s.binanceFunding;
     s.bybitFunding = this.bybitFunding.get(symbol) ?? s.bybitFunding;
+    s.binanceFundingInterval = this.binanceIntervals.get(symbol) ?? 28800000;
+    s.bybitFundingInterval = this.bybitIntervals.get(symbol) ?? 28800000;
     s.has3xLiquidity = binanceHas3x && bybitHas3x;
     s.lastUpdate = now;
 

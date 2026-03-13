@@ -48,6 +48,7 @@ const SCREENER_FILTERS_FILE = path.join(process.cwd(), "screener-filters.json");
 export interface ScreenerFilters {
   minL2SpreadPct?: number;
   fundingType?: "all" | "favourable";
+  fundingIntervalType?: "any" | "same";
   bannedTokens?: string[];
   onlySafeOpportunities?: boolean;
 }
@@ -63,6 +64,7 @@ function loadScreenerFilters(): ScreenerFilters {
       return {
         minL2SpreadPct: typeof data.minL2SpreadPct === "number" ? data.minL2SpreadPct : 0,
         fundingType: data.fundingType === "favourable" ? "favourable" : "all",
+        fundingIntervalType: data.fundingIntervalType === "same" ? "same" : "any",
         bannedTokens: Array.isArray(data.bannedTokens) ? data.bannedTokens : [],
         onlySafeOpportunities: !!data.onlySafeOpportunities,
       };
@@ -104,6 +106,8 @@ function filterAndSortEligibleForAutoTrade(
     bybitVWAP: number | null;
     binanceFunding: number | null;
     bybitFunding: number | null;
+    binanceFundingInterval?: number | null;
+    bybitFundingInterval?: number | null;
     spreadStableMs: number;
     has3xLiquidity: boolean;
   }>,
@@ -113,6 +117,7 @@ function filterAndSortEligibleForAutoTrade(
   const bannedSet = new Set((filters.bannedTokens ?? []).map((s) => String(s).toUpperCase()));
   const minSpread = typeof filters.minL2SpreadPct === "number" ? filters.minL2SpreadPct : 0;
   const fundingType = filters.fundingType === "favourable" ? "favourable" : "all";
+  const fundingIntervalType = filters.fundingIntervalType === "same" ? "same" : "any";
   const onlySafe = !!filters.onlySafeOpportunities;
 
   return states
@@ -121,6 +126,9 @@ function filterAndSortEligibleForAutoTrade(
       if (!sym || activeSymbols.has(sym)) return false;
       if (!s.has3xLiquidity || s.binanceVWAP == null || s.bybitVWAP == null) return false;
       if (bannedSet.has(sym)) return false;
+      if (fundingIntervalType === "same") {
+        if (s.binanceFundingInterval !== s.bybitFundingInterval) return false;
+      }
       const l2SpreadPct = ((s.bybitVWAP - s.binanceVWAP) / s.binanceVWAP) * 100;
       if (Math.abs(l2SpreadPct) < minSpread) return false;
       if (fundingType === "favourable" && !isFavourableFunding(s.binanceVWAP, s.bybitVWAP, s.binanceFunding, s.bybitFunding)) return false;
@@ -636,6 +644,7 @@ async function main() {
             screenerFilters = {
               minL2SpreadPct: typeof filtersPayload.minL2SpreadPct === "number" ? filtersPayload.minL2SpreadPct : 0,
               fundingType: filtersPayload.fundingType === "favourable" ? "favourable" : "all",
+              fundingIntervalType: filtersPayload.fundingIntervalType === "same" ? "same" : "any",
               bannedTokens: Array.isArray(filtersPayload.bannedTokens) ? filtersPayload.bannedTokens : [],
               onlySafeOpportunities: !!filtersPayload.onlySafeOpportunities,
             };

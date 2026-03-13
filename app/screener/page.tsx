@@ -9,14 +9,18 @@ export interface SymbolState {
   bybitVWAP: number | null;
   binanceFunding: number | null;
   bybitFunding: number | null;
+  binanceFundingInterval?: number | null;
+  bybitFundingInterval?: number | null;
   lastUpdate: number;
   spreadStableMs: number;
   has3xLiquidity: boolean;
 }
 
 type FundingFilter = "all" | "favourable";
+type IntervalFilter = "any" | "same";
 
 const FAV_FUNDING_STORAGE_KEY = "tradeict-earner-fav-funding";
+const INTERVAL_FILTER_STORAGE_KEY = "tradeict-earner-interval-filter";
 const BANNED_TOKENS_STORAGE_KEY = "tradeict-earner-banned-tokens";
 const TRADE_AMOUNT_STORAGE_KEY = "tradeict-earner-trade-amount";
 const MIN_L2_SPREAD_STORAGE_KEY = "tradeict-earner-min-l2-spread-pct";
@@ -110,6 +114,14 @@ export default function ScreenerPage() {
       if (s === "all" || s === "favourable") return s;
     } catch {}
     return "all";
+  });
+  const [intervalFilter, setIntervalFilter] = useState<IntervalFilter>(() => {
+    if (typeof window === "undefined") return "any";
+    try {
+      const s = localStorage.getItem(INTERVAL_FILTER_STORAGE_KEY);
+      if (s === "any" || s === "same") return s;
+    } catch {}
+    return "any";
   });
   const [onlySafeOpportunities, setOnlySafeOpportunities] = useState<boolean>(() => {
     if (typeof window === "undefined") return false;
@@ -223,6 +235,7 @@ export default function ScreenerPage() {
           filters: {
             minL2SpreadPct,
             fundingType,
+            fundingIntervalType: intervalFilter,
             bannedTokens: Array.from(bannedTokens),
             onlySafeOpportunities,
           },
@@ -231,7 +244,7 @@ export default function ScreenerPage() {
     } catch {
       // ignore send errors
     }
-  }, [connected, minL2SpreadPct, fundingType, bannedTokens, onlySafeOpportunities]);
+  }, [connected, minL2SpreadPct, fundingType, intervalFilter, bannedTokens, onlySafeOpportunities]);
 
   // Persist Fav Funding filter to localStorage
   useEffect(() => {
@@ -267,6 +280,13 @@ export default function ScreenerPage() {
       localStorage.setItem(ONLY_SAFE_STORAGE_KEY, onlySafeOpportunities ? "true" : "false");
     } catch {}
   }, [onlySafeOpportunities]);
+
+  // Persist Funding Interval filter to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem(INTERVAL_FILTER_STORAGE_KEY, intervalFilter);
+    } catch {}
+  }, [intervalFilter]);
 
   const banToken = (symbol: string) => {
     setBannedTokens((prev) => new Set(prev).add(symbol));
@@ -362,6 +382,7 @@ export default function ScreenerPage() {
           if (!row.state.symbol.toUpperCase().includes(q)) return false;
         }
         if (row.l2SpreadPct != null && Math.abs(row.l2SpreadPct) < minL2SpreadPct) return false;
+        if (intervalFilter === "same" && row.state.binanceFundingInterval !== row.state.bybitFundingInterval) return false;
         if (fundingType === "favourable") {
           if (
             !isFavourableFunding(
@@ -385,9 +406,9 @@ export default function ScreenerPage() {
         const bAbs = b.l2SpreadPct != null ? Math.abs(b.l2SpreadPct) : 0;
         return bAbs - aAbs;
       });
-  }, [states, tokenSearch, minL2SpreadPct, fundingType, onlySafeOpportunities, bannedTokens]);
+  }, [states, tokenSearch, minL2SpreadPct, fundingType, intervalFilter, onlySafeOpportunities, bannedTokens]);
 
-  // NEXT labels: only tokens with has3xLiquidity (and not already in activePositions)
+  // NEXT labels: only tokens with has3xLiquidity (and not already in activePositions); when "Same Interval", exclude mismatched intervals.
   const nextTradeSymbols = useMemo(() => {
     const slotsLimit = Math.max(1, maxSlots);
     const availableSlots = Math.max(0, slotsLimit - activePositions.size);
@@ -400,12 +421,13 @@ export default function ScreenerPage() {
       const sym = norm(row.state.symbol);
       if (row.state.has3xLiquidity === false) continue;
       if (!sym || activePositions.has(sym)) continue;
+      if (intervalFilter === "same" && row.state.binanceFundingInterval !== row.state.bybitFundingInterval) continue;
 
       nextSet.add(sym);
       if (nextSet.size >= availableSlots) break;
     }
     return nextSet;
-  }, [filteredRows, activePositions, maxSlots]);
+  }, [filteredRows, activePositions, maxSlots, intervalFilter]);
 
   const totalPages = Math.max(1, Math.ceil(filteredRows.length / PAGE_SIZE));
   const pageIndex = Math.min(currentPage, totalPages - 1);
@@ -481,6 +503,17 @@ export default function ScreenerPage() {
             >
               <option value="all">Any Funding</option>
               <option value="favourable">Favourable Funding</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-slate-500 mb-1.5">Funding Interval</label>
+            <select
+              value={intervalFilter}
+              onChange={(e) => setIntervalFilter(e.target.value as IntervalFilter)}
+              className="w-full rounded-xl border border-white/[0.1] bg-white/[0.06] px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+            >
+              <option value="any">Any Interval</option>
+              <option value="same">Same Interval</option>
             </select>
           </div>
           <div className="flex items-end col-span-2 lg:col-span-1">
@@ -574,9 +607,15 @@ export default function ScreenerPage() {
                     </td>
                     <td className="p-4 text-slate-300">
                       {s.binanceFunding != null ? formatFundingPct(s.binanceFunding) : "—"}
+                      <div className="text-[10px] text-slate-500 mt-0.5">
+                        {s.binanceFundingInterval != null ? `${s.binanceFundingInterval / 3600000}h` : "8h"}
+                      </div>
                     </td>
                     <td className="p-4 text-slate-300">
                       {s.bybitFunding != null ? formatFundingPct(s.bybitFunding) : "—"}
+                      <div className="text-[10px] text-slate-500 mt-0.5">
+                        {s.bybitFundingInterval != null ? `${s.bybitFundingInterval / 3600000}h` : "8h"}
+                      </div>
                     </td>
                     <td className="p-4">
                       {fundingSpread != null ? (
