@@ -51,6 +51,7 @@ export interface ScreenerFilters {
   fundingIntervalType?: "any" | "same";
   bannedTokens?: string[];
   onlySafeOpportunities?: boolean;
+  sortBy?: "l2Spread" | "fundingSpread";
 }
 
 /** Screener filters from frontend; used by auto-trade to pick same tokens as "Next". */
@@ -67,6 +68,7 @@ function loadScreenerFilters(): ScreenerFilters {
         fundingIntervalType: data.fundingIntervalType === "same" ? "same" : "any",
         bannedTokens: Array.isArray(data.bannedTokens) ? data.bannedTokens : [],
         onlySafeOpportunities: !!data.onlySafeOpportunities,
+        sortBy: data.sortBy === "fundingSpread" ? "fundingSpread" : "l2Spread",
       };
     }
   } catch (e) {
@@ -136,6 +138,16 @@ function filterAndSortEligibleForAutoTrade(
       return true;
     })
     .sort((a, b) => {
+      if (filters.sortBy === "fundingSpread") {
+        const getFundingSpread = (state: (typeof states)[0]) => {
+          const bVWAP = state.binanceVWAP ?? 0;
+          const yVWAP = state.bybitVWAP ?? 0;
+          const bFund = state.binanceFunding ?? 0;
+          const yFund = state.bybitFunding ?? 0;
+          return yVWAP > bVWAP ? yFund - bFund : bFund - yFund;
+        };
+        return getFundingSpread(b) - getFundingSpread(a);
+      }
       const spreadA = Math.abs(((a.bybitVWAP! - a.binanceVWAP!) / a.binanceVWAP!) * 100);
       const spreadB = Math.abs(((b.bybitVWAP! - b.binanceVWAP!) / b.binanceVWAP!) * 100);
       return spreadB - spreadA;
@@ -684,9 +696,10 @@ async function main() {
               fundingIntervalType: filtersPayload.fundingIntervalType === "same" ? "same" : "any",
               bannedTokens: Array.isArray(filtersPayload.bannedTokens) ? filtersPayload.bannedTokens : [],
               onlySafeOpportunities: !!filtersPayload.onlySafeOpportunities,
+              sortBy: filtersPayload.sortBy === "fundingSpread" ? "fundingSpread" : "l2Spread",
             };
             saveScreenerFilters();
-            console.log("[WS Server] Screener filters updated: minL2SpreadPct=" + screenerFilters.minL2SpreadPct + " fundingType=" + screenerFilters.fundingType + " banned=" + (screenerFilters.bannedTokens?.length ?? 0) + " onlySafe=" + screenerFilters.onlySafeOpportunities);
+            console.log("[WS Server] Screener filters updated: minL2SpreadPct=" + screenerFilters.minL2SpreadPct + " fundingType=" + screenerFilters.fundingType + " sortBy=" + (screenerFilters.sortBy ?? "l2Spread") + " banned=" + (screenerFilters.bannedTokens?.length ?? 0) + " onlySafe=" + screenerFilters.onlySafeOpportunities);
           }
           return;
         }

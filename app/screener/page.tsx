@@ -18,9 +18,11 @@ export interface SymbolState {
 
 type FundingFilter = "all" | "favourable";
 type IntervalFilter = "any" | "same";
+type SortByFilter = "l2Spread" | "fundingSpread";
 
 const FAV_FUNDING_STORAGE_KEY = "tradeict-earner-fav-funding";
 const INTERVAL_FILTER_STORAGE_KEY = "tradeict-earner-interval-filter";
+const SORT_BY_STORAGE_KEY = "tradeict-earner-sort-by";
 const BANNED_TOKENS_STORAGE_KEY = "tradeict-earner-banned-tokens";
 const TRADE_AMOUNT_STORAGE_KEY = "tradeict-earner-trade-amount";
 const MIN_L2_SPREAD_STORAGE_KEY = "tradeict-earner-min-l2-spread-pct";
@@ -122,6 +124,14 @@ export default function ScreenerPage() {
       if (s === "any" || s === "same") return s;
     } catch {}
     return "any";
+  });
+  const [sortBy, setSortBy] = useState<SortByFilter>(() => {
+    if (typeof window === "undefined") return "l2Spread";
+    try {
+      const s = localStorage.getItem(SORT_BY_STORAGE_KEY);
+      if (s === "l2Spread" || s === "fundingSpread") return s;
+    } catch {}
+    return "l2Spread";
   });
   const [onlySafeOpportunities, setOnlySafeOpportunities] = useState<boolean>(() => {
     if (typeof window === "undefined") return false;
@@ -238,13 +248,14 @@ export default function ScreenerPage() {
             fundingIntervalType: intervalFilter,
             bannedTokens: Array.from(bannedTokens),
             onlySafeOpportunities,
+            sortBy,
           },
         })
       );
     } catch {
       // ignore send errors
     }
-  }, [connected, minL2SpreadPct, fundingType, intervalFilter, bannedTokens, onlySafeOpportunities]);
+  }, [connected, minL2SpreadPct, fundingType, intervalFilter, sortBy, bannedTokens, onlySafeOpportunities]);
 
   // Persist Fav Funding filter to localStorage
   useEffect(() => {
@@ -287,6 +298,13 @@ export default function ScreenerPage() {
       localStorage.setItem(INTERVAL_FILTER_STORAGE_KEY, intervalFilter);
     } catch {}
   }, [intervalFilter]);
+
+  // Persist Sort By filter to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem(SORT_BY_STORAGE_KEY, sortBy);
+    } catch {}
+  }, [sortBy]);
 
   const banToken = (symbol: string) => {
     setBannedTokens((prev) => new Set(prev).add(symbol));
@@ -402,11 +420,21 @@ export default function ScreenerPage() {
         return true;
       })
       .sort((a, b) => {
-        const aAbs = a.l2SpreadPct != null ? Math.abs(a.l2SpreadPct) : 0;
-        const bAbs = b.l2SpreadPct != null ? Math.abs(b.l2SpreadPct) : 0;
-        return bAbs - aAbs;
+        if (sortBy === "fundingSpread") {
+          const getFundingSpread = (state: SymbolState) => {
+            const bVWAP = state.binanceVWAP ?? 0;
+            const yVWAP = state.bybitVWAP ?? 0;
+            const bFund = state.binanceFunding ?? 0;
+            const yFund = state.bybitFunding ?? 0;
+            return yVWAP > bVWAP ? yFund - bFund : bFund - yFund;
+          };
+          return getFundingSpread(b.state) - getFundingSpread(a.state);
+        }
+        const aSpread = Math.abs(((a.state.bybitVWAP! - a.state.binanceVWAP!) / a.state.binanceVWAP!) * 100);
+        const bSpread = Math.abs(((b.state.bybitVWAP! - b.state.binanceVWAP!) / b.state.binanceVWAP!) * 100);
+        return bSpread - aSpread;
       });
-  }, [states, tokenSearch, minL2SpreadPct, fundingType, intervalFilter, onlySafeOpportunities, bannedTokens]);
+  }, [states, tokenSearch, minL2SpreadPct, fundingType, intervalFilter, sortBy, onlySafeOpportunities, bannedTokens]);
 
   // NEXT labels: only tokens with has3xLiquidity (and not already in activePositions); when "Same Interval", exclude mismatched intervals.
   const nextTradeSymbols = useMemo(() => {
@@ -514,6 +542,17 @@ export default function ScreenerPage() {
             >
               <option value="any">Any Interval</option>
               <option value="same">Same Interval</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-slate-500 mb-1.5">Sort By</label>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as SortByFilter)}
+              className="w-full rounded-xl border border-white/[0.1] bg-white/[0.06] px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+            >
+              <option value="l2Spread">L2 Spread</option>
+              <option value="fundingSpread">Funding Spread</option>
             </select>
           </div>
           <div className="flex items-end col-span-2 lg:col-span-1">
