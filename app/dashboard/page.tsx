@@ -3,7 +3,6 @@
 import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
 
-const SETTINGS_STORAGE_KEY = "tradeict-earner-settings";
 const OPENING_BALANCES_KEY = "tradeict-earner-opening-balances";
 
 const DEFAULT_OPENING_BINANCE = 65.15;
@@ -51,25 +50,15 @@ interface SettingsState {
   feesPercent?: number;
 }
 
+const DEFAULT_SETTINGS: SettingsState = {
+  stoplossPercent: 2,
+  targetPercent: 1.5,
+  feesPercent: 0.1,
+};
+
 function formatNumber(num: number | undefined | null): string {
   if (num == null) return "0.0000";
   return num.toLocaleString(undefined, { minimumFractionDigits: 4, maximumFractionDigits: 4 });
-}
-
-function loadSettings(): SettingsState {
-  if (typeof window === "undefined") return { stoplossPercent: 2, targetPercent: 1.5, feesPercent: 0.1 };
-  try {
-    const raw = localStorage.getItem(SETTINGS_STORAGE_KEY);
-    if (!raw) return { stoplossPercent: 2, targetPercent: 1.5, feesPercent: 0.1 };
-    const p = JSON.parse(raw) as Partial<SettingsState & { feesPercent?: number }>;
-    return {
-      stoplossPercent: typeof p.stoplossPercent === "number" ? p.stoplossPercent : 2,
-      targetPercent: typeof p.targetPercent === "number" ? p.targetPercent : 1.5,
-      feesPercent: typeof p.feesPercent === "number" ? p.feesPercent : 0.1,
-    };
-  } catch {
-    return { stoplossPercent: 2, targetPercent: 1.5, feesPercent: 0.1 };
-  }
 }
 
 function loadOpeningBalances(): { binance: number; bybit: number } {
@@ -87,38 +76,41 @@ function loadOpeningBalances(): { binance: number; bybit: number } {
   }
 }
 
-/** Live group PnL using WS VWAP as mark (tick-by-tick). */
+/** Live group PnL using precise deep-exit VWAP (positionStats) when available; else exchange mark. */
 function liveGroupPnl(
   pos: GroupedPosition,
-  state: SymbolState | undefined
+  exitVWAPs: { binanceExitVWAP: number; bybitExitVWAP: number } | undefined
 ): number {
-  const binanceMark = state?.binanceVWAP ?? pos.markPriceBinance;
-  const bybitMark = state?.bybitVWAP ?? pos.markPriceBybit;
+  const binanceMark = exitVWAPs?.binanceExitVWAP ?? pos.markPriceBinance;
+  const bybitMark = exitVWAPs?.bybitExitVWAP ?? pos.markPriceBybit;
   if (pos.binance && pos.bybit) {
     const b = pos.binance;
     const y = pos.bybit;
-    const markB = binanceMark ?? b.markPrice;
-    const markY = bybitMark ?? y.markPrice;
+    const markB = (exitVWAPs?.binanceExitVWAP ?? 0) > 0 ? exitVWAPs!.binanceExitVWAP : (binanceMark ?? b.markPrice);
+    const markY = (exitVWAPs?.bybitExitVWAP ?? 0) > 0 ? exitVWAPs!.bybitExitVWAP : (bybitMark ?? y.markPrice);
     const pnlB = b.side === "Long" ? (markB - b.entryPrice) * b.quantity : (b.entryPrice - markB) * b.quantity;
     const pnlY = y.side === "Long" ? (markY - y.entryPrice) * y.quantity : (y.entryPrice - markY) * y.quantity;
     return pnlB + pnlY;
   }
   if (pos.binance) {
-    const mark = binanceMark ?? pos.binance.markPrice;
+    const mark = (exitVWAPs?.binanceExitVWAP ?? 0) > 0 ? exitVWAPs!.binanceExitVWAP : (binanceMark ?? pos.binance.markPrice);
     const b = pos.binance;
     return b.side === "Long" ? (mark - b.entryPrice) * b.quantity : (b.entryPrice - mark) * b.quantity;
   }
   if (pos.bybit) {
-    const mark = bybitMark ?? pos.bybit.markPrice;
+    const mark = (exitVWAPs?.bybitExitVWAP ?? 0) > 0 ? exitVWAPs!.bybitExitVWAP : (bybitMark ?? pos.bybit.markPrice);
     const y = pos.bybit;
     return y.side === "Long" ? (mark - y.entryPrice) * y.quantity : (y.entryPrice - mark) * y.quantity;
   }
   return pos.groupPnl;
 }
 
-/** Per-leg unrealized PnL: entry vs live L2 (VWAP). */
-function legPnl(leg: PositionLeg, liveL2: number | null): number {
-  const mark = liveL2 ?? leg.markPrice;
+/** Per-leg unrealized PnL: use precise exit VWAP when available, else leg mark price. */
+function legPnl(
+  leg: PositionLeg,
+  exitVWAP: number | null
+): number {
+  const mark = (exitVWAP != null && exitVWAP > 0) ? exitVWAP : leg.markPrice;
   return leg.side === "Long" ? (mark - leg.entryPrice) * leg.quantity : (leg.entryPrice - mark) * leg.quantity;
 }
 
@@ -143,7 +135,8 @@ export default function DashboardPage() {
   const [expandedSymbol, setExpandedSymbol] = useState<string | null>(null);
   const [closingId, setClosingId] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
-  const [settings, setSettings] = useState<SettingsState>({ stoplossPercent: 2, targetPercent: 1.5, feesPercent: 0.1 });
+  const [settings, setSettings] = useState<SettingsState>(DEFAULT_SETTINGS);
+  const [positionStats, setPositionStats] = useState<Record<string, { binanceExitVWAP: number; bybitExitVWAP: number }>>({});
   const [openingBalances, setOpeningBalances] = useState<{ binance: number; bybit: number }>({
     binance: DEFAULT_OPENING_BINANCE,
     bybit: DEFAULT_OPENING_BYBIT,
@@ -170,8 +163,20 @@ export default function DashboardPage() {
       .finally(() => setLoading(false));
   }, []);
 
+  // Sync stoploss/target from backend so Dashboard matches Settings (PC and mobile).
   useEffect(() => {
-    setSettings(loadSettings());
+    fetch("/api/settings/config")
+      .then((r) => r.json())
+      .then((data: Partial<SettingsState>) => {
+        setSettings({
+          stoplossPercent: typeof data.stoplossPercent === "number" ? data.stoplossPercent : DEFAULT_SETTINGS.stoplossPercent,
+          targetPercent: typeof data.targetPercent === "number" ? data.targetPercent : DEFAULT_SETTINGS.targetPercent,
+          feesPercent: typeof data.feesPercent === "number" ? data.feesPercent : DEFAULT_SETTINGS.feesPercent,
+        });
+      })
+      .catch(() => {});
+  }, []);
+  useEffect(() => {
     setOpeningBalances(loadOpeningBalances());
   }, []);
 
@@ -232,11 +237,15 @@ export default function DashboardPage() {
           type?: string;
           states?: SymbolState[];
           activePositions?: string[];
+          positionStats?: Record<string, { binanceExitVWAP: number; bybitExitVWAP: number }>;
           action?: string;
           status?: string;
           done?: boolean;
         };
         if (msg.type === "state" && Array.isArray(msg.states)) setStates(msg.states);
+        if (msg.type === "state" && msg.positionStats && typeof msg.positionStats === "object") {
+          setPositionStats(msg.positionStats as Record<string, { binanceExitVWAP: number; bybitExitVWAP: number }>);
+        }
         if (msg.type === "state" && Array.isArray(msg.activePositions)) {
           const next = msg.activePositions.map((s) => String(s).toUpperCase()).sort();
           setWsActiveSymbols((prev) => {
@@ -315,12 +324,10 @@ export default function DashboardPage() {
     [showToast, session]
   );
 
-  const stateBySymbol = useCallback(
-    (symbol: string) => states.find((s) => s.symbol === symbol),
-    [states]
+  const totalPnl = positions.reduce(
+    (sum, pos) => sum + liveGroupPnl(pos, positionStats[pos.symbol]),
+    0
   );
-
-  const totalPnl = positions.reduce((sum, pos) => sum + liveGroupPnl(pos, stateBySymbol(pos.symbol)), 0);
   const totalUsedMargin = positions.reduce((sum, pos) => sum + (pos.usedMargin ?? 0), 0);
   const totalPnlFormatted = totalPnl >= 0 ? `+$${totalPnl.toFixed(2)}` : `-$${Math.abs(totalPnl).toFixed(2)}`;
 
@@ -347,7 +354,7 @@ export default function DashboardPage() {
             {loading ? "—" : totalPnlFormatted}
           </p>
           <p className="text-slate-500 text-sm mt-2">
-            {connected ? "Tick-by-tick (live VWAP)" : "From exchange mark price"}
+            {connected ? "Deep exit VWAP (matches auto-exit engine)" : "From exchange mark price"}
           </p>
         </div>
         <div className="glass-panel p-6 md:p-8">
@@ -423,11 +430,11 @@ export default function DashboardPage() {
                 </tr>
               ) : (
                 positions.map((pos) => {
-                  const wsState = stateBySymbol(pos.symbol);
-                  const combinedPnl = liveGroupPnl(pos, wsState);
+                  const exitVWAPs = positionStats[pos.symbol];
+                  const combinedPnl = liveGroupPnl(pos, exitVWAPs);
                   const totalMargin = pos.usedMargin ?? 0;
-                  const stoplossPct = (settings.stoplossPercent ?? 2) / 100;
-                  const targetPct = (settings.targetPercent ?? 1.5) / 100;
+                  const stoplossPct = settings.stoplossPercent / 100;
+                  const targetPct = settings.targetPercent / 100;
                   const feesPct = (settings.feesPercent ?? 0.1) / 100;
                   const tradeValue = pos.totalQuantity * pos.entryPrice;
                   const stoplossAmt = totalMargin * stoplossPct;
@@ -501,10 +508,10 @@ export default function DashboardPage() {
                                       <td className="p-3 text-right text-slate-300">${formatNumber(pos.binance.entryPrice)}</td>
                                       <td className="p-3 text-right text-slate-300">${formatNumber(pos.binance.liquidationPrice)}</td>
                                       <td className="p-3 text-right text-slate-300">${formatNumber(pos.binance.marginUsed)}</td>
-                                      <td className="p-3 text-right text-slate-200">${formatNumber(wsState?.binanceVWAP ?? pos.binance.markPrice)}</td>
+                                      <td className="p-3 text-right text-slate-200">${formatNumber((exitVWAPs?.binanceExitVWAP ?? 0) > 0 ? exitVWAPs!.binanceExitVWAP : pos.binance.markPrice)}</td>
                                       <td className="p-3 text-right">
-                                        <span className={legPnl(pos.binance, wsState?.binanceVWAP ?? null) >= 0 ? "text-emerald-400" : "text-red-400"}>
-                                          {legPnl(pos.binance, wsState?.binanceVWAP ?? null) >= 0 ? "+" : ""}${legPnl(pos.binance, wsState?.binanceVWAP ?? null).toFixed(4)}
+                                        <span className={legPnl(pos.binance, (exitVWAPs?.binanceExitVWAP ?? 0) > 0 ? exitVWAPs!.binanceExitVWAP : null) >= 0 ? "text-emerald-400" : "text-red-400"}>
+                                          {legPnl(pos.binance, (exitVWAPs?.binanceExitVWAP ?? 0) > 0 ? exitVWAPs!.binanceExitVWAP : null) >= 0 ? "+" : ""}${legPnl(pos.binance, (exitVWAPs?.binanceExitVWAP ?? 0) > 0 ? exitVWAPs!.binanceExitVWAP : null).toFixed(4)}
                                         </span>
                                       </td>
                                     </tr>
@@ -521,10 +528,10 @@ export default function DashboardPage() {
                                       <td className="p-3 text-right text-slate-300">${formatNumber(pos.bybit.entryPrice)}</td>
                                       <td className="p-3 text-right text-slate-300">${formatNumber(pos.bybit.liquidationPrice)}</td>
                                       <td className="p-3 text-right text-slate-300">${formatNumber(pos.bybit.marginUsed)}</td>
-                                      <td className="p-3 text-right text-slate-200">${formatNumber(wsState?.bybitVWAP ?? pos.bybit.markPrice)}</td>
+                                      <td className="p-3 text-right text-slate-200">${formatNumber((exitVWAPs?.bybitExitVWAP ?? 0) > 0 ? exitVWAPs!.bybitExitVWAP : pos.bybit.markPrice)}</td>
                                       <td className="p-3 text-right">
-                                        <span className={legPnl(pos.bybit, wsState?.bybitVWAP ?? null) >= 0 ? "text-emerald-400" : "text-red-400"}>
-                                          {legPnl(pos.bybit, wsState?.bybitVWAP ?? null) >= 0 ? "+" : ""}${legPnl(pos.bybit, wsState?.bybitVWAP ?? null).toFixed(4)}
+                                        <span className={legPnl(pos.bybit, (exitVWAPs?.bybitExitVWAP ?? 0) > 0 ? exitVWAPs!.bybitExitVWAP : null) >= 0 ? "text-emerald-400" : "text-red-400"}>
+                                          {legPnl(pos.bybit, (exitVWAPs?.bybitExitVWAP ?? 0) > 0 ? exitVWAPs!.bybitExitVWAP : null) >= 0 ? "+" : ""}${legPnl(pos.bybit, (exitVWAPs?.bybitExitVWAP ?? 0) > 0 ? exitVWAPs!.bybitExitVWAP : null).toFixed(4)}
                                         </span>
                                       </td>
                                     </tr>

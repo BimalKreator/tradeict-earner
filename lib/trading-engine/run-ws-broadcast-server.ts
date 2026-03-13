@@ -32,8 +32,9 @@ import {
   type OrderbookSnapshot,
   type OrderSide,
 } from "./execution-engine";
-import { startAutoExitMonitor } from "./auto-exit";
+import { startAutoExitMonitor, getDeepExitVWAPByQuantity } from "./auto-exit";
 import { findUserByEmail } from "../auth-users";
+import type { RawPosition } from "./execution-engine";
 
 dotenv.config({ path: path.join(process.cwd(), ".env.local") });
 dotenv.config({ path: path.join(process.cwd(), ".env") }); // Fallback
@@ -150,6 +151,81 @@ let isTradeExecuting = false;
 
 /** Active position symbols + symbol currently being executed; broadcast so frontend NEXT labels stay in sync. */
 let cachedActivePositions: string[] = [];
+
+/** Grouped positions with quantities for per-symbol deep exit VWAP. Updated every 3s when credentials available. */
+interface CachedPositionLeg {
+  quantity: number;
+  side: "Long" | "Short";
+}
+interface CachedGroupedPosition {
+  symbol: string;
+  side: "Long" | "Short";
+  binance: CachedPositionLeg | null;
+  bybit: CachedPositionLeg | null;
+}
+let cachedGroupedPositions: CachedGroupedPosition[] = [];
+
+function groupPositionsForStats(binance: RawPosition[], bybit: RawPosition[]): CachedGroupedPosition[] {
+  const bySymbol = new Map<string, { binance: RawPosition | null; bybit: RawPosition | null }>();
+  for (const p of binance) {
+    const key = String(p.symbol || "").toUpperCase();
+    if (!key) continue;
+    const cur = bySymbol.get(key) ?? { binance: null, bybit: null };
+    cur.binance = p;
+    bySymbol.set(key, cur);
+  }
+  for (const p of bybit) {
+    const key = String(p.symbol || "").toUpperCase();
+    if (!key) continue;
+    const cur = bySymbol.get(key) ?? { binance: null, bybit: null };
+    cur.bybit = p;
+    bySymbol.set(key, cur);
+  }
+  const out: CachedGroupedPosition[] = [];
+  for (const [symbol, legs] of Array.from(bySymbol.entries())) {
+    const b = legs.binance;
+    const y = legs.bybit;
+    if (!b && !y) continue;
+    const side: "Long" | "Short" = b?.side ?? y?.side ?? "Long";
+    out.push({
+      symbol,
+      side,
+      binance: b ? { quantity: b.quantity, side: b.side } : null,
+      bybit: y ? { quantity: y.quantity, side: y.side } : null,
+    });
+  }
+  return out.sort((a, b) => a.symbol.localeCompare(b.symbol));
+}
+
+function computePositionStats(
+  positions: CachedGroupedPosition[],
+  getBinanceOb: (sym: string) => { bids: [string, string][]; asks: [string, string][] } | null,
+  getBybitOb: (sym: string) => { bids: [string, string][]; asks: [string, string][] } | null
+): Record<string, { binanceExitVWAP: number; bybitExitVWAP: number }> {
+  const stats: Record<string, { binanceExitVWAP: number; bybitExitVWAP: number }> = {};
+  for (const pos of positions) {
+    let binanceExitVWAP = 0;
+    let bybitExitVWAP = 0;
+    if (pos.binance) {
+      const ob = getBinanceOb(pos.symbol);
+      const levels = pos.binance.side === "Long" ? ob?.bids : ob?.asks;
+      if (levels?.length) {
+        binanceExitVWAP = getDeepExitVWAPByQuantity(levels, pos.binance.quantity * 2, pos.binance.side);
+      }
+    }
+    if (pos.bybit) {
+      const ob = getBybitOb(pos.symbol);
+      const levels = pos.bybit.side === "Long" ? ob?.bids : ob?.asks;
+      if (levels?.length) {
+        bybitExitVWAP = getDeepExitVWAPByQuantity(levels, pos.bybit.quantity * 2, pos.bybit.side);
+      }
+    }
+    if (binanceExitVWAP > 0 || bybitExitVWAP > 0) {
+      stats[pos.symbol] = { binanceExitVWAP, bybitExitVWAP };
+    }
+  }
+  return stats;
+}
 
 /** Dynamic settings for auto-exit (persisted to SETTINGS_PATH, read on startup). */
 let autoExitSettings: Partial<ExecutionSettings> = loadAutoExitSettings();
@@ -375,18 +451,38 @@ async function main() {
     vwapTargetAmount: 10_000,
     maxSymbols: 50,
     onStateUpdate(states) {
+      const positionStats = computePositionStats(
+        cachedGroupedPositions,
+        (sym) => manager.getLiveOrderbook(sym),
+        (sym) => manager.getBybitLiveOrderbook(sym)
+      );
       broadcast({
         type: "state",
         states,
         ts: Date.now(),
         maxTradeSlot: autoExitSettings.maxTradeSlot,
         activePositions: [...cachedActivePositions],
+        positionStats,
       });
     },
   });
 
   const symbols = await manager.start();
   console.log(`[WS Server] Listening on ws://0.0.0.0:${PORT}`);
+
+  // Keep cached grouped positions (with quantities) up to date for positionStats deep exit VWAP.
+  setInterval(async () => {
+    if (!lastCredentials) return;
+    try {
+      const [binancePositions, bybitPositions] = await Promise.all([
+        getBinancePositions(lastCredentials.binance.apiKey, lastCredentials.binance.apiSecret).catch(() => []),
+        getBybitPositions(lastCredentials.bybit.apiKey, lastCredentials.bybit.apiSecret).catch(() => []),
+      ]);
+      cachedGroupedPositions = groupPositionsForStats(binancePositions, bybitPositions);
+    } catch {
+      // ignore
+    }
+  }, 3000);
   console.log(`[WS Server] Tracking ${symbols.length} symbols: ${symbols.slice(0, 8).join(", ")}${symbols.length > 8 ? "..." : ""}`);
 
   const getSettings = (): ExecutionSettings => ({ ...DEFAULT_EXECUTION_SETTINGS, ...autoExitSettings });
@@ -491,18 +587,24 @@ async function main() {
     clients.add(ws);
     console.log(`[WS Server] Client connected. Total: ${clients.size}`);
 
-    // Send current state immediately
+    // Send current state immediately (include positionStats for precise exit VWAP PnL).
     const states = manager.getStates();
+    const positionStats = computePositionStats(
+      cachedGroupedPositions,
+      (sym) => manager.getLiveOrderbook(sym),
+      (sym) => manager.getBybitLiveOrderbook(sym)
+    );
     try {
       ws.send(
-      JSON.stringify({
-        type: "state",
-        states,
-        ts: Date.now(),
-        maxTradeSlot: autoExitSettings.maxTradeSlot,
-        activePositions: [...cachedActivePositions],
-      })
-    );
+        JSON.stringify({
+          type: "state",
+          states,
+          ts: Date.now(),
+          maxTradeSlot: autoExitSettings.maxTradeSlot,
+          activePositions: [...cachedActivePositions],
+          positionStats,
+        })
+      );
     } catch (e) {
       console.error("[WS Server] Initial send error:", e);
     }

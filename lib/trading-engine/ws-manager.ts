@@ -419,6 +419,15 @@ export class WsManager {
     return { symbol: key, bids: book.bids, asks: book.asks };
   }
 
+  /** Returns instant in-memory Bybit orderbook for per-position exit VWAP. */
+  getBybitLiveOrderbook(symbol: string): OrderbookSnapshot | null {
+    const key = (symbol || "").toUpperCase();
+    const ob = this.bybitOrderbooks.get(key);
+    if (!ob || (ob.bids.size === 0 && ob.asks.size === 0)) return null;
+    const book = orderbookFromMaps(ob);
+    return { symbol: key, bids: book.bids, asks: book.asks };
+  }
+
   getVwapTargetAmount(): number {
     return this.vwapTargetAmount;
   }

@@ -137,7 +137,7 @@ function groupPositions(binance: RawPosition[], bybit: RawPosition[]): GroupedPo
  * - Short (buy): use asks, best first → sort ascending by price.
  * Levels must be [price, qty] strings. Returns 0 if no levels or no fill.
  */
-function getDeepExitVWAPByQuantity(
+export function getDeepExitVWAPByQuantity(
   levels: [string, string][],
   targetQty: number,
   side: "Long" | "Short"
