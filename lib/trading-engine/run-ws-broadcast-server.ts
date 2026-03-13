@@ -238,9 +238,6 @@ function computePositionStats(
 /** Dynamic settings for auto-exit (persisted to SETTINGS_PATH, read on startup). */
 let autoExitSettings: Partial<ExecutionSettings> = loadAutoExitSettings();
 
-/** Email of user whose API keys to use for auto-trade when lastCredentials is not set (e.g. no manual trade yet). */
-let autoTradeUserEmail: string | null = null;
-
 function loadAutoExitSettings(): Partial<ExecutionSettings> {
   const defaults: Partial<ExecutionSettings> = {
     autoExit: process.env.AUTO_EXIT === "1" || process.env.AUTO_EXIT === "true",
@@ -254,7 +251,7 @@ function loadAutoExitSettings(): Partial<ExecutionSettings> {
   try {
     if (fs.existsSync(SETTINGS_FILE)) {
       const raw = fs.readFileSync(SETTINGS_FILE, "utf-8");
-      const data = JSON.parse(raw) as Partial<ExecutionSettings> & { autoTradeUserEmail?: string };
+      const data = JSON.parse(raw) as Partial<ExecutionSettings>;
       if (typeof data.autoExit === "boolean") defaults.autoExit = data.autoExit;
       if (typeof data.stoplossPercent === "number" && data.stoplossPercent >= 0) defaults.stoplossPercent = data.stoplossPercent;
       if (typeof data.targetPercent === "number" && data.targetPercent >= 0) defaults.targetPercent = data.targetPercent;
@@ -262,19 +259,20 @@ function loadAutoExitSettings(): Partial<ExecutionSettings> {
       if (typeof data.feesPercent === "number" && data.feesPercent >= 0) defaults.feesPercent = data.feesPercent;
       if (typeof data.autoTrade === "boolean") defaults.autoTrade = data.autoTrade;
       if (typeof data.maxTradeSlot === "number") defaults.maxTradeSlot = data.maxTradeSlot;
-      if (typeof data.autoTradeUserEmail === "string" && data.autoTradeUserEmail.trim()) autoTradeUserEmail = data.autoTradeUserEmail.trim();
+      if (typeof data.autoTradeUserEmail === "string" && data.autoTradeUserEmail.trim()) {
+        defaults.autoTradeUserEmail = data.autoTradeUserEmail.trim();
+      }
     }
   } catch (e) {
     console.warn("[WS Server] Could not load auto-exit-settings.json:", e);
   }
-  console.log("[WS Server] Auto-Exit settings loaded: autoExit=" + defaults.autoExit + " autoTrade=" + defaults.autoTrade + (autoTradeUserEmail ? " autoTradeUser=" + autoTradeUserEmail : ""));
+  console.log("[WS Server] Auto-Exit settings loaded: autoExit=" + defaults.autoExit + " autoTrade=" + defaults.autoTrade + (defaults.autoTradeUserEmail ? " autoTradeUser=" + defaults.autoTradeUserEmail : ""));
   return defaults;
 }
 
 function saveAutoExitSettings(): void {
   try {
-    const toSave = { ...autoExitSettings, autoTradeUserEmail };
-    fs.writeFileSync(SETTINGS_FILE, JSON.stringify(toSave, null, 2), "utf-8");
+    fs.writeFileSync(SETTINGS_FILE, JSON.stringify(autoExitSettings, null, 2), "utf-8");
   } catch (e) {
     console.error("[WS Server] Could not write auto-exit-settings.json:", e);
   }
@@ -530,8 +528,9 @@ async function main() {
     if (!autoExitSettings.autoTrade || isTradeExecuting || isAutoTradeRunning) return;
 
     let creds = lastCredentials;
-    if (!creds && autoTradeUserEmail) {
-      const user = findUserByEmail(autoTradeUserEmail);
+    const autoTradeEmail = autoExitSettings.autoTradeUserEmail?.trim();
+    if (!creds && autoTradeEmail) {
+      const user = findUserByEmail(autoTradeEmail);
       if (user?.apiKeys?.binanceApiKey && user?.apiKeys?.binanceApiSecret && user?.apiKeys?.bybitApiKey && user?.apiKeys?.bybitApiSecret) {
         creds = {
           binance: { apiKey: user.apiKeys.binanceApiKey, apiSecret: user.apiKeys.binanceApiSecret },
@@ -545,7 +544,7 @@ async function main() {
           privateWsManager = new PrivateWSManager(creds);
           await privateWsManager.start().catch((e) => console.error("[WS Server] Auto-trade Private WS start error:", e));
         }
-        console.log("[AUTO-TRADE] Using API keys for " + autoTradeUserEmail + " (from Save settings).");
+        console.log("[AUTO-TRADE] Using API keys for " + autoTradeEmail + " (from Save settings).");
       }
     }
     if (!creds) {
@@ -703,10 +702,10 @@ async function main() {
           if (typeof payloadMsg.autoTrade === "boolean") autoExitSettings.autoTrade = payloadMsg.autoTrade;
           if (typeof payloadMsg.maxTradeSlot === "number") autoExitSettings.maxTradeSlot = payloadMsg.maxTradeSlot;
           if (typeof payloadMsg.userEmail === "string" && payloadMsg.userEmail.trim()) {
-            autoTradeUserEmail = payloadMsg.userEmail.trim();
+            autoExitSettings.autoTradeUserEmail = payloadMsg.userEmail.trim();
           }
           saveAutoExitSettings();
-          console.log("[WS Server] Auto-Exit settings updated from client: autoExit=" + autoExitSettings.autoExit + " autoTrade=" + autoExitSettings.autoTrade + (autoTradeUserEmail ? " autoTradeUser=" + autoTradeUserEmail : ""));
+          console.log("[WS Server] Auto-Exit settings updated from client: autoExit=" + autoExitSettings.autoExit + " autoTrade=" + autoExitSettings.autoTrade + (autoExitSettings.autoTradeUserEmail ? " autoTradeUser=" + autoExitSettings.autoTradeUserEmail : ""));
           return;
         }
         if (msg.action === "EXECUTE_MANUAL_TRADE") {

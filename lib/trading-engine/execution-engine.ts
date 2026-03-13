@@ -39,6 +39,8 @@ export interface ExecutionSettings {
   maxTradeSlot?: number;
   /** Enable auto-trade loop (server fills slots from screener). */
   autoTrade?: boolean;
+  /** User email whose API keys to use for auto-trade when no manual trade has run yet. */
+  autoTradeUserEmail?: string;
 }
 
 export interface ExchangeCredentials {
