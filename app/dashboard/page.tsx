@@ -137,6 +137,7 @@ export default function DashboardPage() {
   const [positions, setPositions] = useState<GroupedPosition[]>([]);
   const [loading, setLoading] = useState(true);
   const [states, setStates] = useState<SymbolState[]>([]);
+  const [marketStates, setMarketStates] = useState<any[]>([]);
   const [connected, setConnected] = useState(false);
   const [expandedSymbol, setExpandedSymbol] = useState<string | null>(null);
   const [closingId, setClosingId] = useState<string | null>(null);
@@ -248,7 +249,10 @@ export default function DashboardPage() {
           status?: string;
           done?: boolean;
         };
-        if (msg.type === "state" && Array.isArray(msg.states)) setStates(msg.states);
+        if (msg.type === "state" && Array.isArray(msg.states)) {
+          setStates(msg.states);
+          setMarketStates(msg.states);
+        }
         if (msg.type === "state" && msg.positionStats && typeof msg.positionStats === "object") {
           setPositionStats(msg.positionStats as Record<string, { binanceExitVWAP: number; bybitExitVWAP: number }>);
         }
@@ -413,11 +417,12 @@ export default function DashboardPage() {
           <table className="w-full min-w-[800px]">
             <thead>
               <tr className="text-left text-slate-400 text-xs font-medium uppercase tracking-wider border-b border-white/[0.06]">
-                <th className="p-4">Token Name</th>
-                <th className="p-4 text-right">Stoploss Amount (USD)</th>
-                <th className="p-4 text-right">Target Amount (USD)</th>
-                <th className="p-4 text-right">Combined Funding</th>
-                <th className="p-4 text-right">Combined PnL</th>
+                <th className="p-4">Token</th>
+                <th className="p-4 text-right">L2 Spread</th>
+                <th className="p-4 text-right">SL ($)</th>
+                <th className="p-4 text-right">Tgt ($)</th>
+                <th className="p-4 text-right">Funding</th>
+                <th className="p-4 text-right">PnL</th>
                 <th className="p-4 w-12"></th>
                 <th className="p-4 w-24">Exit</th>
               </tr>
@@ -425,13 +430,13 @@ export default function DashboardPage() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="p-8 text-center text-slate-500">
+                  <td colSpan={8} className="p-8 text-center text-slate-500">
                     Loading positions…
                   </td>
                 </tr>
               ) : positions.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="p-8 text-center text-slate-500">
+                  <td colSpan={8} className="p-8 text-center text-slate-500">
                     No open positions. Save API keys in Settings and open trades from the Screener.
                   </td>
                 </tr>
@@ -439,6 +444,11 @@ export default function DashboardPage() {
                 positions.map((pos) => {
                   const exitVWAPs = positionStats[pos.symbol];
                   const wsState = states.find((s) => s.symbol === pos.symbol);
+                  const mkt = marketStates.find((s: { symbol?: string }) => s.symbol === pos.symbol);
+                  const l2Spread =
+                    mkt?.binanceVWAP && mkt?.bybitVWAP
+                      ? Math.abs(((mkt.bybitVWAP - mkt.binanceVWAP) / mkt.binanceVWAP) * 100)
+                      : 0;
                   const combinedPnl = liveGroupPnl(pos, exitVWAPs);
                   const totalMargin = pos.usedMargin ?? 0;
                   const stoplossPct = settings.stoplossPercent / 100;
@@ -469,6 +479,9 @@ export default function DashboardPage() {
                     <Fragment key={pos.symbol}>
                       <tr className="border-b border-white/[0.04] hover:bg-white/[0.02] transition-colors">
                         <td className="p-4 font-medium text-white">{pos.symbol}</td>
+                        <td className="p-4 text-right font-medium text-slate-300">
+                          {l2Spread > 0 ? `${l2Spread.toFixed(4)}%` : "-"}
+                        </td>
                         <td className="p-4 text-right text-red-300/90">${stoplossAmt.toFixed(4)}</td>
                         <td className="p-4 text-right text-emerald-300/90">${targetAmt.toFixed(4)}</td>
                         <td className="p-4 text-right">
@@ -509,7 +522,7 @@ export default function DashboardPage() {
                       </tr>
                       {isExpanded && (
                         <tr className="bg-white/[0.04] border-b border-white/[0.04]">
-                          <td colSpan={7} className="p-0">
+                          <td colSpan={8} className="p-0">
                             <div className="px-4 pb-4 pt-1">
                               <table className="w-full text-sm border-collapse">
                                 <thead>

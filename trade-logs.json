@@ -1,5 +1,24 @@
 [
   {
+    "id": "cc9dff74-e8ae-4b7b-bcb2-a563fe65b223",
+    "symbol": "ARIAUSDT",
+    "qty": 45,
+    "timestamp": 1773410557887,
+    "binanceEntry": 0.13123,
+    "binanceExit": 0.1302,
+    "binancePnl": -0.04635,
+    "bybitEntry": 0.13138,
+    "bybitExit": 0.13042,
+    "bybitPnl": 0.0302409,
+    "combinedPnlUsd": -0.0161091,
+    "combinedPnlPct": -0.6834204740998698,
+    "exitReason": "Target Hit",
+    "executionLogs": [
+      "Close attempt 1/15 (Bybit: 45 Binance: 45)",
+      "Position fully closed."
+    ]
+  },
+  {
     "id": "0729ae97-c119-40a0-bacf-edbcac174b2e",
     "symbol": "1000BONKUSDT",
     "qty": 9700,
