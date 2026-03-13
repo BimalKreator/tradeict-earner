@@ -1,5 +1,34 @@
 [
   {
+    "id": "0729ae97-c119-40a0-bacf-edbcac174b2e",
+    "symbol": "1000BONKUSDT",
+    "qty": 9700,
+    "timestamp": 1773404662637,
+    "binanceEntry": 0.0065397319588,
+    "binanceExit": 0.006553,
+    "binancePnl": 0.12869999,
+    "bybitEntry": 0.00653885,
+    "bybitExit": 0.006553,
+    "bybitPnl": -0.20714503,
+    "combinedPnlUsd": -0.07844504000000002,
+    "combinedPnlPct": -0.4093358388016972
+  },
+  {
+    "id": "7fc50d33-d49e-4aff-967c-8121f532a22e",
+    "symbol": "ACXUSDT",
+    "qty": 1000,
+    "timestamp": 1773404455975,
+    "binanceEntry": 0.053558227,
+    "binanceExit": 0.04911,
+    "binancePnl": -4.44822699,
+    "bybitEntry": 0.05368321,
+    "bybitExit": 0.04921532,
+    "bybitPnl": 4.34192158,
+    "combinedPnlUsd": -0.10630541000000004,
+    "combinedPnlPct": -0.717037148663405,
+    "userEmail": "admin@tradeictearner.online"
+  },
+  {
     "id": "19eb82d0-f6ba-4adb-8a8c-35a95f7e2733",
     "symbol": "ARUSDT",
     "qty": 3.2,

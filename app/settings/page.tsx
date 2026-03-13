@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { signOut } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
 import { useApiKeys } from "@/contexts/ApiKeysContext";
 
 export interface ApiKeysState {
@@ -53,6 +53,7 @@ type ApiKeyField = "binanceApiKey" | "binanceApiSecret" | "bybitApiKey" | "bybit
 
 export default function SettingsPage() {
   const router = useRouter();
+  const { data: session } = useSession();
   const { apiKeys: contextApiKeys, refreshApiKeys, loading: profileLoading } = useApiKeys();
   const [settings, setSettings] = useState<SettingsState>(DEFAULT_SETTINGS);
   const [apiKeys, setApiKeys] = useState<ApiKeysState>(DEFAULT_API_KEYS);
@@ -186,6 +187,7 @@ export default function SettingsPage() {
                 leverage: settings.leverage,
                 capitalPercent: settings.capitalPercent,
                 maxTradeSlot: settings.maxTradeSlot,
+                userEmail: session?.user?.email ?? undefined,
               },
             })
           );
@@ -200,7 +202,7 @@ export default function SettingsPage() {
     } finally {
       setSavingConfig(false);
     }
-  }, [settings, showToast]);
+  }, [settings, showToast, session?.user?.email]);
 
   const getDisplayValue = (key: ApiKeyField) => {
     const val = apiKeys[key];

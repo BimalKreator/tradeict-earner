@@ -47,6 +47,13 @@ export async function POST(request: Request) {
   }
   try {
     const body = (await request.json()) as Partial<typeof DEFAULT_CONFIG>;
+    let existing: { autoTradeUserEmail?: string } = {};
+    try {
+      const raw = await readFile(CONFIG_FILE, "utf8");
+      existing = JSON.parse(raw) as { autoTradeUserEmail?: string };
+    } catch {
+      // no existing file
+    }
     const config = {
       autoTrade: typeof body.autoTrade === "boolean" ? body.autoTrade : DEFAULT_CONFIG.autoTrade,
       autoExit: typeof body.autoExit === "boolean" ? body.autoExit : DEFAULT_CONFIG.autoExit,
@@ -57,9 +64,11 @@ export async function POST(request: Request) {
       targetPercent: typeof body.targetPercent === "number" ? body.targetPercent : DEFAULT_CONFIG.targetPercent,
       slippagePercent: typeof body.slippagePercent === "number" ? body.slippagePercent : DEFAULT_CONFIG.slippagePercent,
       feesPercent: typeof body.feesPercent === "number" ? body.feesPercent : DEFAULT_CONFIG.feesPercent,
+      autoTradeUserEmail: session.user.email ?? existing.autoTradeUserEmail,
     };
     await writeFile(CONFIG_FILE, JSON.stringify(config, null, 2), "utf8");
-    return NextResponse.json(config);
+    const { autoTradeUserEmail: _email, ...publicConfig } = config as typeof config & { autoTradeUserEmail?: string };
+    return NextResponse.json(publicConfig);
   } catch (e) {
     const message = e instanceof Error ? e.message : "Failed to save config";
     return NextResponse.json({ error: message }, { status: 500 });

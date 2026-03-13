@@ -902,11 +902,30 @@ export function formatQuantity(qty: number, stepSize: number): string {
   return s.includes("e") ? truncated.toLocaleString("en", { maximumFractionDigits: 8 }) : s;
 }
 
+/** Preserve significant digits up to 8 decimal places; strip trailing zeros. Use when tickSize would round price to 0. */
+function formatPriceDynamic(rawPrice: number): string {
+  if (!Number.isFinite(rawPrice) || rawPrice <= 0) return String(rawPrice);
+  return Number(rawPrice).toFixed(8).replace(/\.?0+$/, "") || "0";
+}
+
 function formatPrice(price: number, tickSize: number): string {
-  if (!tickSize || tickSize <= 0) return price.toString();
+  if (!Number.isFinite(price) || price <= 0) return "0";
+  if (!tickSize || tickSize <= 0) return formatPriceDynamic(price);
   const rounded = Math.round(price / tickSize) * tickSize;
-  const decimals = tickSize.toString().includes(".") ? tickSize.toString().split(".")[1].length : 0;
-  return rounded.toFixed(decimals);
+  if (rounded <= 0) return formatPriceDynamic(price);
+  const tickStr = tickSize.toString();
+  const decimals = tickStr.includes("e")
+    ? 8
+    : (tickStr.split(".")[1]?.length ?? 8);
+  const formatted = rounded.toFixed(decimals);
+  return formatted.includes("e") ? formatPriceDynamic(rounded) : formatted;
+}
+
+function ensurePriceValid(formattedPrice: string, rawPrice: number, label: string): void {
+  const num = Number(formattedPrice);
+  if (!Number.isFinite(num) || num <= 0) {
+    throw new Error(`${label}: Invalid price formatted: ${formattedPrice} (Raw: ${rawPrice})`);
+  }
 }
 
 function getBestPrice(ob: OrderbookSnapshot, side: OrderSide): number {
@@ -1000,6 +1019,8 @@ export async function executeChunkTrade(
 
   const execPriceBybit = formatPrice(execPriceBybitRaw, bybitTickSize);
   const execPriceBinance = formatPrice(execPriceBinanceRaw, binanceTickSize);
+  ensurePriceValid(execPriceBybit, execPriceBybitRaw, "Bybit");
+  ensurePriceValid(execPriceBinance, execPriceBinanceRaw, "Binance");
 
   // Dynamic Leverage: Pick the minimum allowed between user settings and both exchanges
   const maxAllowedLev = await calculateLeverage(symbol, credentials.binance.apiKey, credentials.binance.apiSecret);
@@ -1239,6 +1260,8 @@ export async function executeChunkTrade(
     const execBinanceNextRaw = isBinanceBuy ? priceBinanceNext * (1 + slipPctNext) : priceBinanceNext * (1 - slipPctNext);
     const execPriceBybitNext = formatPrice(execBybitNextRaw, bybitTickSize);
     const execPriceBinanceNext = formatPrice(execBinanceNextRaw, binanceTickSize);
+    ensurePriceValid(execPriceBybitNext, execBybitNextRaw, "Bybit");
+    ensurePriceValid(execPriceBinanceNext, execBinanceNextRaw, "Binance");
 
     let chunkQtyRaw = firstRowQty * frac;
     if (!isExit && chunkQtyRaw > remaining) chunkQtyRaw = remaining;
@@ -1411,6 +1434,8 @@ export async function executeCloseTrade(
     const rawPriceBinance = isBuyBinance ? binanceBestAsk * slipBuy : binanceBestBid * slipSell;
     const priceBybitStr = formatPrice(rawPriceBybit, bybitTickSize);
     const priceBinanceStr = formatPrice(rawPriceBinance, binanceTickSize);
+    ensurePriceValid(priceBybitStr, rawPriceBybit, "Bybit close");
+    ensurePriceValid(priceBinanceStr, rawPriceBinance, "Binance close");
 
     // Step D: Bybit leg
     if (bybitOpen > 0) {
