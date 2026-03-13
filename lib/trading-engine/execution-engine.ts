@@ -1366,9 +1366,15 @@ export async function executeCloseTrade(
   privateWs: PrivateWSManager,
   fetchOrderbook: (symbol: string) => Promise<OrderbookSnapshot>,
   onProgress?: (msg: string) => void,
-  userEmail?: string
+  userEmail?: string,
+  exitReason?: string
 ): Promise<boolean> {
   const P = "[CHUNK-SYSTEM]";
+  const executionLogs: string[] = [];
+  const log = (msg: string) => {
+    console.log(P + " " + msg);
+    executionLogs.push(msg);
+  };
   const symNorm = normalizeSymbolForMatch(symbol);
 
   // Step A: Exact position size from APIs
@@ -1398,6 +1404,7 @@ export async function executeCloseTrade(
   const isBuyBybit = bybitCloseSide === "Buy";
 
   if (binanceOpen <= 0 && bybitOpen <= 0) {
+    log("No open position to close");
     onProgress?.("No open position to close");
     return true;
   }
@@ -1414,7 +1421,9 @@ export async function executeCloseTrade(
 
   while ((binanceOpen > 0 || bybitOpen > 0) && attempts < maxAttempts) {
     attempts++;
-    onProgress?.(`Close attempt ${attempts}/${maxAttempts} (Bybit: ${bybitOpen} Binance: ${binanceOpen})`);
+    const progressMsg = `Close attempt ${attempts}/${maxAttempts} (Bybit: ${bybitOpen} Binance: ${binanceOpen})`;
+    log(progressMsg);
+    onProgress?.(progressMsg);
 
     // Fetch both orderbooks separately
     const [orderbookBinance, orderbookBybit] = await Promise.all([
@@ -1425,6 +1434,7 @@ export async function executeCloseTrade(
     const binanceBestBid = orderbookBinance.bids[0]?.[0] ? parseFloat(orderbookBinance.bids[0][0]) : 0;
 
     if (binanceBestAsk <= 0 || binanceBestBid <= 0 || orderbookBybit.bestAsk <= 0 || orderbookBybit.bestBid <= 0) {
+      log("No orderbook price, retrying…");
       onProgress?.("No orderbook price, retrying…");
       await sleep(500);
       continue;
@@ -1467,7 +1477,7 @@ export async function executeCloseTrade(
         } catch (e) {
           const msg = e instanceof Error ? e.message : String(e);
           if (!msg.toLowerCase().includes("reduceonly")) {
-            console.log(`${P} Bybit close error: ${msg}`);
+            log(`Bybit close error: ${msg}`);
           }
           // Treat as 0 fill (don't subtract)
         }
@@ -1504,7 +1514,7 @@ export async function executeCloseTrade(
         } catch (e) {
           const msg = e instanceof Error ? e.message : String(e);
           if (!msg.toLowerCase().includes("reduceonly")) {
-            console.log(`${P} Binance close error: ${msg}`);
+            log(`Binance close error: ${msg}`);
           }
         }
       }
@@ -1518,10 +1528,13 @@ export async function executeCloseTrade(
 
   const fullyClosed = binanceOpen <= 0 && bybitOpen <= 0;
   if (fullyClosed) {
+    log("Position fully closed.");
     onProgress?.("Position fully closed.");
-    logClosedTrade(symbol, credentials, startTime, startQty, binanceEntryPrice, bybitEntryPrice, totalMarginUsed, userEmail).catch(() => {});
+    logClosedTrade(symbol, credentials, startTime, startQty, binanceEntryPrice, bybitEntryPrice, totalMarginUsed, userEmail, exitReason ?? "Unknown", executionLogs).catch(() => {});
   } else {
-    onProgress?.(`Exit incomplete after ${maxAttempts} attempts (Bybit: ${bybitOpen} Binance: ${binanceOpen}).`);
+    const incompleteMsg = `Exit incomplete after ${maxAttempts} attempts (Bybit: ${bybitOpen} Binance: ${binanceOpen}).`;
+    log(incompleteMsg);
+    onProgress?.(incompleteMsg);
   }
   return fullyClosed;
 }
@@ -1538,7 +1551,9 @@ async function logClosedTrade(
   binanceEntry: number,
   bybitEntry: number,
   totalMarginUsed: number,
-  userEmail?: string
+  userEmail?: string,
+  exitReason: string = "Unknown",
+  executionLogs: string[] = []
 ): Promise<void> {
   try {
     await sleep(3000); // Allow exchange databases to index the fill
@@ -1619,6 +1634,8 @@ async function logClosedTrade(
       bybitPnl,
       combinedPnlUsd,
       combinedPnlPct,
+      exitReason,
+      executionLogs,
       ...(userEmail != null && userEmail !== "" && { userEmail }),
     };
     const logPath = path.join(process.cwd(), "trade-logs.json");

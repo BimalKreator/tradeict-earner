@@ -387,11 +387,11 @@ export function startAutoExitMonitor(
     if (combinedPnl >= targetAmount && targetAmount > 0) {
       exitLocks.add(pos.symbol);
       console.log(`[CHUNK-SYSTEM] Auto-Exit: ${pos.symbol} target hit! PnL=$${combinedPnl.toFixed(4)} >= Target=$${targetAmount.toFixed(4)}. Triggering exit.`);
-      triggerExit(pos, ctx).finally(() => exitLocks.delete(pos.symbol));
+      triggerExit(pos, ctx, "Target Hit").finally(() => exitLocks.delete(pos.symbol));
     } else if (combinedPnl <= -stoplossAmount) {
       exitLocks.add(pos.symbol);
       console.log(`[CHUNK-SYSTEM] Auto-Exit: ${pos.symbol} stoploss hit! PnL=$${combinedPnl.toFixed(4)} <= -SL=$${stoplossAmount.toFixed(4)}. Triggering exit.`);
-      triggerExit(pos, ctx).finally(() => exitLocks.delete(pos.symbol));
+      triggerExit(pos, ctx, "Stoploss Hit").finally(() => exitLocks.delete(pos.symbol));
     }
   };
 
@@ -424,7 +424,7 @@ export function startAutoExitMonitor(
             orphanFirstSeen.delete(pos.symbol);
             exitLocks.add(pos.symbol);
             console.log(`[CHUNK-SYSTEM] Auto-Exit: orphan ${pos.symbol} (one leg > 30s). Triggering exit.`);
-            triggerExit(pos, ctx).finally(() => exitLocks.delete(pos.symbol));
+            triggerExit(pos, ctx, "Orphan Exit").finally(() => exitLocks.delete(pos.symbol));
           }
           continue;
         }
@@ -465,13 +465,13 @@ export function startAutoExitMonitor(
           if (combinedPnl >= targetAmount && targetAmount > 0) {
             exitLocks.add(pos.symbol);
             console.log(`[CHUNK-SYSTEM] Auto-Exit (REST): ${pos.symbol} target hit! PnL=$${combinedPnl.toFixed(4)} >= Target=$${targetAmount.toFixed(4)}. Triggering exit.`);
-            triggerExit(pos, ctx).finally(() => exitLocks.delete(pos.symbol));
+            triggerExit(pos, ctx, "Target Hit").finally(() => exitLocks.delete(pos.symbol));
             break;
           }
           if (combinedPnl <= -stoplossAmount) {
             exitLocks.add(pos.symbol);
             console.log(`[CHUNK-SYSTEM] Auto-Exit (REST): ${pos.symbol} stoploss hit! PnL=$${combinedPnl.toFixed(4)}. Triggering exit.`);
-            triggerExit(pos, ctx).finally(() => exitLocks.delete(pos.symbol));
+            triggerExit(pos, ctx, "Stoploss Hit").finally(() => exitLocks.delete(pos.symbol));
             break;
           }
         } catch (e) {
@@ -543,6 +543,6 @@ export function startAutoExitMonitor(
   };
 }
 
-async function triggerExit(pos: GroupedPosition, ctx: AutoExitContext): Promise<void> {
-  await executeCloseTrade(pos.symbol, ctx.credentials, ctx.privateWs, ctx.fetchOrderbook);
+async function triggerExit(pos: GroupedPosition, ctx: AutoExitContext, reason: string): Promise<void> {
+  await executeCloseTrade(pos.symbol, ctx.credentials, ctx.privateWs, ctx.fetchOrderbook, undefined, undefined, reason);
 }

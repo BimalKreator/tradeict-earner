@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 
 export default function LogsPage() {
   const [logs, setLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [expandedLogId, setExpandedLogId] = useState<string | null>(null);
 
   const fetchLogs = async () => {
     try {
@@ -37,44 +38,76 @@ export default function LogsPage() {
                 <th className="p-4">Qty</th>
                 <th className="p-4">Binance (En/Ex)</th>
                 <th className="p-4">Bybit (En/Ex)</th>
+                <th className="p-4">Reason</th>
                 <th className="p-4 text-right">Combine PnL</th>
+                <th className="p-4">Details</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={6} className="p-8 text-center text-slate-500">Loading logs...</td></tr>
+                <tr><td colSpan={8} className="p-8 text-center text-slate-500">Loading logs...</td></tr>
               ) : logs.length === 0 ? (
-                <tr><td colSpan={6} className="p-8 text-center text-slate-500">No closed trades yet.</td></tr>
+                <tr><td colSpan={8} className="p-8 text-center text-slate-500">No closed trades yet.</td></tr>
               ) : (
-                logs.map((log) => (
-                  <tr key={log.id ?? log.timestamp} className="border-b border-white/[0.04] last:border-0 hover:bg-white/[0.02]">
-                    <td className="p-4 text-sm text-slate-400">{log.timestamp != null ? new Date(log.timestamp).toLocaleTimeString() : "—"}</td>
-                    <td className="p-4 text-sm font-medium text-white">{log.symbol ?? "—"}</td>
-                    <td className="p-4 text-sm text-slate-300">{log.qty ?? "—"}</td>
-                    <td className="p-4 text-sm">
-                      <div className="text-slate-300">{Number(log.binanceEntry).toFixed(5)}</div>
-                      <div className="text-slate-500">{Number(log.binanceExit).toFixed(5)}</div>
-                      <div className={(log.binancePnl ?? 0) >= 0 ? "text-emerald-400 text-xs" : "text-red-400 text-xs"}>
-                        {(log.binancePnl ?? 0) >= 0 ? "+" : ""}{Number(log.binancePnl).toFixed(2)}
-                      </div>
-                    </td>
-                    <td className="p-4 text-sm">
-                      <div className="text-slate-300">{Number(log.bybitEntry).toFixed(5)}</div>
-                      <div className="text-slate-500">{Number(log.bybitExit).toFixed(5)}</div>
-                      <div className={(log.bybitPnl ?? 0) >= 0 ? "text-emerald-400 text-xs" : "text-red-400 text-xs"}>
-                        {(log.bybitPnl ?? 0) >= 0 ? "+" : ""}{Number(log.bybitPnl).toFixed(2)}
-                      </div>
-                    </td>
-                    <td className="p-4 text-right">
-                      <div className={`text-base font-bold ${(log.combinedPnlUsd ?? 0) >= 0 ? "text-emerald-400" : "text-red-400"}`}>
-                        ${Number(log.combinedPnlUsd).toFixed(2)}
-                      </div>
-                      <div className={`text-xs mt-0.5 ${(log.combinedPnlPct ?? 0) >= 0 ? "text-emerald-400/80" : "text-red-400/80"}`}>
-                        {Number(log.combinedPnlPct).toFixed(2)}%
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                logs.map((log) => {
+                  const rowKey = log.id ?? String(log.timestamp);
+                  const hasLogs = Array.isArray(log.executionLogs) && log.executionLogs.length > 0;
+                  const isExpanded = expandedLogId === rowKey;
+                  return (
+                    <React.Fragment key={rowKey}>
+                      <tr className="border-b border-white/[0.04] last:border-0 hover:bg-white/[0.02]">
+                        <td className="p-4 text-sm text-slate-400">{log.timestamp != null ? new Date(log.timestamp).toLocaleTimeString() : "—"}</td>
+                        <td className="p-4 text-sm font-medium text-white">{log.symbol ?? "—"}</td>
+                        <td className="p-4 text-sm text-slate-300">{log.qty ?? "—"}</td>
+                        <td className="p-4 text-sm">
+                          <div className="text-slate-300">{Number(log.binanceEntry).toFixed(5)}</div>
+                          <div className="text-slate-500">{Number(log.binanceExit).toFixed(5)}</div>
+                          <div className={(log.binancePnl ?? 0) >= 0 ? "text-emerald-400 text-xs" : "text-red-400 text-xs"}>
+                            {(log.binancePnl ?? 0) >= 0 ? "+" : ""}{Number(log.binancePnl).toFixed(2)}
+                          </div>
+                        </td>
+                        <td className="p-4 text-sm">
+                          <div className="text-slate-300">{Number(log.bybitEntry).toFixed(5)}</div>
+                          <div className="text-slate-500">{Number(log.bybitExit).toFixed(5)}</div>
+                          <div className={(log.bybitPnl ?? 0) >= 0 ? "text-emerald-400 text-xs" : "text-red-400 text-xs"}>
+                            {(log.bybitPnl ?? 0) >= 0 ? "+" : ""}{Number(log.bybitPnl).toFixed(2)}
+                          </div>
+                        </td>
+                        <td className="p-4 text-sm text-slate-300">{log.exitReason ?? "—"}</td>
+                        <td className="p-4 text-right">
+                          <div className={`text-base font-bold ${(log.combinedPnlUsd ?? 0) >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                            ${Number(log.combinedPnlUsd).toFixed(2)}
+                          </div>
+                          <div className={`text-xs mt-0.5 ${(log.combinedPnlPct ?? 0) >= 0 ? "text-emerald-400/80" : "text-red-400/80"}`}>
+                            {Number(log.combinedPnlPct).toFixed(2)}%
+                          </div>
+                        </td>
+                        <td className="p-4">
+                          {hasLogs ? (
+                            <button
+                              type="button"
+                              onClick={() => setExpandedLogId(isExpanded ? null : rowKey)}
+                              className="text-xs font-medium text-blue-400 hover:text-blue-300"
+                            >
+                              {isExpanded ? "Hide Logs" : "Show Logs"}
+                            </button>
+                          ) : (
+                            <span className="text-slate-500 text-xs">—</span>
+                          )}
+                        </td>
+                      </tr>
+                      {isExpanded && hasLogs && (
+                        <tr className="border-b border-white/[0.04] bg-white/[0.02]">
+                          <td colSpan={8} className="p-0 align-top">
+                            <pre className="bg-black/40 p-4 text-xs text-green-400 overflow-y-auto max-h-60 rounded m-2 whitespace-pre-wrap font-mono">
+                              {(log.executionLogs as string[]).join("\n")}
+                            </pre>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
+                  );
+                })
               )}
             </tbody>
           </table>

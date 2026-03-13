@@ -395,7 +395,7 @@ async function runManualTrade(
 
     if (isCloseFlow) {
       sendTradeUpdate(ws, "Exiting…");
-      const ok = await executeCloseTrade(symbol, credentials, privateWsManager, fetchOrderbookSnapshot, (msg) => sendTradeUpdate(ws, msg), userEmail);
+      const ok = await executeCloseTrade(symbol, credentials, privateWsManager, fetchOrderbookSnapshot, (msg) => sendTradeUpdate(ws, msg), userEmail, "Manual Exit");
       if (ok) {
         sendTradeUpdate(ws, "Trade completed", true);
       } else {
