@@ -114,6 +114,12 @@ function legPnl(
   return leg.side === "Long" ? (mark - leg.entryPrice) * leg.quantity : (leg.entryPrice - mark) * leg.quantity;
 }
 
+/** Estimated funding profit in USD for next round: -1 * (sideMult) * positionValue * fundingRate. Long pays when rate > 0. */
+function fundingProfitUsd(side: "Long" | "Short", positionValue: number, fundingRate: number): number {
+  const sideMult = side === "Long" ? 1 : -1;
+  return -1 * sideMult * positionValue * fundingRate;
+}
+
 function DownIcon({ open }: { open: boolean }) {
   return (
     <svg
@@ -410,6 +416,7 @@ export default function DashboardPage() {
                 <th className="p-4">Token Name</th>
                 <th className="p-4 text-right">Stoploss Amount (USD)</th>
                 <th className="p-4 text-right">Target Amount (USD)</th>
+                <th className="p-4 text-right">Combined Funding</th>
                 <th className="p-4 text-right">Combined PnL</th>
                 <th className="p-4 w-12"></th>
                 <th className="p-4 w-24">Exit</th>
@@ -418,19 +425,20 @@ export default function DashboardPage() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="p-8 text-center text-slate-500">
+                  <td colSpan={7} className="p-8 text-center text-slate-500">
                     Loading positions…
                   </td>
                 </tr>
               ) : positions.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="p-8 text-center text-slate-500">
+                  <td colSpan={7} className="p-8 text-center text-slate-500">
                     No open positions. Save API keys in Settings and open trades from the Screener.
                   </td>
                 </tr>
               ) : (
                 positions.map((pos) => {
                   const exitVWAPs = positionStats[pos.symbol];
+                  const wsState = states.find((s) => s.symbol === pos.symbol);
                   const combinedPnl = liveGroupPnl(pos, exitVWAPs);
                   const totalMargin = pos.usedMargin ?? 0;
                   const stoplossPct = settings.stoplossPercent / 100;
@@ -441,12 +449,33 @@ export default function DashboardPage() {
                   const targetAmt = totalMargin * targetPct + tradeValue * feesPct;
                   const isExpanded = expandedSymbol === pos.symbol;
 
+                  const binancePosValue = pos.binance
+                    ? pos.binance.quantity * ((exitVWAPs?.binanceExitVWAP ?? 0) > 0 ? exitVWAPs!.binanceExitVWAP : pos.binance.markPrice)
+                    : 0;
+                  const bybitPosValue = pos.bybit
+                    ? pos.bybit.quantity * ((exitVWAPs?.bybitExitVWAP ?? 0) > 0 ? exitVWAPs!.bybitExitVWAP : pos.bybit.markPrice)
+                    : 0;
+                  const binanceFundingProfit =
+                    pos.binance && wsState?.binanceFunding != null
+                      ? fundingProfitUsd(pos.binance.side, binancePosValue, wsState.binanceFunding)
+                      : 0;
+                  const bybitFundingProfit =
+                    pos.bybit && wsState?.bybitFunding != null
+                      ? fundingProfitUsd(pos.bybit.side, bybitPosValue, wsState.bybitFunding)
+                      : 0;
+                  const combinedFundingUsd = binanceFundingProfit + bybitFundingProfit;
+
                   return (
                     <Fragment key={pos.symbol}>
                       <tr className="border-b border-white/[0.04] hover:bg-white/[0.02] transition-colors">
                         <td className="p-4 font-medium text-white">{pos.symbol}</td>
                         <td className="p-4 text-right text-red-300/90">${stoplossAmt.toFixed(4)}</td>
                         <td className="p-4 text-right text-emerald-300/90">${targetAmt.toFixed(4)}</td>
+                        <td className="p-4 text-right">
+                          <span className={combinedFundingUsd >= 0 ? "text-emerald-400" : "text-red-400"}>
+                            {combinedFundingUsd >= 0 ? "+" : ""}${combinedFundingUsd.toFixed(4)}
+                          </span>
+                        </td>
                         <td className="p-4 text-right">
                           <div className={`text-base font-bold ${combinedPnl >= 0 ? "text-emerald-400" : "text-red-400"}`}>
                             {combinedPnl >= 0 ? "+" : ""}${combinedPnl.toFixed(4)}
@@ -480,7 +509,7 @@ export default function DashboardPage() {
                       </tr>
                       {isExpanded && (
                         <tr className="bg-white/[0.04] border-b border-white/[0.04]">
-                          <td colSpan={6} className="p-0">
+                          <td colSpan={7} className="p-0">
                             <div className="px-4 pb-4 pt-1">
                               <table className="w-full text-sm border-collapse">
                                 <thead>
@@ -489,10 +518,11 @@ export default function DashboardPage() {
                                     <th className="p-3 text-left">Trade Side</th>
                                     <th className="p-3 text-right">Quantity</th>
                                     <th className="p-3 text-right">Entry Price</th>
-                                    <th className="p-3 text-right">Liquidation Price</th>
+                                    <th className="p-3 text-right">Liq Price</th>
                                     <th className="p-3 text-right">Margin Used</th>
-                                    <th className="p-3 text-right">Realtime L2 VWAP</th>
+                                    <th className="p-3 text-right">L2 VWAP</th>
                                     <th className="p-3 text-right">Unrealised PnL</th>
+                                    <th className="p-3 text-right">Funding (USD)</th>
                                   </tr>
                                 </thead>
                                 <tbody>
@@ -514,6 +544,11 @@ export default function DashboardPage() {
                                           {legPnl(pos.binance, (exitVWAPs?.binanceExitVWAP ?? 0) > 0 ? exitVWAPs!.binanceExitVWAP : null) >= 0 ? "+" : ""}${legPnl(pos.binance, (exitVWAPs?.binanceExitVWAP ?? 0) > 0 ? exitVWAPs!.binanceExitVWAP : null).toFixed(4)}
                                         </span>
                                       </td>
+                                      <td className="p-3 text-right">
+                                        <span className={binanceFundingProfit >= 0 ? "text-emerald-400" : "text-red-400"}>
+                                          {binanceFundingProfit >= 0 ? "+" : ""}${binanceFundingProfit.toFixed(4)}
+                                        </span>
+                                      </td>
                                     </tr>
                                   )}
                                   {pos.bybit && (
@@ -532,6 +567,11 @@ export default function DashboardPage() {
                                       <td className="p-3 text-right">
                                         <span className={legPnl(pos.bybit, (exitVWAPs?.bybitExitVWAP ?? 0) > 0 ? exitVWAPs!.bybitExitVWAP : null) >= 0 ? "text-emerald-400" : "text-red-400"}>
                                           {legPnl(pos.bybit, (exitVWAPs?.bybitExitVWAP ?? 0) > 0 ? exitVWAPs!.bybitExitVWAP : null) >= 0 ? "+" : ""}${legPnl(pos.bybit, (exitVWAPs?.bybitExitVWAP ?? 0) > 0 ? exitVWAPs!.bybitExitVWAP : null).toFixed(4)}
+                                        </span>
+                                      </td>
+                                      <td className="p-3 text-right">
+                                        <span className={bybitFundingProfit >= 0 ? "text-emerald-400" : "text-red-400"}>
+                                          {bybitFundingProfit >= 0 ? "+" : ""}${bybitFundingProfit.toFixed(4)}
                                         </span>
                                       </td>
                                     </tr>
