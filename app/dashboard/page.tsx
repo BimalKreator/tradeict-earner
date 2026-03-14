@@ -44,16 +44,20 @@ interface GroupedPosition {
   usedMargin: number;
 }
 
+type PnlCalculationMethod = "L2_VWAP" | "ORDERBOOK_DOUBLE_QTY";
+
 interface SettingsState {
   stoplossPercent: number;
   targetPercent: number;
   feesPercent?: number;
+  pnlCalculationMethod?: PnlCalculationMethod;
 }
 
 const DEFAULT_SETTINGS: SettingsState = {
   stoplossPercent: 2,
   targetPercent: 1.5,
   feesPercent: 0.1,
+  pnlCalculationMethod: "L2_VWAP",
 };
 
 function formatNumber(num: number | undefined | null): string {
@@ -172,16 +176,18 @@ export default function DashboardPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  // Sync stoploss/target from backend so Dashboard matches Settings (PC and mobile).
+  // Sync stoploss/target/pnlMethod from backend so Dashboard matches Settings (PC and mobile).
   useEffect(() => {
     fetch("/api/settings/config")
       .then((r) => r.json())
-      .then((data: Partial<SettingsState>) => {
-        setSettings({
+      .then((data: Partial<SettingsState> & { pnlCalculationMethod?: string }) => {
+        setSettings((prev) => ({
+          ...prev,
           stoplossPercent: typeof data.stoplossPercent === "number" ? data.stoplossPercent : DEFAULT_SETTINGS.stoplossPercent,
           targetPercent: typeof data.targetPercent === "number" ? data.targetPercent : DEFAULT_SETTINGS.targetPercent,
           feesPercent: typeof data.feesPercent === "number" ? data.feesPercent : DEFAULT_SETTINGS.feesPercent,
-        });
+          pnlCalculationMethod: data.pnlCalculationMethod === "ORDERBOOK_DOUBLE_QTY" ? "ORDERBOOK_DOUBLE_QTY" : "L2_VWAP",
+        }));
       })
       .catch(() => {});
   }, []);
@@ -405,7 +411,9 @@ export default function DashboardPage() {
             {loading ? "—" : totalPnlFormatted}
           </p>
           <p className="text-slate-500 text-sm mt-2">
-            {connected ? "Deep exit VWAP (matches auto-exit engine)" : "From exchange mark price"}
+            {connected
+              ? (settings.pnlCalculationMethod === "ORDERBOOK_DOUBLE_QTY" ? "OrderBook 2×qty price (matches auto-exit)" : "L2 VWAP (matches auto-exit engine)")
+              : "From exchange mark price"}
           </p>
         </div>
         <div className="glass-panel p-6 md:p-8">
@@ -427,9 +435,39 @@ export default function DashboardPage() {
 
       {/* Active Positions section */}
       <div className="glass-panel overflow-hidden">
-        <div className="p-4 md:p-5 border-b border-white/[0.06]">
-          <h2 className="text-lg font-semibold text-white">Active Positions</h2>
-          <p className="text-slate-400 text-sm mt-0.5">Grouped by symbol with exchange details</p>
+        <div className="p-4 md:p-5 border-b border-white/[0.06] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-semibold text-white">Active Positions</h2>
+            <p className="text-slate-400 text-sm mt-0.5">Grouped by symbol with exchange details</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="text-sm font-medium text-slate-400 whitespace-nowrap">PnL Calculation Method:</label>
+            <select
+              value={settings.pnlCalculationMethod ?? "L2_VWAP"}
+              onChange={(e) => {
+                const value = (e.target.value === "ORDERBOOK_DOUBLE_QTY" ? "ORDERBOOK_DOUBLE_QTY" : "L2_VWAP") as PnlCalculationMethod;
+                setSettings((prev) => ({ ...prev, pnlCalculationMethod: value }));
+                fetch("/api/settings/config")
+                  .then((r) => r.json())
+                  .then((existing: Record<string, unknown>) => {
+                    return fetch("/api/settings/config", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ ...existing, pnlCalculationMethod: value }),
+                    });
+                  })
+                  .catch(() => {});
+                const ws = wsRef.current;
+                if (ws?.readyState === WebSocket.OPEN) {
+                  ws.send(JSON.stringify({ action: "set_auto_exit_settings", payload: { pnlCalculationMethod: value } }));
+                }
+              }}
+              className="rounded-xl border border-white/[0.1] bg-white/[0.06] px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+            >
+              <option value="L2_VWAP">L2 VWAP Price</option>
+              <option value="ORDERBOOK_DOUBLE_QTY">OrderBook Double Qty</option>
+            </select>
+          </div>
         </div>
 
         {/* Active Trade Summary Bar */}

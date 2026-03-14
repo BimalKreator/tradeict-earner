@@ -162,6 +162,33 @@ export function getDeepExitVWAPByQuantity(
   return cumulativeQty > 0 ? cumulativeValue / cumulativeQty : 0;
 }
 
+/**
+ * Returns the price of the orderbook level at which cumulative quantity reaches targetQty.
+ * Used for ORDERBOOK_DOUBLE_QTY PnL (price at 2x position qty depth, not VWAP).
+ */
+export function getPriceAtCumulativeQuantity(
+  levels: [string, string][],
+  targetQty: number,
+  side: "Long" | "Short"
+): number {
+  if (!levels.length || targetQty <= 0) return 0;
+  const sorted =
+    side === "Long"
+      ? [...levels].sort((a, b) => parseFloat(b[0]) - parseFloat(a[0]))
+      : [...levels].sort((a, b) => parseFloat(a[0]) - parseFloat(b[0]));
+  let cumulativeQty = 0;
+  let lastPrice = 0;
+  for (const [pStr, qStr] of sorted) {
+    const p = parseFloat(pStr);
+    const q = parseFloat(qStr);
+    if (p <= 0 || q <= 0) continue;
+    lastPrice = p;
+    cumulativeQty += q;
+    if (cumulativeQty >= targetQty) return p;
+  }
+  return lastPrice;
+}
+
 function combinedPnlFromL2(pos: GroupedPosition, orderbook: OrderbookSnapshot): number {
   if (!orderbook) return 0;
   let pnl = 0;
@@ -186,33 +213,47 @@ function combinedPnlFromL2(pos: GroupedPosition, orderbook: OrderbookSnapshot): 
   return pnl;
 }
 
+type PnlCalculationMethod = "L2_VWAP" | "ORDERBOOK_DOUBLE_QTY";
+
+function exitPriceForLeg(
+  levels: [string, string][],
+  targetQty: number,
+  side: "Long" | "Short",
+  method: PnlCalculationMethod
+): number {
+  if (method === "ORDERBOOK_DOUBLE_QTY") {
+    return getPriceAtCumulativeQuantity(levels, targetQty, side) || parseFloat(levels[0]?.[0] || "0");
+  }
+  return getDeepExitVWAPByQuantity(levels, targetQty, side) || parseFloat(levels[0]?.[0] || "0");
+}
+
 /**
- * Combined unrealized PnL for auto-exit triggers using Deep Exit VWAP only.
- * Per leg: targetQty = position quantity * 2; Long → sell → bid VWAP, Short → buy → ask VWAP.
- * Execution (chunk close) is unchanged and still uses best bid/ask in chunks.
+ * Combined unrealized PnL for auto-exit triggers.
+ * Uses pnlCalculationMethod: L2_VWAP (VWAP over 2x qty) or ORDERBOOK_DOUBLE_QTY (price at level where cum qty reaches 2x).
  */
 function combinedPnlFromL2TwoBooks(
   pos: GroupedPosition,
   binanceSnapshot: OrderbookSnapshot | null,
-  bybitSnapshot: OrderbookSnapshot | null
+  bybitSnapshot: OrderbookSnapshot | null,
+  method: PnlCalculationMethod = "L2_VWAP"
 ): number {
   let pnl = 0;
   if (pos.binance && binanceSnapshot?.bids?.length && binanceSnapshot?.asks?.length) {
     const b = pos.binance;
     const targetQty = b.quantity * 2;
     const levels = b.side === "Long" ? binanceSnapshot.bids : binanceSnapshot.asks;
-    const exitVwap = getDeepExitVWAPByQuantity(levels, targetQty, b.side) || parseFloat(levels[0]?.[0] || "0");
-    if (exitVwap > 0) {
-      pnl += b.side === "Long" ? (exitVwap - b.entryPrice) * b.quantity : (b.entryPrice - exitVwap) * b.quantity;
+    const exitPrice = exitPriceForLeg(levels, targetQty, b.side, method);
+    if (exitPrice > 0) {
+      pnl += b.side === "Long" ? (exitPrice - b.entryPrice) * b.quantity : (b.entryPrice - exitPrice) * b.quantity;
     }
   }
   if (pos.bybit && bybitSnapshot?.bids?.length && bybitSnapshot?.asks?.length) {
     const y = pos.bybit;
     const targetQty = y.quantity * 2;
     const levels = y.side === "Long" ? bybitSnapshot.bids : bybitSnapshot.asks;
-    const exitVwap = getDeepExitVWAPByQuantity(levels, targetQty, y.side) || parseFloat(levels[0]?.[0] || "0");
-    if (exitVwap > 0) {
-      pnl += y.side === "Long" ? (exitVwap - y.entryPrice) * y.quantity : (y.entryPrice - exitVwap) * y.quantity;
+    const exitPrice = exitPriceForLeg(levels, targetQty, y.side, method);
+    if (exitPrice > 0) {
+      pnl += y.side === "Long" ? (exitPrice - y.entryPrice) * y.quantity : (y.entryPrice - exitPrice) * y.quantity;
     }
   }
   return pnl;
@@ -360,7 +401,8 @@ export function startAutoExitMonitor(
     if (pos.binance && !binanceSnap) return;
     if (pos.bybit && !bybitSnap) return;
 
-    const combinedPnl = combinedPnlFromL2TwoBooks(pos, binanceSnap, bybitSnap);
+    const pnlMethod = (settings.pnlCalculationMethod === "ORDERBOOK_DOUBLE_QTY" ? "ORDERBOOK_DOUBLE_QTY" : "L2_VWAP") as PnlCalculationMethod;
+    const combinedPnl = combinedPnlFromL2TwoBooks(pos, binanceSnap, bybitSnap, pnlMethod);
     const stoplossPct = (settings.stoplossPercent ?? 2) / 100;
     const targetPct = (settings.targetPercent ?? 1.5) / 100;
     const feesPct = (settings.feesPercent ?? 0.1) / 100;
@@ -452,8 +494,9 @@ export function startAutoExitMonitor(
           const binanceSnapshot =
             binanceOb?.bids?.length && binanceOb?.asks?.length ? binanceOb : null;
           if (!binanceSnapshot && !bybitSnapshot) continue;
-          const combinedPnl = combinedPnlFromL2TwoBooks(pos, binanceSnapshot, bybitSnapshot);
           const settings = getSettings();
+          const pnlMethod = (settings.pnlCalculationMethod === "ORDERBOOK_DOUBLE_QTY" ? "ORDERBOOK_DOUBLE_QTY" : "L2_VWAP") as PnlCalculationMethod;
+          const combinedPnl = combinedPnlFromL2TwoBooks(pos, binanceSnapshot, bybitSnapshot, pnlMethod);
           const stoplossPct = (settings.stoplossPercent ?? 2) / 100;
           const targetPct = (settings.targetPercent ?? 1.5) / 100;
           const feesPct = (settings.feesPercent ?? 0.1) / 100;

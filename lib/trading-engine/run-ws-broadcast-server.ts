@@ -35,7 +35,7 @@ import {
   type OrderbookSnapshot,
   type OrderSide,
 } from "./execution-engine";
-import { startAutoExitMonitor, getDeepExitVWAPByQuantity } from "./auto-exit";
+import { startAutoExitMonitor, getDeepExitVWAPByQuantity, getPriceAtCumulativeQuantity } from "./auto-exit";
 import { findUserByEmail } from "../auth-users";
 import type { RawPosition } from "./execution-engine";
 import { getSystemState, setEnginePaused } from "./system-state";
@@ -227,9 +227,11 @@ function groupPositionsForStats(binance: RawPosition[], bybit: RawPosition[]): C
 function computePositionStats(
   positions: CachedGroupedPosition[],
   getBinanceOb: (sym: string) => { bids: [string, string][]; asks: [string, string][] } | null,
-  getBybitOb: (sym: string) => { bids: [string, string][]; asks: [string, string][] } | null
+  getBybitOb: (sym: string) => { bids: [string, string][]; asks: [string, string][] } | null,
+  pnlMethod: "L2_VWAP" | "ORDERBOOK_DOUBLE_QTY" = "L2_VWAP"
 ): Record<string, { binanceExitVWAP: number; bybitExitVWAP: number }> {
   const stats: Record<string, { binanceExitVWAP: number; bybitExitVWAP: number }> = {};
+  const useDoubleQtyPrice = pnlMethod === "ORDERBOOK_DOUBLE_QTY";
   for (const pos of positions) {
     let binanceExitVWAP = 0;
     let bybitExitVWAP = 0;
@@ -237,14 +239,20 @@ function computePositionStats(
       const ob = getBinanceOb(pos.symbol);
       const levels = pos.binance.side === "Long" ? ob?.bids : ob?.asks;
       if (levels?.length) {
-        binanceExitVWAP = getDeepExitVWAPByQuantity(levels, pos.binance.quantity * 2, pos.binance.side);
+        const targetQty = pos.binance.quantity * 2;
+        binanceExitVWAP = useDoubleQtyPrice
+          ? getPriceAtCumulativeQuantity(levels, targetQty, pos.binance.side)
+          : getDeepExitVWAPByQuantity(levels, targetQty, pos.binance.side);
       }
     }
     if (pos.bybit) {
       const ob = getBybitOb(pos.symbol);
       const levels = pos.bybit.side === "Long" ? ob?.bids : ob?.asks;
       if (levels?.length) {
-        bybitExitVWAP = getDeepExitVWAPByQuantity(levels, pos.bybit.quantity * 2, pos.bybit.side);
+        const targetQty = pos.bybit.quantity * 2;
+        bybitExitVWAP = useDoubleQtyPrice
+          ? getPriceAtCumulativeQuantity(levels, targetQty, pos.bybit.side)
+          : getDeepExitVWAPByQuantity(levels, targetQty, pos.bybit.side);
       }
     }
     if (binanceExitVWAP > 0 || bybitExitVWAP > 0) {
@@ -281,11 +289,15 @@ function loadAutoExitSettings(): Partial<ExecutionSettings> {
       if (typeof data.autoTradeUserEmail === "string" && data.autoTradeUserEmail.trim()) {
         defaults.autoTradeUserEmail = data.autoTradeUserEmail.trim();
       }
+      if (data.pnlCalculationMethod === "ORDERBOOK_DOUBLE_QTY" || data.pnlCalculationMethod === "L2_VWAP") {
+        defaults.pnlCalculationMethod = data.pnlCalculationMethod;
+      }
     }
   } catch (e) {
     console.warn("[WS Server] Could not load auto-exit-settings.json:", e);
   }
-  console.log("[WS Server] Auto-Exit settings loaded: autoExit=" + defaults.autoExit + " autoTrade=" + defaults.autoTrade + (defaults.autoTradeUserEmail ? " autoTradeUser=" + defaults.autoTradeUserEmail : ""));
+  if (!defaults.pnlCalculationMethod) defaults.pnlCalculationMethod = "L2_VWAP";
+  console.log("[WS Server] Auto-Exit settings loaded: autoExit=" + defaults.autoExit + " autoTrade=" + defaults.autoTrade + " pnlMethod=" + (defaults.pnlCalculationMethod ?? "L2_VWAP") + (defaults.autoTradeUserEmail ? " autoTradeUser=" + defaults.autoTradeUserEmail : ""));
   return defaults;
 }
 
@@ -481,10 +493,12 @@ async function main() {
     vwapTargetAmount: 10_000,
     maxSymbols: 50,
     onStateUpdate(states) {
+      const pnlMethod = autoExitSettings.pnlCalculationMethod === "ORDERBOOK_DOUBLE_QTY" ? "ORDERBOOK_DOUBLE_QTY" : "L2_VWAP";
       const positionStats = computePositionStats(
         cachedGroupedPositions,
         (sym) => manager.getLiveOrderbook(sym),
-        (sym) => manager.getBybitLiveOrderbook(sym)
+        (sym) => manager.getBybitLiveOrderbook(sym),
+        pnlMethod
       );
       broadcast({
         type: "state",
@@ -662,12 +676,14 @@ async function main() {
     clients.add(ws);
     console.log(`[WS Server] Client connected. Total: ${clients.size}`);
 
-    // Send current state immediately (include positionStats for precise exit VWAP PnL).
+    // Send current state immediately (include positionStats for precise exit PnL per pnlCalculationMethod).
     const states = manager.getStates();
+    const pnlMethod = autoExitSettings.pnlCalculationMethod === "ORDERBOOK_DOUBLE_QTY" ? "ORDERBOOK_DOUBLE_QTY" : "L2_VWAP";
     const positionStats = computePositionStats(
       cachedGroupedPositions,
       (sym) => manager.getLiveOrderbook(sym),
-      (sym) => manager.getBybitLiveOrderbook(sym)
+      (sym) => manager.getBybitLiveOrderbook(sym),
+      pnlMethod
     );
     try {
       ws.send(
@@ -728,7 +744,7 @@ async function main() {
           }
           return;
         }
-        const payloadMsg = msg.payload as { autoExit?: boolean; stoplossPercent?: number; targetPercent?: number; slippagePercent?: number; feesPercent?: number; leverage?: number; capitalPercent?: number; autoTrade?: boolean; maxTradeSlot?: number; userEmail?: string } | undefined;
+        const payloadMsg = msg.payload as { autoExit?: boolean; stoplossPercent?: number; targetPercent?: number; slippagePercent?: number; feesPercent?: number; leverage?: number; capitalPercent?: number; autoTrade?: boolean; maxTradeSlot?: number; userEmail?: string; pnlCalculationMethod?: "L2_VWAP" | "ORDERBOOK_DOUBLE_QTY" } | undefined;
         if (msg.action === "set_auto_exit_settings" && payloadMsg) {
           if (typeof payloadMsg.autoExit === "boolean") autoExitSettings.autoExit = payloadMsg.autoExit;
           if (typeof payloadMsg.stoplossPercent === "number" && payloadMsg.stoplossPercent >= 0) autoExitSettings.stoplossPercent = payloadMsg.stoplossPercent;
@@ -742,8 +758,11 @@ async function main() {
           if (typeof payloadMsg.userEmail === "string" && payloadMsg.userEmail.trim()) {
             autoExitSettings.autoTradeUserEmail = payloadMsg.userEmail.trim();
           }
+          if (payloadMsg.pnlCalculationMethod === "ORDERBOOK_DOUBLE_QTY" || payloadMsg.pnlCalculationMethod === "L2_VWAP") {
+            autoExitSettings.pnlCalculationMethod = payloadMsg.pnlCalculationMethod;
+          }
           saveAutoExitSettings();
-          console.log("[WS Server] Auto-Exit settings updated from client: autoExit=" + autoExitSettings.autoExit + " autoTrade=" + autoExitSettings.autoTrade + (autoExitSettings.autoTradeUserEmail ? " autoTradeUser=" + autoExitSettings.autoTradeUserEmail : ""));
+          console.log("[WS Server] Auto-Exit settings updated from client: autoExit=" + autoExitSettings.autoExit + " autoTrade=" + autoExitSettings.autoTrade + " pnlMethod=" + (autoExitSettings.pnlCalculationMethod ?? "L2_VWAP") + (autoExitSettings.autoTradeUserEmail ? " autoTradeUser=" + autoExitSettings.autoTradeUserEmail : ""));
           return;
         }
         if (msg.action === "EXECUTE_MANUAL_TRADE") {

@@ -18,6 +18,7 @@ const DEFAULT_CONFIG = {
   targetPercent: 1.5,
   slippagePercent: 0.05,
   feesPercent: 0.1,
+  pnlCalculationMethod: "L2_VWAP" as "L2_VWAP" | "ORDERBOOK_DOUBLE_QTY",
 };
 
 export async function GET() {
@@ -34,6 +35,7 @@ export async function GET() {
       targetPercent: typeof parsed.targetPercent === "number" ? parsed.targetPercent : DEFAULT_CONFIG.targetPercent,
       slippagePercent: typeof parsed.slippagePercent === "number" ? parsed.slippagePercent : DEFAULT_CONFIG.slippagePercent,
       feesPercent: typeof parsed.feesPercent === "number" ? parsed.feesPercent : DEFAULT_CONFIG.feesPercent,
+      pnlCalculationMethod: parsed.pnlCalculationMethod === "ORDERBOOK_DOUBLE_QTY" ? "ORDERBOOK_DOUBLE_QTY" : "L2_VWAP",
     });
   } catch {
     return NextResponse.json(DEFAULT_CONFIG);
@@ -64,6 +66,7 @@ export async function POST(request: Request) {
       targetPercent: typeof body.targetPercent === "number" ? body.targetPercent : DEFAULT_CONFIG.targetPercent,
       slippagePercent: typeof body.slippagePercent === "number" ? body.slippagePercent : DEFAULT_CONFIG.slippagePercent,
       feesPercent: typeof body.feesPercent === "number" ? body.feesPercent : DEFAULT_CONFIG.feesPercent,
+      pnlCalculationMethod: body.pnlCalculationMethod === "ORDERBOOK_DOUBLE_QTY" ? "ORDERBOOK_DOUBLE_QTY" : "L2_VWAP",
       autoTradeUserEmail: session.user.email ?? existing.autoTradeUserEmail,
     };
     await writeFile(CONFIG_FILE, JSON.stringify(config, null, 2), "utf8");

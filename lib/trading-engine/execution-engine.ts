@@ -42,6 +42,8 @@ export interface ExecutionSettings {
   autoTrade?: boolean;
   /** User email whose API keys to use for auto-trade when no manual trade has run yet. */
   autoTradeUserEmail?: string;
+  /** How to compute unrealized PnL and Target/SL: L2 VWAP (avg price over 2x qty) or orderbook price at 2x qty level. */
+  pnlCalculationMethod?: "L2_VWAP" | "ORDERBOOK_DOUBLE_QTY";
 }
 
 export interface ExchangeCredentials {
