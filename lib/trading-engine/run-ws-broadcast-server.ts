@@ -35,7 +35,7 @@ import {
   type OrderbookSnapshot,
   type OrderSide,
 } from "./execution-engine";
-import { startAutoExitMonitor, getDeepExitVWAPByQuantity, getPriceAtCumulativeQuantity } from "./auto-exit";
+import { startAutoExitMonitor, getDeepExitVWAPByQuantity, getPriceAtCumulativeQuantity, getSharedOrderbookSnapshot } from "./auto-exit";
 import { findUserByEmail } from "../auth-users";
 import type { RawPosition } from "./execution-engine";
 import { getSystemState, setEnginePaused } from "./system-state";
@@ -502,8 +502,8 @@ async function main() {
       const pnlMethod = autoExitSettings.pnlCalculationMethod === "ORDERBOOK_DOUBLE_QTY" ? "ORDERBOOK_DOUBLE_QTY" : "L2_VWAP";
       const positionStats = computePositionStats(
         cachedGroupedPositions,
-        (sym) => manager.getLiveOrderbook(sym),
-        (sym) => manager.getBybitLiveOrderbook(sym),
+        (sym) => getSharedOrderbookSnapshot("binance", sym),
+        (sym) => getSharedOrderbookSnapshot("bybit", sym),
         pnlMethod
       );
       broadcast({
@@ -689,8 +689,8 @@ async function main() {
     const pnlMethod = autoExitSettings.pnlCalculationMethod === "ORDERBOOK_DOUBLE_QTY" ? "ORDERBOOK_DOUBLE_QTY" : "L2_VWAP";
     const positionStats = computePositionStats(
       cachedGroupedPositions,
-      (sym) => manager.getLiveOrderbook(sym),
-      (sym) => manager.getBybitLiveOrderbook(sym),
+      (sym) => getSharedOrderbookSnapshot("binance", sym),
+      (sym) => getSharedOrderbookSnapshot("bybit", sym),
       pnlMethod
     );
     try {
@@ -777,8 +777,8 @@ async function main() {
           const method = autoExitSettings.pnlCalculationMethod === "ORDERBOOK_DOUBLE_QTY" ? "ORDERBOOK_DOUBLE_QTY" : "L2_VWAP";
           const newStats = computePositionStats(
             cachedGroupedPositions,
-            (sym) => manager.getLiveOrderbook(sym),
-            (sym) => manager.getBybitLiveOrderbook(sym),
+            (sym) => getSharedOrderbookSnapshot("binance", sym),
+            (sym) => getSharedOrderbookSnapshot("bybit", sym),
             method
           );
           broadcast({

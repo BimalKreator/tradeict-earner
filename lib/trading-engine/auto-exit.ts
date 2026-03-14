@@ -291,6 +291,17 @@ export interface AutoExitContext {
   defaultSettings: ExecutionSettings;
 }
 
+/** Shared live depth from auto-exit WS; used by broadcast server for positionStats. */
+export const sharedBinanceOrderbooks = new Map<string, OrderbookState>();
+export const sharedBybitOrderbooks = new Map<string, OrderbookState>();
+
+export function getSharedOrderbookSnapshot(exchange: "binance" | "bybit", symbol: string): OrderbookSnapshot | null {
+  const key = normalizeSymbol(symbol);
+  const ob = exchange === "binance" ? sharedBinanceOrderbooks.get(key) : sharedBybitOrderbooks.get(key);
+  if (!ob || ob.bids.size === 0) return null;
+  return orderbookToSnapshot(key, ob);
+}
+
 /**
  * Event-driven Auto-Exit: 3s position poller + dynamic WS subscriptions.
  * Depth updates trigger immediate L2 VWAP PnL check and exit (zero polling latency).
@@ -302,8 +313,8 @@ export function startAutoExitMonitor(
   const exitLocks = new Set<string>();
   const orphanFirstSeen = new Map<string, number>();
   const subscribedSymbols = new Set<string>();
-  const binanceOrderbooks = new Map<string, OrderbookState>();
-  const bybitOrderbooks = new Map<string, OrderbookState>();
+  const binanceOrderbooks = sharedBinanceOrderbooks;
+  const bybitOrderbooks = sharedBybitOrderbooks;
   const targetHitTimestamps = new Map<string, number>();
   const stoplossHitTimestamps = new Map<string, number>();
 
