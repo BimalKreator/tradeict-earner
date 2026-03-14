@@ -133,7 +133,9 @@ function filterAndSortEligibleForAutoTrade(
       if (!s.has3xLiquidity || s.binanceVWAP == null || s.bybitVWAP == null) return false;
       if (bannedSet.has(sym)) return false;
       if (fundingIntervalType === "same") {
-        if (s.binanceFundingInterval !== s.bybitFundingInterval) return false;
+        const binanceHours = Math.round((s.binanceFundingInterval ?? 28800000) / 3600000);
+        const bybitHours = Math.round((s.bybitFundingInterval ?? 28800000) / 3600000);
+        if (binanceHours !== bybitHours) return false;
       }
       const l2SpreadPct = ((s.bybitVWAP - s.binanceVWAP) / s.binanceVWAP) * 100;
       if (Math.abs(l2SpreadPct) < minSpread) return false;

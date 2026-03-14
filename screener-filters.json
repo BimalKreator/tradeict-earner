@@ -1,7 +1,7 @@
 {
-  "minL2SpreadPct": 2,
+  "minL2SpreadPct": 0,
   "fundingType": "favourable",
-  "fundingIntervalType": "same",
+  "fundingIntervalType": "any",
   "bannedTokens": [],
   "onlySafeOpportunities": false,
   "sortBy": "l2Spread"

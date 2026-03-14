@@ -336,3 +336,256 @@
 {"timestamp":1773458344966,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] No eligible tokens (slots 0/3). Filters or market may exclude all."}
 {"timestamp":1773458352320,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] No eligible tokens (slots 0/3). Filters or market may exclude all."}
 {"timestamp":1773458354948,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] No eligible tokens (slots 0/3). Filters or market may exclude all."}
+{"timestamp":1773458362316,"level":"INFO","category":"EXIT","message":"[WS Server] Auto-Exit settings loaded: autoExit=true autoTrade=true pnlMethod=L2_VWAP autoTradeUser=admin@tradeictearner.online"}
+{"timestamp":1773458362382,"level":"ERROR","category":"SYSTEM","message":"[FATAL] Uncaught Exception: {\"code\":\"EADDRINUSE\",\"errno\":-98,\"syscall\":\"listen\",\"address\":\"::\",\"port\":8080}"}
+{"timestamp":1773458362578,"level":"INFO","category":"SYSTEM","message":"[WsManager] Bybit Linear WebSocket connected"}
+{"timestamp":1773458362768,"level":"INFO","category":"SYSTEM","message":"[WsManager] Binance Futures WebSocket connected"}
+{"timestamp":1773458364950,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] No eligible tokens (slots 0/3). Filters or market may exclude all."}
+{"timestamp":1773458372573,"level":"INFO","category":"SYSTEM","message":"[WS Server] Listening on ws://0.0.0.0:8080"}
+{"timestamp":1773458372574,"level":"INFO","category":"SYSTEM","message":"[WS Server] Tracking 50 symbols: 0GUSDT, 1000000MOGUSDT, 1000BONKUSDT, 1000CATUSDT, 1000FLOKIUSDT, 1000LUNCUSDT, 1000PEPEUSDT, 1000RATSUSDT..."}
+{"timestamp":1773458372575,"level":"INFO","category":"EXIT","message":"[WS Server] Auto-Exit monitor started (autoExit=true)."}
+{"timestamp":1773458374949,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] No eligible tokens (slots 0/3). Filters or market may exclude all."}
+{"timestamp":1773458382662,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] Using API keys for admin@tradeictearner.online (from Save settings)."}
+{"timestamp":1773458382662,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] Skipped: private WS not connected."}
+{"timestamp":1773458384948,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] No eligible tokens (slots 0/3). Filters or market may exclude all."}
+{"timestamp":1773458390454,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client connected. Total: 1"}
+{"timestamp":1773458390623,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client connected. Total: 2"}
+{"timestamp":1773458390780,"level":"INFO","category":"EXIT","message":"[WS Server] Auto-Exit settings updated from client: autoExit=true autoTrade=true autoTradeUser=admin@tradeictearner.online"}
+{"timestamp":1773458392662,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] No eligible tokens (slots 0/3). Filters or market may exclude all."}
+{"timestamp":1773458394211,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client connected. Total: 3"}
+{"timestamp":1773458394343,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client disconnected. Total: 2"}
+{"timestamp":1773458394414,"level":"INFO","category":"SYSTEM","message":"[WS Server] Screener filters updated: minL2SpreadPct=2 fundingType=favourable sortBy=l2Spread banned=0 onlySafe=false"}
+{"timestamp":1773458394952,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] No eligible tokens (slots 0/3). Filters or market may exclude all."}
+{"timestamp":1773458396333,"level":"INFO","category":"SYSTEM","message":"[WS Server] Screener filters updated: minL2SpreadPct=1 fundingType=favourable sortBy=l2Spread banned=0 onlySafe=false"}
+{"timestamp":1773458401326,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client connected. Total: 3"}
+{"timestamp":1773458402668,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] No eligible tokens (slots 0/3). Filters or market may exclude all."}
+{"timestamp":1773458404952,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] No eligible tokens (slots 0/3). Filters or market may exclude all."}
+{"timestamp":1773458408122,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client disconnected. Total: 2"}
+{"timestamp":1773458409155,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client connected. Total: 3"}
+{"timestamp":1773458409245,"level":"INFO","category":"EXIT","message":"[WS Server] Auto-Exit settings updated from client: autoExit=true autoTrade=true autoTradeUser=admin@tradeictearner.online"}
+{"timestamp":1773458411736,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client connected. Total: 4"}
+{"timestamp":1773458411881,"level":"INFO","category":"SYSTEM","message":"[WS Server] Screener filters updated: minL2SpreadPct=1 fundingType=favourable sortBy=l2Spread banned=0 onlySafe=false"}
+{"timestamp":1773458412153,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client disconnected. Total: 3"}
+{"timestamp":1773458412659,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] No eligible tokens (slots 0/3). Filters or market may exclude all."}
+{"timestamp":1773458413252,"level":"INFO","category":"SYSTEM","message":"[WS Server] Screener filters updated: minL2SpreadPct=0 fundingType=favourable sortBy=l2Spread banned=0 onlySafe=false"}
+{"timestamp":1773458413935,"level":"INFO","category":"SYSTEM","message":"[WS Server] Screener filters updated: minL2SpreadPct=0.5 fundingType=favourable sortBy=l2Spread banned=0 onlySafe=false"}
+{"timestamp":1773458414951,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] No eligible tokens (slots 0/1). Filters or market may exclude all."}
+{"timestamp":1773458416288,"level":"INFO","category":"SYSTEM","message":"[WS Server] Screener filters updated: minL2SpreadPct=0 fundingType=favourable sortBy=l2Spread banned=0 onlySafe=false"}
+{"timestamp":1773458422659,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] No eligible tokens (slots 0/3). Filters or market may exclude all."}
+{"timestamp":1773458424951,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] No eligible tokens (slots 0/1). Filters or market may exclude all."}
+{"timestamp":1773458425326,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client disconnected. Total: 2"}
+{"timestamp":1773458425339,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client disconnected. Total: 1"}
+{"timestamp":1773458425344,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client disconnected. Total: 0"}
+{"timestamp":1773458425815,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client connected. Total: 1"}
+{"timestamp":1773458425895,"level":"INFO","category":"SYSTEM","message":"[WS Server] Screener filters updated: minL2SpreadPct=0 fundingType=favourable sortBy=l2Spread banned=0 onlySafe=false"}
+{"timestamp":1773458425975,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client connected. Total: 2"}
+{"timestamp":1773458426053,"level":"INFO","category":"EXIT","message":"[WS Server] Auto-Exit settings updated from client: autoExit=true autoTrade=true autoTradeUser=admin@tradeictearner.online"}
+{"timestamp":1773458431448,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client disconnected. Total: 1"}
+{"timestamp":1773458432617,"level":"INFO","category":"SYSTEM","message":"[WS Server] Screener filters updated: minL2SpreadPct=0 fundingType=favourable sortBy=l2Spread banned=0 onlySafe=false"}
+{"timestamp":1773458432665,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] No eligible tokens (slots 0/3). Filters or market may exclude all."}
+{"timestamp":1773458434952,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] Empty slot found (0/1). Initiating trade for Top Token: AKEUSDT"}
+{"timestamp":1773458435127,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Starting chunk trade: symbol=AKEUSDT side=Long Binance / Short Bybit minChunkNotional=$6 liquidityFraction=0.5 reduceOnly=false"}
+{"timestamp":1773458435127,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] Starting trade…"}
+{"timestamp":1773458435238,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Step sizes: Bybit=100 Binance=1"}
+{"timestamp":1773458435404,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Requested Lev: 10, Max Allowed: 10, Using: 10"}
+{"timestamp":1773458435404,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Auto Target Notional=$103.36, Target Total Qty=522800 (Cap%: 20%, Lev: 10)"}
+{"timestamp":1773458435405,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] First chunk: minNotional=$6 priceBybit=0.0001977 -> qty(raw)=30349.013657056144 qty(formatted)=30300.00000000"}
+{"timestamp":1773458435405,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Sending Chunk 1 to Bybit: qty=30300.00000000 price=0.00019750"}
+{"timestamp":1773458435433,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Chunk 1 Bybit order placed: orderId=554be21f-1ff8-436e-946b-ca13a9253b37. Waiting for confirmation..."}
+{"timestamp":1773458435434,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] Chunk 1 placed"}
+{"timestamp":1773458435693,"level":"INFO","category":"EXIT","message":"[CHUNK-SYSTEM] Auto-Exit Bybit depth WS connected."}
+{"timestamp":1773458435860,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Bybit order 554be21f-1ff8-436e-946b-ca13a9253b37 execution list total filled: 30300"}
+{"timestamp":1773458435860,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Order 554be21f-1ff8-436e-946b-ca13a9253b37 confirmed in 399ms (REST-Fallback)"}
+{"timestamp":1773458435860,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Confirmation from Bybit: filledQty=30300"}
+{"timestamp":1773458435860,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Sending Chunk 1 to Binance: qty=30300.00000000 price=0.00019810"}
+{"timestamp":1773458435885,"level":"INFO","category":"EXIT","message":"[CHUNK-SYSTEM] Auto-Exit Binance depth WS connected."}
+{"timestamp":1773458435938,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Waiting for Binance Chunk 1 confirmation..."}
+{"timestamp":1773458435941,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Order 433106445 confirmed in 3ms (WS-Live)"}
+{"timestamp":1773458435941,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Chunk 1 complete. Bybit orderId=554be21f-1ff8-436e-946b-ca13a9253b37 Binance orderId=433106445"}
+{"timestamp":1773458435941,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] Chunk 1 complete"}
+{"timestamp":1773458435941,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Chunk 2+: firstRowQty=432921 frac=0.5 (liquidity fraction for subsequent chunks)"}
+{"timestamp":1773458435941,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Sending Chunk 2 to Bybit: qty=216400.00000000 price=0.00019750"}
+{"timestamp":1773458435941,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] Chunk 2 placed"}
+{"timestamp":1773458436377,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Bybit order 26aa215d-cbd6-4460-a8ad-0365a3024d62 execution list total filled: 216400"}
+{"timestamp":1773458436377,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Order 26aa215d-cbd6-4460-a8ad-0365a3024d62 confirmed in 401ms (REST-Fallback)"}
+{"timestamp":1773458436377,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Chunk 2 Bybit confirmed: filledQty=216400. Sending to Binance..."}
+{"timestamp":1773458436454,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Waiting for Binance Chunk 2 confirmation..."}
+{"timestamp":1773458436455,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Order 433106446 confirmed in 1ms (WS-Live)"}
+{"timestamp":1773458436456,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Chunk 2 complete."}
+{"timestamp":1773458436456,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] Chunk 2 complete"}
+{"timestamp":1773458436456,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Sending Chunk 3 to Bybit: qty=216400.00000000 price=0.00019750"}
+{"timestamp":1773458436456,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] Chunk 3 placed"}
+{"timestamp":1773458436898,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Bybit order b7980137-9933-4fab-a16b-f2fa36467e22 execution list total filled: 216400"}
+{"timestamp":1773458436898,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Order b7980137-9933-4fab-a16b-f2fa36467e22 confirmed in 400ms (REST-Fallback)"}
+{"timestamp":1773458436898,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Chunk 3 Bybit confirmed: filledQty=216400. Sending to Binance..."}
+{"timestamp":1773458436975,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Waiting for Binance Chunk 3 confirmation..."}
+{"timestamp":1773458436976,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Order 433106449 confirmed in 0ms (WS-Live)"}
+{"timestamp":1773458436976,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Chunk 3 complete."}
+{"timestamp":1773458436977,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] Chunk 3 complete"}
+{"timestamp":1773458436977,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Sending Chunk 4 to Bybit: qty=59700.00000000 price=0.00019750"}
+{"timestamp":1773458436977,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] Chunk 4 placed"}
+{"timestamp":1773458437412,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Bybit order 5c806db4-72b1-4198-bf27-9abaee28b8f9 execution list total filled: 59700"}
+{"timestamp":1773458437412,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Order 5c806db4-72b1-4198-bf27-9abaee28b8f9 confirmed in 399ms (REST-Fallback)"}
+{"timestamp":1773458437412,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Chunk 4 Bybit confirmed: filledQty=59700. Sending to Binance..."}
+{"timestamp":1773458437486,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Waiting for Binance Chunk 4 confirmation..."}
+{"timestamp":1773458437488,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Order 433106454 confirmed in 0ms (WS-Live)"}
+{"timestamp":1773458437488,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Chunk 4 complete."}
+{"timestamp":1773458437488,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] Chunk 4 complete"}
+{"timestamp":1773458437488,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Target quantity reached (522800/522800). Stopping chunks."}
+{"timestamp":1773458437488,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] Target quantity reached"}
+{"timestamp":1773458437488,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Final completion: 4 chunk(s) executed."}
+{"timestamp":1773458437488,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] Trade completed"}
+{"timestamp":1773458437849,"level":"INFO","category":"EXIT","message":"[CHUNK-SYSTEM] Auto-Exit Bybit depth WS connected."}
+{"timestamp":1773458438037,"level":"INFO","category":"EXIT","message":"[CHUNK-SYSTEM] Auto-Exit Binance depth WS connected."}
+{"timestamp":1773458442659,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] No eligible tokens (slots 1/3). Filters or market may exclude all."}
+{"timestamp":1773458452665,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] No eligible tokens (slots 1/3). Filters or market may exclude all."}
+{"timestamp":1773458455437,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.2236 | Target: $0.4776 | SL: -$2.0824 | Margin: $20.82"}
+{"timestamp":1773458462660,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] No eligible tokens (slots 1/3). Filters or market may exclude all."}
+{"timestamp":1773458463080,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.2193 | Target: $0.4777 | SL: -$2.0830 | Margin: $20.83"}
+{"timestamp":1773458463977,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.2206 | Target: $0.4777 | SL: -$2.0830 | Margin: $20.83"}
+{"timestamp":1773458472665,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] No eligible tokens (slots 1/3). Filters or market may exclude all."}
+{"timestamp":1773458472818,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.2180 | Target: $0.4777 | SL: -$2.0830 | Margin: $20.83"}
+{"timestamp":1773458478367,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.1692 | Target: $0.4778 | SL: -$2.0837 | Margin: $20.84"}
+{"timestamp":1773458482659,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] No eligible tokens (slots 1/3). Filters or market may exclude all."}
+{"timestamp":1773458486263,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.1692 | Target: $0.4779 | SL: -$2.0845 | Margin: $20.85"}
+{"timestamp":1773458492658,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] No eligible tokens (slots 1/3). Filters or market may exclude all."}
+{"timestamp":1773458502661,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] No eligible tokens (slots 1/3). Filters or market may exclude all."}
+{"timestamp":1773458503499,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.2085 | Target: $0.4777 | SL: -$2.0835 | Margin: $20.83"}
+{"timestamp":1773458503577,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.2085 | Target: $0.4777 | SL: -$2.0835 | Margin: $20.83"}
+{"timestamp":1773458503938,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.2085 | Target: $0.4777 | SL: -$2.0835 | Margin: $20.83"}
+{"timestamp":1773458505078,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.2085 | Target: $0.4777 | SL: -$2.0835 | Margin: $20.83"}
+{"timestamp":1773458510112,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.2169 | Target: $0.4777 | SL: -$2.0835 | Margin: $20.83"}
+{"timestamp":1773458512662,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] No eligible tokens (slots 1/3). Filters or market may exclude all."}
+{"timestamp":1773458519083,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.2101 | Target: $0.4777 | SL: -$2.0835 | Margin: $20.83"}
+{"timestamp":1773458522659,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] No eligible tokens (slots 1/3). Filters or market may exclude all."}
+{"timestamp":1773458532661,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] No eligible tokens (slots 1/3). Filters or market may exclude all."}
+{"timestamp":1773458542058,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.2035 | Target: $0.4778 | SL: -$2.0843 | Margin: $20.84"}
+{"timestamp":1773458542661,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] No eligible tokens (slots 1/3). Filters or market may exclude all."}
+{"timestamp":1773458547717,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.2065 | Target: $0.4778 | SL: -$2.0843 | Margin: $20.84"}
+{"timestamp":1773458548077,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.2095 | Target: $0.4778 | SL: -$2.0843 | Margin: $20.84"}
+{"timestamp":1773458552663,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] No eligible tokens (slots 1/3). Filters or market may exclude all."}
+{"timestamp":1773458554577,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.1897 | Target: $0.4779 | SL: -$2.0845 | Margin: $20.84"}
+{"timestamp":1773458562665,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] No eligible tokens (slots 1/3). Filters or market may exclude all."}
+{"timestamp":1773458572159,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.1909 | Target: $0.4779 | SL: -$2.0851 | Margin: $20.85"}
+{"timestamp":1773458572662,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] No eligible tokens (slots 1/3). Filters or market may exclude all."}
+{"timestamp":1773458576017,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.1820 | Target: $0.4779 | SL: -$2.0851 | Margin: $20.85"}
+{"timestamp":1773458576918,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.1820 | Target: $0.4779 | SL: -$2.0851 | Margin: $20.85"}
+{"timestamp":1773458577877,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.1910 | Target: $0.4779 | SL: -$2.0851 | Margin: $20.85"}
+{"timestamp":1773458578837,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.1880 | Target: $0.4779 | SL: -$2.0851 | Margin: $20.85"}
+{"timestamp":1773458580499,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.1681 | Target: $0.4779 | SL: -$2.0851 | Margin: $20.85"}
+{"timestamp":1773458582059,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.1592 | Target: $0.4779 | SL: -$2.0851 | Margin: $20.85"}
+{"timestamp":1773458582663,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] No eligible tokens (slots 1/3). Filters or market may exclude all."}
+{"timestamp":1773458583477,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.1678 | Target: $0.4779 | SL: -$2.0851 | Margin: $20.85"}
+{"timestamp":1773458583978,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.1678 | Target: $0.4779 | SL: -$2.0851 | Margin: $20.85"}
+{"timestamp":1773458585617,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.1678 | Target: $0.4779 | SL: -$2.0851 | Margin: $20.85"}
+{"timestamp":1773458586857,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.1759 | Target: $0.4779 | SL: -$2.0851 | Margin: $20.85"}
+{"timestamp":1773458587178,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.1729 | Target: $0.4779 | SL: -$2.0851 | Margin: $20.85"}
+{"timestamp":1773458587818,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.1729 | Target: $0.4779 | SL: -$2.0851 | Margin: $20.85"}
+{"timestamp":1773458592665,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] No eligible tokens (slots 1/3). Filters or market may exclude all."}
+{"timestamp":1773458597377,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.1783 | Target: $0.4780 | SL: -$2.0856 | Margin: $20.86"}
+{"timestamp":1773458598618,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.1693 | Target: $0.4780 | SL: -$2.0856 | Margin: $20.86"}
+{"timestamp":1773458602663,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] No eligible tokens (slots 1/3). Filters or market may exclude all."}
+{"timestamp":1773458605360,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.1783 | Target: $0.4780 | SL: -$2.0856 | Margin: $20.86"}
+{"timestamp":1773458607458,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.1693 | Target: $0.4780 | SL: -$2.0856 | Margin: $20.86"}
+{"timestamp":1773458610013,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.1783 | Target: $0.4780 | SL: -$2.0856 | Margin: $20.86"}
+{"timestamp":1773458612664,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] No eligible tokens (slots 1/3). Filters or market may exclude all."}
+{"timestamp":1773458616618,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.1727 | Target: $0.4779 | SL: -$2.0851 | Margin: $20.85"}
+{"timestamp":1773458619638,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.1540 | Target: $0.4779 | SL: -$2.0851 | Margin: $20.85"}
+{"timestamp":1773458622662,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] No eligible tokens (slots 1/3). Filters or market may exclude all."}
+{"timestamp":1773458626978,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.1478 | Target: $0.4779 | SL: -$2.0851 | Margin: $20.85"}
+{"timestamp":1773458629633,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.1458 | Target: $0.4779 | SL: -$2.0851 | Margin: $20.85"}
+{"timestamp":1773458629717,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.1458 | Target: $0.4779 | SL: -$2.0851 | Margin: $20.85"}
+{"timestamp":1773458630197,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.1062 | Target: $0.4779 | SL: -$2.0851 | Margin: $20.85"}
+{"timestamp":1773458632663,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] No eligible tokens (slots 1/3). Filters or market may exclude all."}
+{"timestamp":1773458634358,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.1112 | Target: $0.4781 | SL: -$2.0865 | Margin: $20.87"}
+{"timestamp":1773458638077,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.1154 | Target: $0.4781 | SL: -$2.0866 | Margin: $20.87"}
+{"timestamp":1773458638877,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.1154 | Target: $0.4781 | SL: -$2.0866 | Margin: $20.87"}
+{"timestamp":1773458640278,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.1154 | Target: $0.4781 | SL: -$2.0866 | Margin: $20.87"}
+{"timestamp":1773458640777,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.1784 | Target: $0.4781 | SL: -$2.0866 | Margin: $20.87"}
+{"timestamp":1773458640805,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.1727 | Target: $0.4781 | SL: -$2.0866 | Margin: $20.87"}
+{"timestamp":1773458641341,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.1827 | Target: $0.4781 | SL: -$2.0866 | Margin: $20.87"}
+{"timestamp":1773458642670,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] No eligible tokens (slots 1/3). Filters or market may exclude all."}
+{"timestamp":1773458648020,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.1666 | Target: $0.4783 | SL: -$2.0877 | Margin: $20.88"}
+{"timestamp":1773458651218,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.1666 | Target: $0.4782 | SL: -$2.0869 | Margin: $20.87"}
+{"timestamp":1773458652662,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] No eligible tokens (slots 1/3). Filters or market may exclude all."}
+{"timestamp":1773458654107,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.1726 | Target: $0.4782 | SL: -$2.0867 | Margin: $20.87"}
+{"timestamp":1773458654378,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.1726 | Target: $0.4782 | SL: -$2.0867 | Margin: $20.87"}
+{"timestamp":1773458655477,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.1726 | Target: $0.4782 | SL: -$2.0867 | Margin: $20.87"}
+{"timestamp":1773458657517,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.1666 | Target: $0.4782 | SL: -$2.0868 | Margin: $20.87"}
+{"timestamp":1773458662662,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] No eligible tokens (slots 1/3). Filters or market may exclude all."}
+{"timestamp":1773458672666,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] No eligible tokens (slots 1/3). Filters or market may exclude all."}
+{"timestamp":1773458675917,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.1707 | Target: $0.4781 | SL: -$2.0861 | Margin: $20.86"}
+{"timestamp":1773458676417,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.1707 | Target: $0.4781 | SL: -$2.0861 | Margin: $20.86"}
+{"timestamp":1773458677358,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.1707 | Target: $0.4781 | SL: -$2.0861 | Margin: $20.86"}
+{"timestamp":1773458677658,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.1767 | Target: $0.4781 | SL: -$2.0861 | Margin: $20.86"}
+{"timestamp":1773458677858,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.1767 | Target: $0.4781 | SL: -$2.0861 | Margin: $20.86"}
+{"timestamp":1773458677917,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.1707 | Target: $0.4781 | SL: -$2.0861 | Margin: $20.86"}
+{"timestamp":1773458678458,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.1767 | Target: $0.4781 | SL: -$2.0861 | Margin: $20.86"}
+{"timestamp":1773458678758,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.1707 | Target: $0.4781 | SL: -$2.0861 | Margin: $20.86"}
+{"timestamp":1773458681659,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.1731 | Target: $0.4781 | SL: -$2.0861 | Margin: $20.86"}
+{"timestamp":1773458682665,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] No eligible tokens (slots 1/3). Filters or market may exclude all."}
+{"timestamp":1773458682957,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.1731 | Target: $0.4781 | SL: -$2.0861 | Margin: $20.86"}
+{"timestamp":1773458683558,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.2129 | Target: $0.4781 | SL: -$2.0861 | Margin: $20.86"}
+{"timestamp":1773458692668,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] No eligible tokens (slots 1/3). Filters or market may exclude all."}
+{"timestamp":1773458695917,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.1053 | Target: $0.4783 | SL: -$2.0876 | Margin: $20.88"}
+{"timestamp":1773458700814,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.0333 | Target: $0.4782 | SL: -$2.0871 | Margin: $20.87"}
+{"timestamp":1773458702666,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] No eligible tokens (slots 1/3). Filters or market may exclude all."}
+{"timestamp":1773458702820,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.0328 | Target: $0.4781 | SL: -$2.0866 | Margin: $20.87"}
+{"timestamp":1773458708209,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.0123 | Target: $0.4781 | SL: -$2.0861 | Margin: $20.86"}
+{"timestamp":1773458709478,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.0328 | Target: $0.4781 | SL: -$2.0861 | Margin: $20.86"}
+{"timestamp":1773458711102,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.0196 | Target: $0.4781 | SL: -$2.0866 | Margin: $20.87"}
+{"timestamp":1773458712377,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.0334 | Target: $0.4781 | SL: -$2.0866 | Margin: $20.87"}
+{"timestamp":1773458712664,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] No eligible tokens (slots 1/3). Filters or market may exclude all."}
+{"timestamp":1773458713777,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.0116 | Target: $0.4780 | SL: -$2.0856 | Margin: $20.86"}
+{"timestamp":1773458719837,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.0368 | Target: $0.4780 | SL: -$2.0856 | Margin: $20.86"}
+{"timestamp":1773458720499,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client connected. Total: 2"}
+{"timestamp":1773458722666,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] No eligible tokens (slots 1/3). Filters or market may exclude all."}
+{"timestamp":1773458726723,"level":"INFO","category":"EXIT","message":"[WS Server] Auto-Exit settings updated from client: autoExit=true autoTrade=true autoTradeUser=admin@tradeictearner.online"}
+{"timestamp":1773458728135,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.0368 | Target: $0.4780 | SL: -$2.0856 | Margin: $20.86"}
+{"timestamp":1773458728999,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.0368 | Target: $0.4780 | SL: -$2.0856 | Margin: $20.86"}
+{"timestamp":1773458732665,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] No eligible tokens (slots 1/3). Filters or market may exclude all."}
+{"timestamp":1773458732717,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.0368 | Target: $0.4780 | SL: -$2.0856 | Margin: $20.86"}
+{"timestamp":1773458732719,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.0368 | Target: $0.4780 | SL: -$2.0856 | Margin: $20.86"}
+{"timestamp":1773458739727,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.0368 | Target: $0.4781 | SL: -$2.0861 | Margin: $20.86"}
+{"timestamp":1773458741065,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.0368 | Target: $0.4781 | SL: -$2.0861 | Margin: $20.86"}
+{"timestamp":1773458742668,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] No eligible tokens (slots 1/3). Filters or market may exclude all."}
+{"timestamp":1773458750407,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client disconnected. Total: 1"}
+{"timestamp":1773458752668,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] No eligible tokens (slots 1/3). Filters or market may exclude all."}
+{"timestamp":1773458755405,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.0404 | Target: $0.4780 | SL: -$2.0857 | Margin: $20.86"}
+{"timestamp":1773458757047,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.0404 | Target: $0.4780 | SL: -$2.0857 | Margin: $20.86"}
+{"timestamp":1773458759743,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.0404 | Target: $0.4780 | SL: -$2.0857 | Margin: $20.86"}
+{"timestamp":1773458762671,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] No eligible tokens (slots 1/3). Filters or market may exclude all."}
+{"timestamp":1773458763857,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.0190 | Target: $0.4780 | SL: -$2.0857 | Margin: $20.86"}
+{"timestamp":1773458764197,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.0131 | Target: $0.4780 | SL: -$2.0857 | Margin: $20.86"}
+{"timestamp":1773458772667,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] No eligible tokens (slots 1/3). Filters or market may exclude all."}
+{"timestamp":1773458782671,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] No eligible tokens (slots 1/3). Filters or market may exclude all."}
+{"timestamp":1773458784818,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.0012 | Target: $0.4779 | SL: -$2.0851 | Margin: $20.85"}
+{"timestamp":1773458786958,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.0214 | Target: $0.4780 | SL: -$2.0857 | Margin: $20.86"}
+{"timestamp":1773458787582,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.0109 | Target: $0.4780 | SL: -$2.0857 | Margin: $20.86"}
+{"timestamp":1773458792672,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] No eligible tokens (slots 1/3). Filters or market may exclude all."}
+{"timestamp":1773458793439,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.0109 | Target: $0.4779 | SL: -$2.0851 | Margin: $20.85"}
+{"timestamp":1773458796937,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.0109 | Target: $0.4779 | SL: -$2.0851 | Margin: $20.85"}
+{"timestamp":1773458802668,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] No eligible tokens (slots 1/3). Filters or market may exclude all."}
+{"timestamp":1773458804257,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.0109 | Target: $0.4779 | SL: -$2.0845 | Margin: $20.85"}
+{"timestamp":1773458806858,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.0109 | Target: $0.4779 | SL: -$2.0845 | Margin: $20.85"}
+{"timestamp":1773458812675,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] No eligible tokens (slots 1/3). Filters or market may exclude all."}
+{"timestamp":1773458822677,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] No eligible tokens (slots 1/3). Filters or market may exclude all."}
+{"timestamp":1773458832437,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.0441 | Target: $0.4777 | SL: -$2.0835 | Margin: $20.83"}
+{"timestamp":1773458832670,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] No eligible tokens (slots 1/3). Filters or market may exclude all."}
+{"timestamp":1773458836933,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.0441 | Target: $0.4777 | SL: -$2.0835 | Margin: $20.83"}
+{"timestamp":1773458842672,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] No eligible tokens (slots 1/3). Filters or market may exclude all."}
+{"timestamp":1773458852714,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] No eligible tokens (slots 1/3). Filters or market may exclude all."}
+{"timestamp":1773458862671,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] No eligible tokens (slots 1/3). Filters or market may exclude all."}
+{"timestamp":1773458868980,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.0138 | Target: $0.4779 | SL: -$2.0845 | Margin: $20.84"}
+{"timestamp":1773458871931,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.0138 | Target: $0.4778 | SL: -$2.0843 | Margin: $20.84"}
+{"timestamp":1773458871934,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.0138 | Target: $0.4778 | SL: -$2.0843 | Margin: $20.84"}
+{"timestamp":1773458872671,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] No eligible tokens (slots 1/3). Filters or market may exclude all."}
+{"timestamp":1773458873597,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client connected. Total: 2"}
+{"timestamp":1773458875477,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.0138 | Target: $0.4778 | SL: -$2.0843 | Margin: $20.84"}
+{"timestamp":1773458878457,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.0138 | Target: $0.4778 | SL: -$2.0843 | Margin: $20.84"}
+{"timestamp":1773458882670,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] No eligible tokens (slots 1/3). Filters or market may exclude all."}
+{"timestamp":1773458885357,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.0138 | Target: $0.4779 | SL: -$2.0845 | Margin: $20.85"}
+{"timestamp":1773458886776,"level":"INFO","category":"EXIT","message":"[WS Server] Auto-Exit settings loaded: autoExit=true autoTrade=true pnlMethod=ORDERBOOK_DOUBLE_QTY autoTradeUser=admin@tradeictearner.online"}
+{"timestamp":1773458886844,"level":"ERROR","category":"SYSTEM","message":"[FATAL] Uncaught Exception: {\"code\":\"EADDRINUSE\",\"errno\":-98,\"syscall\":\"listen\",\"address\":\"::\",\"port\":8080}"}
+{"timestamp":1773458886993,"level":"INFO","category":"SYSTEM","message":"[WsManager] Bybit Linear WebSocket connected"}
+{"timestamp":1773458887187,"level":"INFO","category":"SYSTEM","message":"[WsManager] Binance Futures WebSocket connected"}

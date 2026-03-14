@@ -400,7 +400,11 @@ export default function ScreenerPage() {
           if (!row.state.symbol.toUpperCase().includes(q)) return false;
         }
         if (row.l2SpreadPct != null && Math.abs(row.l2SpreadPct) < minL2SpreadPct) return false;
-        if (intervalFilter === "same" && row.state.binanceFundingInterval !== row.state.bybitFundingInterval) return false;
+        if (intervalFilter === "same") {
+          const binanceHours = Math.round((row.state.binanceFundingInterval ?? 28800000) / 3600000);
+          const bybitHours = Math.round((row.state.bybitFundingInterval ?? 28800000) / 3600000);
+          if (binanceHours !== bybitHours) return false;
+        }
         if (fundingType === "favourable") {
           if (
             !isFavourableFunding(
@@ -449,7 +453,11 @@ export default function ScreenerPage() {
       const sym = norm(row.state.symbol);
       if (row.state.has3xLiquidity === false) continue;
       if (!sym || activePositions.has(sym)) continue;
-      if (intervalFilter === "same" && row.state.binanceFundingInterval !== row.state.bybitFundingInterval) continue;
+      if (intervalFilter === "same") {
+        const binanceHours = Math.round((row.state.binanceFundingInterval ?? 28800000) / 3600000);
+        const bybitHours = Math.round((row.state.bybitFundingInterval ?? 28800000) / 3600000);
+        if (binanceHours !== bybitHours) continue;
+      }
 
       nextSet.add(sym);
       if (nextSet.size >= availableSlots) break;
@@ -647,13 +655,13 @@ export default function ScreenerPage() {
                     <td className="p-4 text-slate-300">
                       {s.binanceFunding != null ? formatFundingPct(s.binanceFunding) : "—"}
                       <div className="text-[10px] text-slate-500 mt-0.5">
-                        {s.binanceFundingInterval != null ? `${s.binanceFundingInterval / 3600000}h` : "8h"}
+                        {s.binanceFundingInterval != null ? `${Math.round(s.binanceFundingInterval / 3600000)}h` : "8h"}
                       </div>
                     </td>
                     <td className="p-4 text-slate-300">
                       {s.bybitFunding != null ? formatFundingPct(s.bybitFunding) : "—"}
                       <div className="text-[10px] text-slate-500 mt-0.5">
-                        {s.bybitFundingInterval != null ? `${s.bybitFundingInterval / 3600000}h` : "8h"}
+                        {s.bybitFundingInterval != null ? `${Math.round(s.bybitFundingInterval / 3600000)}h` : "8h"}
                       </div>
                     </td>
                     <td className="p-4">
