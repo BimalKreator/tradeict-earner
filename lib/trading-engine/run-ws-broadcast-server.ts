@@ -556,6 +556,7 @@ async function main() {
       privateWs: privateWsManager,
       fetchOrderbook: fetchOrderbookSnapshot,
       getLiveOrderbook: (sym: string) => manager.getLiveOrderbook(sym),
+      getBybitLiveOrderbook: (sym: string) => manager.getBybitLiveOrderbook(sym),
       defaultSettings: getSettings(),
     };
   };

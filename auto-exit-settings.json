@@ -1,13 +1,12 @@
 {
-  "autoTrade": true,
   "autoExit": true,
-  "capitalPercent": 20,
-  "maxTradeSlot": 1,
-  "leverage": 10,
   "stoplossPercent": 10,
   "targetPercent": 1.3,
   "slippagePercent": 0.1,
   "feesPercent": 0.2,
-  "pnlCalculationMethod": "ORDERBOOK_DOUBLE_QTY",
-  "autoTradeUserEmail": "admin@tradeictearner.online"
+  "autoTrade": false,
+  "maxTradeSlot": 1,
+  "autoTradeUserEmail": "admin@tradeictearner.online",
+  "leverage": 10,
+  "capitalPercent": 20
 }

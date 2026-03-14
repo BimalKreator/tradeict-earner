@@ -1,5 +1,45 @@
 [
   {
+    "id": "e684c397-1d16-4bb0-91ce-76088b124027",
+    "symbol": "1000FLOKIUSDT",
+    "qty": 171,
+    "timestamp": 1773467787611,
+    "binanceEntry": 0.03017,
+    "binanceExit": 0.03002,
+    "binancePnl": -0.02565,
+    "bybitEntry": 0.03015,
+    "bybitExit": 0.03001,
+    "bybitPnl": 0.01828194,
+    "combinedPnlUsd": -0.007368059999999999,
+    "combinedPnlPct": -0.1434255502635901,
+    "exitReason": "Manual Exit",
+    "executionLogs": [
+      "Close attempt 1/15 (Bybit: 171 Binance: 171)",
+      "Position fully closed."
+    ],
+    "userEmail": "admin@tradeictearner.online"
+  },
+  {
+    "id": "046fc126-0ba5-4483-929c-8d1bc3dd6e6a",
+    "symbol": "AKEUSDT",
+    "qty": 522800,
+    "timestamp": 1773460129802,
+    "binanceEntry": 0.0001979114192,
+    "binanceExit": 0.0001984,
+    "binancePnl": 0.25543002000000004,
+    "bybitEntry": 0.00019781,
+    "bybitExit": 0.0001984,
+    "bybitPnl": -0.5371216,
+    "combinedPnlUsd": -0.28169157999999994,
+    "combinedPnlPct": -1.350665358482194,
+    "exitReason": "Manual Exit",
+    "executionLogs": [
+      "Close attempt 1/15 (Bybit: 522800 Binance: 522800)",
+      "Position fully closed."
+    ],
+    "userEmail": "admin@tradeictearner.online"
+  },
+  {
     "id": "bac69da0-690d-4fff-97cb-6f4f9ab64b5a",
     "symbol": "AKEUSDT",
     "qty": 527600,

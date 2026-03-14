@@ -263,7 +263,9 @@ export interface AutoExitContext {
   credentials: ExchangeCredentials;
   privateWs: PrivateWSManager;
   fetchOrderbook: (symbol: string) => Promise<OrderbookSnapshot>;
+  /** Use same orderbook as Dashboard (WsManager) so trigger PnL matches displayed Live PnL. */
   getLiveOrderbook?: (symbol: string) => OrderbookSnapshot | null;
+  getBybitLiveOrderbook?: (symbol: string) => OrderbookSnapshot | null;
   defaultSettings: ExecutionSettings;
 }
 
@@ -390,14 +392,19 @@ export function startAutoExitMonitor(
     const pos = cachedPositions.find((p) => normalizeSymbol(p.symbol) === symbol);
     if (!pos || exitLocks.has(pos.symbol)) return;
 
-    const binanceObRaw = binanceOrderbooks.get(symbol);
-    const bybitObRaw = bybitOrderbooks.get(symbol);
+    // Prefer shared orderbooks (WsManager) so trigger PnL matches Dashboard Live PnL exactly
+    let binanceSnap: OrderbookSnapshot | null = null;
+    let bybitSnap: OrderbookSnapshot | null = null;
+    if (ctx.getLiveOrderbook) binanceSnap = ctx.getLiveOrderbook(symbol) ?? null;
+    if (ctx.getBybitLiveOrderbook) bybitSnap = ctx.getBybitLiveOrderbook(symbol) ?? null;
+    if (!binanceSnap || !bybitSnap) {
+      const binanceObRaw = binanceOrderbooks.get(symbol);
+      const bybitObRaw = bybitOrderbooks.get(symbol);
+      if (!binanceSnap && binanceObRaw && binanceObRaw.bids.size > 0) binanceSnap = orderbookToSnapshot(symbol, binanceObRaw);
+      if (!bybitSnap && bybitObRaw && bybitObRaw.bids.size > 0) bybitSnap = orderbookToSnapshot(symbol, bybitObRaw);
+    }
 
-    if (!binanceObRaw && !bybitObRaw) return;
-
-    const binanceSnap = binanceObRaw && binanceObRaw.bids.size > 0 ? orderbookToSnapshot(symbol, binanceObRaw) : null;
-    const bybitSnap = bybitObRaw && bybitObRaw.bids.size > 0 ? orderbookToSnapshot(symbol, bybitObRaw) : null;
-
+    if (!binanceSnap && !bybitSnap) return;
     if (pos.binance && !binanceSnap) return;
     if (pos.bybit && !bybitSnap) return;
 
