@@ -46,6 +46,8 @@ export interface ExecutionSettings {
   pnlCalculationMethod?: "L2_VWAP" | "ORDERBOOK_DOUBLE_QTY";
   /** Auto-exit when funding flips: exit if PnL > 0, or force-exit if ≤10m to next funding. */
   fundingFlipExit?: boolean;
+  /** Fixed capital (USDT) per trade when > 0; otherwise fallback to capitalPercent. */
+  fixedCapitalPerTrade?: number;
 }
 
 export interface ExchangeCredentials {
@@ -1103,11 +1105,19 @@ export async function executeChunkTrade(
       console.log(`${P} Adjusted Manual Target Total Qty=${targetTotalQty}`);
     }
   } else {
-    const capPct = Math.max(0, Math.min(100, settings.capitalPercent ?? 10)) / 100;
-    const targetNotional = minBal * capPct * lev;
-    const targetQtyRaw = targetNotional / priceBybitBase;
-    targetTotalQty = parseFloat(formatQuantity(targetQtyRaw, Math.max(bybitStepSize, binanceStepSize)));
-    console.log(`${P} Auto Target Notional=$${targetNotional.toFixed(2)}, Target Total Qty=${targetTotalQty} (Cap%: ${capPct * 100}%, Lev: ${lev})`);
+    if (settings.fixedCapitalPerTrade && settings.fixedCapitalPerTrade > 0) {
+      const actualCapital = Math.min(minBal, settings.fixedCapitalPerTrade);
+      const targetNotional = actualCapital * lev;
+      const targetQtyRaw = targetNotional / priceBybitBase;
+      targetTotalQty = parseFloat(formatQuantity(targetQtyRaw, Math.max(bybitStepSize, binanceStepSize)));
+      console.log(`${P} Auto Target Notional=$${targetNotional.toFixed(2)}, Target Total Qty=${targetTotalQty} (Fixed Capital: $${actualCapital.toFixed(2)}, Lev: ${lev})`);
+    } else {
+      const capPct = Math.max(0, Math.min(100, settings.capitalPercent ?? 10)) / 100;
+      const targetNotional = minBal * capPct * lev;
+      const targetQtyRaw = targetNotional / priceBybitBase;
+      targetTotalQty = parseFloat(formatQuantity(targetQtyRaw, Math.max(bybitStepSize, binanceStepSize)));
+      console.log(`${P} Auto Target Notional=$${targetNotional.toFixed(2)}, Target Total Qty=${targetTotalQty} (Cap%: ${capPct * 100}%, Lev: ${lev})`);
+    }
   }
 
   if (targetTotalQty <= 0) {

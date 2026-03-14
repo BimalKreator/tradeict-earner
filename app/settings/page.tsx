@@ -30,6 +30,7 @@ export interface SettingsState {
   autoExit: boolean;
   fundingFlipExit: boolean;
   capitalPercent: number;
+  fixedCapitalPerTrade: number;
   maxTradeSlot: number;
   leverage: number;
   stoplossPercent: number;
@@ -43,6 +44,7 @@ const DEFAULT_SETTINGS: SettingsState = {
   autoExit: false,
   fundingFlipExit: false,
   capitalPercent: 10,
+  fixedCapitalPerTrade: 20,
   maxTradeSlot: 5,
   leverage: 3,
   stoplossPercent: 2,
@@ -67,8 +69,20 @@ export default function SettingsPage() {
   const [savingKeys, setSavingKeys] = useState(false);
   const [savingConfig, setSavingConfig] = useState(false);
   const [enginePaused, setEnginePaused] = useState(false);
+  const [minBalance, setMinBalance] = useState<number | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    fetch("/api/settings/balances", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" })
+      .then((r) => r.json())
+      .then((data: { binance?: { available?: number }; bybit?: { available?: number }; error?: string }) => {
+        if (!data.error && data.binance && data.bybit) {
+          setMinBalance(Math.min(data.binance.available ?? 0, data.bybit.available ?? 0));
+        }
+      })
+      .catch(console.error);
+  }, []);
 
   // WebSocket: sync engine pause state and send kill switch actions
   useEffect(() => {
@@ -102,6 +116,7 @@ export default function SettingsPage() {
           autoExit: typeof data.autoExit === "boolean" ? data.autoExit : DEFAULT_SETTINGS.autoExit,
           fundingFlipExit: typeof data.fundingFlipExit === "boolean" ? data.fundingFlipExit : DEFAULT_SETTINGS.fundingFlipExit,
           capitalPercent: typeof data.capitalPercent === "number" ? data.capitalPercent : DEFAULT_SETTINGS.capitalPercent,
+          fixedCapitalPerTrade: typeof data.fixedCapitalPerTrade === "number" ? data.fixedCapitalPerTrade : DEFAULT_SETTINGS.fixedCapitalPerTrade,
           maxTradeSlot: typeof data.maxTradeSlot === "number" ? data.maxTradeSlot : DEFAULT_SETTINGS.maxTradeSlot,
           leverage: typeof data.leverage === "number" ? data.leverage : DEFAULT_SETTINGS.leverage,
           stoplossPercent: typeof data.stoplossPercent === "number" ? data.stoplossPercent : DEFAULT_SETTINGS.stoplossPercent,
@@ -189,6 +204,7 @@ export default function SettingsPage() {
         autoTrade: settings.autoTrade,
         autoExit: settings.autoExit,
         fundingFlipExit: settings.fundingFlipExit,
+        fixedCapitalPerTrade: settings.fixedCapitalPerTrade,
         stoplossPercent: settings.stoplossPercent,
         targetPercent: settings.targetPercent,
         slippagePercent: settings.slippagePercent,
@@ -433,18 +449,25 @@ export default function SettingsPage() {
           <h2 className="text-lg font-semibold text-white border-b border-white/[0.06] pb-3">Risk</h2>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
             <div className="space-y-2">
-              <label className="block text-sm font-medium text-slate-300">Capital % per trade</label>
+              <label className="block text-sm font-medium text-slate-300">Fixed Capital per Trade (USDT)</label>
               <input
                 type="number"
                 min={0}
-                max={100}
-                step={0.5}
-                value={settings.capitalPercent}
-                onChange={(e) => update("capitalPercent", Number(e.target.value) || 0)}
+                step={1}
+                value={settings.fixedCapitalPerTrade}
+                onChange={(e) => update("fixedCapitalPerTrade", Number(e.target.value) || 0)}
                 className={inputClass}
               />
             </div>
             <div className="space-y-2">
+              {minBalance !== null &&
+                settings.fixedCapitalPerTrade > 0 &&
+                settings.maxTradeSlot > 0 &&
+                minBalance < settings.fixedCapitalPerTrade * settings.maxTradeSlot && (
+                  <p className="text-red-500 text-xs mb-2 font-medium">
+                    Warning: Your available balance (${minBalance.toFixed(2)}) is insufficient for {settings.maxTradeSlot} trades at ${settings.fixedCapitalPerTrade} each. The bot will only take trades until capital runs out.
+                  </p>
+                )}
               <label className="block text-sm font-medium text-slate-300">Max trade slot</label>
               <input
                 type="number"

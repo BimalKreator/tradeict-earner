@@ -277,6 +277,7 @@ function loadAutoExitSettings(): Partial<ExecutionSettings> {
     autoTrade: false,
     maxTradeSlot: 5,
     fundingFlipExit: false,
+    fixedCapitalPerTrade: 20,
   };
   try {
     if (fs.existsSync(SETTINGS_FILE)) {
@@ -290,6 +291,7 @@ function loadAutoExitSettings(): Partial<ExecutionSettings> {
       if (typeof data.autoTrade === "boolean") defaults.autoTrade = data.autoTrade;
       if (typeof data.maxTradeSlot === "number") defaults.maxTradeSlot = data.maxTradeSlot;
       if (typeof data.fundingFlipExit === "boolean") defaults.fundingFlipExit = data.fundingFlipExit;
+      if (typeof data.fixedCapitalPerTrade === "number" && data.fixedCapitalPerTrade >= 0) defaults.fixedCapitalPerTrade = data.fixedCapitalPerTrade;
       if (typeof data.autoTradeUserEmail === "string" && data.autoTradeUserEmail.trim()) {
         defaults.autoTradeUserEmail = data.autoTradeUserEmail.trim();
       }
@@ -750,7 +752,7 @@ async function main() {
           }
           return;
         }
-        const payloadMsg = msg.payload as { autoExit?: boolean; stoplossPercent?: number; targetPercent?: number; slippagePercent?: number; feesPercent?: number; leverage?: number; capitalPercent?: number; autoTrade?: boolean; maxTradeSlot?: number; fundingFlipExit?: boolean; userEmail?: string; pnlCalculationMethod?: "L2_VWAP" | "ORDERBOOK_DOUBLE_QTY" } | undefined;
+        const payloadMsg = msg.payload as { autoExit?: boolean; stoplossPercent?: number; targetPercent?: number; slippagePercent?: number; feesPercent?: number; leverage?: number; capitalPercent?: number; autoTrade?: boolean; maxTradeSlot?: number; fundingFlipExit?: boolean; fixedCapitalPerTrade?: number; userEmail?: string; pnlCalculationMethod?: "L2_VWAP" | "ORDERBOOK_DOUBLE_QTY" } | undefined;
         if (msg.action === "set_auto_exit_settings" && payloadMsg) {
           if (typeof payloadMsg.autoExit === "boolean") autoExitSettings.autoExit = payloadMsg.autoExit;
           if (typeof payloadMsg.stoplossPercent === "number" && payloadMsg.stoplossPercent >= 0) autoExitSettings.stoplossPercent = payloadMsg.stoplossPercent;
@@ -762,6 +764,7 @@ async function main() {
           if (typeof payloadMsg.autoTrade === "boolean") autoExitSettings.autoTrade = payloadMsg.autoTrade;
           if (typeof payloadMsg.maxTradeSlot === "number") autoExitSettings.maxTradeSlot = payloadMsg.maxTradeSlot;
           if (typeof payloadMsg.fundingFlipExit === "boolean") autoExitSettings.fundingFlipExit = payloadMsg.fundingFlipExit;
+          if (typeof payloadMsg.fixedCapitalPerTrade === "number" && payloadMsg.fixedCapitalPerTrade >= 0) autoExitSettings.fixedCapitalPerTrade = payloadMsg.fixedCapitalPerTrade;
           if (typeof payloadMsg.userEmail === "string" && payloadMsg.userEmail.trim()) {
             autoExitSettings.autoTradeUserEmail = payloadMsg.userEmail.trim();
           }
