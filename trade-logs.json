@@ -1,5 +1,26 @@
 [
   {
+    "id": "49a3eead-dfbf-484a-95d6-1c8e59a3dd95",
+    "symbol": "ALCHUSDT",
+    "qty": 2984,
+    "timestamp": 1773495036387,
+    "binanceEntry": 0.0694034852546,
+    "binanceExit": 0.06833,
+    "binancePnl": 3.20327999,
+    "bybitEntry": 0.06914147,
+    "bybitExit": 0.068,
+    "bybitPnl": -3.6250700399999998,
+    "combinedPnlUsd": -0.4217900499999998,
+    "combinedPnlPct": -1.0362412326689527,
+    "exitReason": "Target Hit",
+    "executionLogs": [
+      "Close attempt 1/15 (Bybit: 2984 Binance: 2984)",
+      "Close attempt 2/15 (Bybit: 1911 Binance: 0)",
+      "Position fully closed."
+    ],
+    "userEmail": "admin@tradeictearner.online"
+  },
+  {
     "id": "6112170a-68f3-401c-a2e6-fa2ddb3b5800",
     "symbol": "AKEUSDT",
     "qty": 275200,

@@ -1,7 +1,7 @@
 {
   "autoExit": true,
-  "stoplossPercent": 10,
-  "targetPercent": 2.3,
+  "stoplossPercent": 15,
+  "targetPercent": 1.3,
   "slippagePercent": 0.1,
   "feesPercent": 0.2,
   "autoTrade": true,

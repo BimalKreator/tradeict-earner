@@ -304,6 +304,8 @@ export function startAutoExitMonitor(
   const subscribedSymbols = new Set<string>();
   const binanceOrderbooks = new Map<string, OrderbookState>();
   const bybitOrderbooks = new Map<string, OrderbookState>();
+  const targetHitTimestamps = new Map<string, number>();
+  const stoplossHitTimestamps = new Map<string, number>();
 
   let binanceWs: WebSocket | null = null;
   let bybitWs: WebSocket | null = null;
@@ -484,13 +486,30 @@ export function startAutoExitMonitor(
     }
 
     if (combinedPnl >= targetAmount && targetAmount > 0) {
-      exitLocks.add(pos.symbol);
-      console.log(`[CHUNK-SYSTEM] Auto-Exit: ${pos.symbol} target hit! PnL=$${combinedPnl.toFixed(4)} >= Target=$${targetAmount.toFixed(4)}. Triggering exit.`);
-      triggerExit(pos, ctx, "Target Hit").finally(() => exitLocks.delete(pos.symbol));
+      stoplossHitTimestamps.delete(pos.symbol); // Reset SL timer
+      const firstHit = targetHitTimestamps.get(pos.symbol) ?? Date.now();
+      targetHitTimestamps.set(pos.symbol, firstHit);
+
+      if (Date.now() - firstHit >= 1500) {
+        exitLocks.add(pos.symbol);
+        targetHitTimestamps.delete(pos.symbol);
+        console.log(`[CHUNK-SYSTEM] Auto-Exit: ${pos.symbol} target confirmed stable for 1.5s! PnL=$${combinedPnl.toFixed(4)} >= Target=$${targetAmount.toFixed(4)}. Triggering exit.`);
+        triggerExit(pos, ctx, "Target Hit").finally(() => exitLocks.delete(pos.symbol));
+      }
     } else if (combinedPnl <= -stoplossAmount) {
-      exitLocks.add(pos.symbol);
-      console.log(`[CHUNK-SYSTEM] Auto-Exit: ${pos.symbol} stoploss hit! PnL=$${combinedPnl.toFixed(4)} <= -SL=$${stoplossAmount.toFixed(4)}. Triggering exit.`);
-      triggerExit(pos, ctx, "Stoploss Hit").finally(() => exitLocks.delete(pos.symbol));
+      targetHitTimestamps.delete(pos.symbol); // Reset Target timer
+      const firstSLHit = stoplossHitTimestamps.get(pos.symbol) ?? Date.now();
+      stoplossHitTimestamps.set(pos.symbol, firstSLHit);
+
+      if (Date.now() - firstSLHit >= 1500) {
+        exitLocks.add(pos.symbol);
+        stoplossHitTimestamps.delete(pos.symbol);
+        console.log(`[CHUNK-SYSTEM] Auto-Exit: ${pos.symbol} SL confirmed stable for 1.5s! PnL=$${combinedPnl.toFixed(4)}. Triggering exit.`);
+        triggerExit(pos, ctx, "Stoploss Hit").finally(() => exitLocks.delete(pos.symbol));
+      }
+    } else {
+      targetHitTimestamps.delete(pos.symbol);
+      stoplossHitTimestamps.delete(pos.symbol);
     }
   };
 
@@ -593,16 +612,32 @@ export function startAutoExitMonitor(
           }
 
           if (combinedPnl >= targetAmount && targetAmount > 0) {
-            exitLocks.add(pos.symbol);
-            console.log(`[CHUNK-SYSTEM] Auto-Exit (REST): ${pos.symbol} target hit! PnL=$${combinedPnl.toFixed(4)} >= Target=$${targetAmount.toFixed(4)}. Triggering exit.`);
-            triggerExit(pos, ctx, "Target Hit").finally(() => exitLocks.delete(pos.symbol));
-            break;
-          }
-          if (combinedPnl <= -stoplossAmount) {
-            exitLocks.add(pos.symbol);
-            console.log(`[CHUNK-SYSTEM] Auto-Exit (REST): ${pos.symbol} stoploss hit! PnL=$${combinedPnl.toFixed(4)}. Triggering exit.`);
-            triggerExit(pos, ctx, "Stoploss Hit").finally(() => exitLocks.delete(pos.symbol));
-            break;
+            stoplossHitTimestamps.delete(pos.symbol);
+            const firstHit = targetHitTimestamps.get(pos.symbol) ?? Date.now();
+            targetHitTimestamps.set(pos.symbol, firstHit);
+
+            if (Date.now() - firstHit >= 1500) {
+              exitLocks.add(pos.symbol);
+              targetHitTimestamps.delete(pos.symbol);
+              console.log(`[CHUNK-SYSTEM] Auto-Exit (REST): ${pos.symbol} target confirmed stable for 1.5s! PnL=$${combinedPnl.toFixed(4)} >= Target=$${targetAmount.toFixed(4)}. Triggering exit.`);
+              triggerExit(pos, ctx, "Target Hit").finally(() => exitLocks.delete(pos.symbol));
+              break;
+            }
+          } else if (combinedPnl <= -stoplossAmount) {
+            targetHitTimestamps.delete(pos.symbol);
+            const firstSLHit = stoplossHitTimestamps.get(pos.symbol) ?? Date.now();
+            stoplossHitTimestamps.set(pos.symbol, firstSLHit);
+
+            if (Date.now() - firstSLHit >= 1500) {
+              exitLocks.add(pos.symbol);
+              stoplossHitTimestamps.delete(pos.symbol);
+              console.log(`[CHUNK-SYSTEM] Auto-Exit (REST): ${pos.symbol} SL confirmed stable for 1.5s! PnL=$${combinedPnl.toFixed(4)}. Triggering exit.`);
+              triggerExit(pos, ctx, "Stoploss Hit").finally(() => exitLocks.delete(pos.symbol));
+              break;
+            }
+          } else {
+            targetHitTimestamps.delete(pos.symbol);
+            stoplossHitTimestamps.delete(pos.symbol);
           }
         } catch (e) {
           // ignore REST fallback errors
