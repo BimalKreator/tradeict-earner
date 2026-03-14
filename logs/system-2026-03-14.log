@@ -3482,3 +3482,143 @@
 {"timestamp":1773469606333,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $0.0046 | Target: $0.0769 | SL: -$0.5119 | Margin: $5.12"}
 {"timestamp":1773469608416,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $0.0046 | Target: $0.0769 | SL: -$0.5120 | Margin: $5.12"}
 {"timestamp":1773469610973,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $0.0046 | Target: $0.0769 | SL: -$0.5120 | Margin: $5.12"}
+{"timestamp":1773469615983,"level":"INFO","category":"EXIT","message":"[WS Server] Auto-Exit settings loaded: autoExit=true autoTrade=false pnlMethod=L2_VWAP autoTradeUser=admin@tradeictearner.online"}
+{"timestamp":1773469616044,"level":"ERROR","category":"SYSTEM","message":"[FATAL] Uncaught Exception: {\"code\":\"EADDRINUSE\",\"errno\":-98,\"syscall\":\"listen\",\"address\":\"::\",\"port\":8080}"}
+{"timestamp":1773469616223,"level":"INFO","category":"SYSTEM","message":"[WsManager] Bybit Linear WebSocket connected"}
+{"timestamp":1773469616419,"level":"INFO","category":"SYSTEM","message":"[WsManager] Binance Futures WebSocket connected"}
+{"timestamp":1773469621152,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $0.0046 | Target: $0.0769 | SL: -$0.5120 | Margin: $5.12"}
+{"timestamp":1773469623493,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $0.0046 | Target: $0.0769 | SL: -$0.5119 | Margin: $5.12"}
+{"timestamp":1773469626073,"level":"INFO","category":"EXIT","message":"[CHUNK-SYSTEM] Auto-Exit: Private WS disconnected. Reconnecting..."}
+{"timestamp":1773469626211,"level":"INFO","category":"SYSTEM","message":"[WS Server] Listening on ws://0.0.0.0:8080"}
+{"timestamp":1773469626211,"level":"INFO","category":"SYSTEM","message":"[WS Server] Tracking 50 symbols: 0GUSDT, 1000000MOGUSDT, 1000BONKUSDT, 1000CATUSDT, 1000FLOKIUSDT, 1000LUNCUSDT, 1000PEPEUSDT, 1000RATSUSDT..."}
+{"timestamp":1773469626212,"level":"INFO","category":"EXIT","message":"[WS Server] Auto-Exit monitor started (autoExit=true)."}
+{"timestamp":1773469634192,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client disconnected. Total: 0"}
+{"timestamp":1773469634509,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client connected. Total: 1"}
+{"timestamp":1773469634584,"level":"INFO","category":"EXIT","message":"[WS Server] Auto-Exit settings updated from client: autoExit=true autoTrade=false autoTradeUser=admin@tradeictearner.online"}
+{"timestamp":1773469635945,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client disconnected. Total: 0"}
+{"timestamp":1773469637114,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $0.0065 | Target: $0.0769 | SL: -$0.5121 | Margin: $5.12"}
+{"timestamp":1773469638673,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $0.0052 | Target: $0.0769 | SL: -$0.5121 | Margin: $5.12"}
+{"timestamp":1773469640485,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client connected. Total: 1"}
+{"timestamp":1773469640567,"level":"INFO","category":"EXIT","message":"[WS Server] Auto-Exit settings updated from client: autoExit=true autoTrade=false autoTradeUser=admin@tradeictearner.online"}
+{"timestamp":1773469641817,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $0.0052 | Target: $0.0769 | SL: -$0.5121 | Margin: $5.12"}
+{"timestamp":1773469642335,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client disconnected. Total: 0"}
+{"timestamp":1773469646917,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client connected. Total: 1"}
+{"timestamp":1773469647193,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client connected. Total: 2"}
+{"timestamp":1773469648120,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client disconnected. Total: 1"}
+{"timestamp":1773469656527,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client connected. Total: 2"}
+{"timestamp":1773469662793,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $0.0013 | Target: $0.0769 | SL: -$0.5121 | Margin: $5.12"}
+{"timestamp":1773469675873,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $0.0013 | Target: $0.0769 | SL: -$0.5121 | Margin: $5.12"}
+{"timestamp":1773469681927,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client disconnected. Total: 1"}
+{"timestamp":1773469682494,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client connected. Total: 2"}
+{"timestamp":1773469682759,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client connected. Total: 3"}
+{"timestamp":1773469683410,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client disconnected. Total: 2"}
+{"timestamp":1773469693388,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $0.0026 | Target: $0.0770 | SL: -$0.5125 | Margin: $5.12"}
+{"timestamp":1773469712411,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client disconnected. Total: 1"}
+{"timestamp":1773469714531,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $0.0026 | Target: $0.0770 | SL: -$0.5127 | Margin: $5.13"}
+{"timestamp":1773469714732,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $0.0026 | Target: $0.0770 | SL: -$0.5127 | Margin: $5.13"}
+{"timestamp":1773469724893,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $-0.0033 | Target: $0.0770 | SL: -$0.5127 | Margin: $5.13"}
+{"timestamp":1773469743937,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $-0.0033 | Target: $0.0769 | SL: -$0.5120 | Margin: $5.12"}
+{"timestamp":1773469754125,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $-0.0033 | Target: $0.0769 | SL: -$0.5120 | Margin: $5.12"}
+{"timestamp":1773469762303,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $-0.0007 | Target: $0.0769 | SL: -$0.5120 | Margin: $5.12"}
+{"timestamp":1773469771552,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $0.0020 | Target: $0.0769 | SL: -$0.5121 | Margin: $5.12"}
+{"timestamp":1773469774194,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $0.0020 | Target: $0.0769 | SL: -$0.5123 | Margin: $5.12"}
+{"timestamp":1773469781493,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $0.0020 | Target: $0.0769 | SL: -$0.5123 | Margin: $5.12"}
+{"timestamp":1773469801528,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $0.0013 | Target: $0.0769 | SL: -$0.5123 | Margin: $5.12"}
+{"timestamp":1773469804134,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $-0.0007 | Target: $0.0769 | SL: -$0.5122 | Margin: $5.12"}
+{"timestamp":1773469807232,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $-0.0007 | Target: $0.0769 | SL: -$0.5122 | Margin: $5.12"}
+{"timestamp":1773469818034,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $-0.0007 | Target: $0.0769 | SL: -$0.5122 | Margin: $5.12"}
+{"timestamp":1773469862047,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $0.0007 | Target: $0.0769 | SL: -$0.5121 | Margin: $5.12"}
+{"timestamp":1773469875624,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $0.0026 | Target: $0.0769 | SL: -$0.5120 | Margin: $5.12"}
+{"timestamp":1773469886273,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $0.0000 | Target: $0.0769 | SL: -$0.5118 | Margin: $5.12"}
+{"timestamp":1773469888593,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $0.0000 | Target: $0.0769 | SL: -$0.5118 | Margin: $5.12"}
+{"timestamp":1773469890054,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $0.0000 | Target: $0.0769 | SL: -$0.5118 | Margin: $5.12"}
+{"timestamp":1773469891973,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $0.0000 | Target: $0.0769 | SL: -$0.5120 | Margin: $5.12"}
+{"timestamp":1773469892693,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $0.0000 | Target: $0.0769 | SL: -$0.5120 | Margin: $5.12"}
+{"timestamp":1773469894436,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $0.0013 | Target: $0.0769 | SL: -$0.5120 | Margin: $5.12"}
+{"timestamp":1773469895478,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $0.0013 | Target: $0.0769 | SL: -$0.5120 | Margin: $5.12"}
+{"timestamp":1773469902154,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $-0.0007 | Target: $0.0769 | SL: -$0.5120 | Margin: $5.12"}
+{"timestamp":1773469905973,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $-0.0072 | Target: $0.0768 | SL: -$0.5113 | Margin: $5.11"}
+{"timestamp":1773469906393,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $-0.0072 | Target: $0.0768 | SL: -$0.5113 | Margin: $5.11"}
+{"timestamp":1773469907473,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $-0.0072 | Target: $0.0768 | SL: -$0.5113 | Margin: $5.11"}
+{"timestamp":1773469908081,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $-0.0085 | Target: $0.0768 | SL: -$0.5113 | Margin: $5.11"}
+{"timestamp":1773469908493,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $-0.0078 | Target: $0.0768 | SL: -$0.5113 | Margin: $5.11"}
+{"timestamp":1773469909196,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $-0.0078 | Target: $0.0769 | SL: -$0.5117 | Margin: $5.12"}
+{"timestamp":1773469912174,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $-0.0072 | Target: $0.0768 | SL: -$0.5116 | Margin: $5.12"}
+{"timestamp":1773469912212,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $-0.0072 | Target: $0.0768 | SL: -$0.5116 | Margin: $5.12"}
+{"timestamp":1773469912274,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $-0.0072 | Target: $0.0768 | SL: -$0.5116 | Margin: $5.12"}
+{"timestamp":1773469913673,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $-0.0072 | Target: $0.0768 | SL: -$0.5116 | Margin: $5.12"}
+{"timestamp":1773469914472,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $-0.0065 | Target: $0.0768 | SL: -$0.5116 | Margin: $5.12"}
+{"timestamp":1773469914633,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $-0.0065 | Target: $0.0768 | SL: -$0.5115 | Margin: $5.12"}
+{"timestamp":1773469915593,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $-0.0065 | Target: $0.0768 | SL: -$0.5115 | Margin: $5.12"}
+{"timestamp":1773469916573,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $-0.0065 | Target: $0.0768 | SL: -$0.5115 | Margin: $5.12"}
+{"timestamp":1773469917274,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $-0.0059 | Target: $0.0768 | SL: -$0.5115 | Margin: $5.12"}
+{"timestamp":1773469917474,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $-0.0059 | Target: $0.0768 | SL: -$0.5115 | Margin: $5.12"}
+{"timestamp":1773469917633,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $-0.0059 | Target: $0.0768 | SL: -$0.5115 | Margin: $5.12"}
+{"timestamp":1773469933952,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $-0.0072 | Target: $0.0768 | SL: -$0.5116 | Margin: $5.12"}
+{"timestamp":1773469935614,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $-0.0072 | Target: $0.0768 | SL: -$0.5114 | Margin: $5.11"}
+{"timestamp":1773469935694,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $-0.0072 | Target: $0.0768 | SL: -$0.5114 | Margin: $5.11"}
+{"timestamp":1773469936713,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $-0.0072 | Target: $0.0768 | SL: -$0.5114 | Margin: $5.11"}
+{"timestamp":1773469943097,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $-0.0072 | Target: $0.0768 | SL: -$0.5114 | Margin: $5.11"}
+{"timestamp":1773469943433,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $-0.0072 | Target: $0.0768 | SL: -$0.5114 | Margin: $5.11"}
+{"timestamp":1773469946745,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $-0.0072 | Target: $0.0768 | SL: -$0.5115 | Margin: $5.11"}
+{"timestamp":1773469961433,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $-0.0013 | Target: $0.0768 | SL: -$0.5115 | Margin: $5.12"}
+{"timestamp":1773469964433,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client disconnected. Total: 0"}
+{"timestamp":1773469970752,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $-0.0013 | Target: $0.0769 | SL: -$0.5117 | Margin: $5.12"}
+{"timestamp":1773469973472,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $-0.0013 | Target: $0.0769 | SL: -$0.5117 | Margin: $5.12"}
+{"timestamp":1773469975953,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $-0.0013 | Target: $0.0769 | SL: -$0.5118 | Margin: $5.12"}
+{"timestamp":1773469986614,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $-0.0046 | Target: $0.0769 | SL: -$0.5118 | Margin: $5.12"}
+{"timestamp":1773470030255,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $-0.0052 | Target: $0.0768 | SL: -$0.5115 | Margin: $5.11"}
+{"timestamp":1773470033087,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $-0.0059 | Target: $0.0768 | SL: -$0.5114 | Margin: $5.11"}
+{"timestamp":1773470037497,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $-0.0059 | Target: $0.0768 | SL: -$0.5114 | Margin: $5.11"}
+{"timestamp":1773470054422,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $-0.0059 | Target: $0.0768 | SL: -$0.5116 | Margin: $5.12"}
+{"timestamp":1773470081494,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $-0.0052 | Target: $0.0768 | SL: -$0.5115 | Margin: $5.12"}
+{"timestamp":1773470098473,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $-0.0052 | Target: $0.0768 | SL: -$0.5113 | Margin: $5.11"}
+{"timestamp":1773470099514,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $-0.0052 | Target: $0.0768 | SL: -$0.5113 | Margin: $5.11"}
+{"timestamp":1773470105353,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $-0.0033 | Target: $0.0768 | SL: -$0.5116 | Margin: $5.12"}
+{"timestamp":1773470106073,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $-0.0033 | Target: $0.0768 | SL: -$0.5116 | Margin: $5.12"}
+{"timestamp":1773470121936,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $0.0143 | Target: $0.0770 | SL: -$0.5129 | Margin: $5.13"}
+{"timestamp":1773470128152,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $0.0137 | Target: $0.0770 | SL: -$0.5132 | Margin: $5.13"}
+{"timestamp":1773470137194,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $0.0130 | Target: $0.0771 | SL: -$0.5132 | Margin: $5.13"}
+{"timestamp":1773470137373,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $0.0130 | Target: $0.0771 | SL: -$0.5132 | Margin: $5.13"}
+{"timestamp":1773470146039,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $0.0143 | Target: $0.0770 | SL: -$0.5132 | Margin: $5.13"}
+{"timestamp":1773470165112,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $0.0202 | Target: $0.0771 | SL: -$0.5133 | Margin: $5.13"}
+{"timestamp":1773470170736,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $0.0208 | Target: $0.0771 | SL: -$0.5135 | Margin: $5.14"}
+{"timestamp":1773470171672,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $0.0234 | Target: $0.0771 | SL: -$0.5135 | Margin: $5.14"}
+{"timestamp":1773470190234,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $0.0270 | Target: $0.0772 | SL: -$0.5140 | Margin: $5.14"}
+{"timestamp":1773470194847,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $0.0272 | Target: $0.0772 | SL: -$0.5140 | Margin: $5.14"}
+{"timestamp":1773470212038,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $0.0272 | Target: $0.0772 | SL: -$0.5141 | Margin: $5.14"}
+{"timestamp":1773470218753,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $0.0272 | Target: $0.0772 | SL: -$0.5142 | Margin: $5.14"}
+{"timestamp":1773470220803,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $0.0230 | Target: $0.0772 | SL: -$0.5142 | Margin: $5.14"}
+{"timestamp":1773470222993,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $0.0130 | Target: $0.0772 | SL: -$0.5142 | Margin: $5.14"}
+{"timestamp":1773470225651,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $0.0137 | Target: $0.0771 | SL: -$0.5138 | Margin: $5.14"}
+{"timestamp":1773470226173,"level":"INFO","category":"EXIT","message":"[CHUNK-SYSTEM] Auto-Exit: Private WS disconnected. Reconnecting..."}
+{"timestamp":1773470258255,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $0.0163 | Target: $0.0771 | SL: -$0.5136 | Margin: $5.14"}
+{"timestamp":1773470272854,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $0.0150 | Target: $0.0771 | SL: -$0.5136 | Margin: $5.14"}
+{"timestamp":1773470276207,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $0.0150 | Target: $0.0771 | SL: -$0.5136 | Margin: $5.14"}
+{"timestamp":1773470278258,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $0.0156 | Target: $0.0771 | SL: -$0.5136 | Margin: $5.14"}
+{"timestamp":1773470278915,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $0.0163 | Target: $0.0771 | SL: -$0.5136 | Margin: $5.14"}
+{"timestamp":1773470280813,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $0.0137 | Target: $0.0771 | SL: -$0.5136 | Margin: $5.14"}
+{"timestamp":1773470291594,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $0.0143 | Target: $0.0771 | SL: -$0.5134 | Margin: $5.13"}
+{"timestamp":1773470295993,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $0.0130 | Target: $0.0771 | SL: -$0.5135 | Margin: $5.13"}
+{"timestamp":1773470301812,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $0.0130 | Target: $0.0771 | SL: -$0.5136 | Margin: $5.14"}
+{"timestamp":1773470308521,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $0.0078 | Target: $0.0771 | SL: -$0.5134 | Margin: $5.13"}
+{"timestamp":1773470309573,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $0.0085 | Target: $0.0771 | SL: -$0.5134 | Margin: $5.13"}
+{"timestamp":1773470324139,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $0.0095 | Target: $0.0771 | SL: -$0.5134 | Margin: $5.13"}
+{"timestamp":1773470334953,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $0.0095 | Target: $0.0771 | SL: -$0.5133 | Margin: $5.13"}
+{"timestamp":1773470335475,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $0.0109 | Target: $0.0771 | SL: -$0.5133 | Margin: $5.13"}
+{"timestamp":1773470343674,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $0.0150 | Target: $0.0771 | SL: -$0.5132 | Margin: $5.13"}
+{"timestamp":1773470346574,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $0.0182 | Target: $0.0771 | SL: -$0.5133 | Margin: $5.13"}
+{"timestamp":1773470347213,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $0.0182 | Target: $0.0771 | SL: -$0.5133 | Margin: $5.13"}
+{"timestamp":1773470354393,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $0.0182 | Target: $0.0771 | SL: -$0.5135 | Margin: $5.14"}
+{"timestamp":1773470354513,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $0.0182 | Target: $0.0771 | SL: -$0.5135 | Margin: $5.14"}
+{"timestamp":1773470357273,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $0.0169 | Target: $0.0771 | SL: -$0.5136 | Margin: $5.14"}
+{"timestamp":1773470363855,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $0.0176 | Target: $0.0771 | SL: -$0.5136 | Margin: $5.14"}
+{"timestamp":1773470364481,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $0.0176 | Target: $0.0771 | SL: -$0.5136 | Margin: $5.14"}
+{"timestamp":1773470364718,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $0.0176 | Target: $0.0771 | SL: -$0.5136 | Margin: $5.14"}
+{"timestamp":1773470366479,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $0.0176 | Target: $0.0771 | SL: -$0.5136 | Margin: $5.14"}
+{"timestamp":1773470374169,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client connected. Total: 1"}
+{"timestamp":1773470374249,"level":"INFO","category":"SYSTEM","message":"[WS Server] Screener filters updated: minL2SpreadPct=0 fundingType=favourable sortBy=l2Spread banned=0 onlySafe=false"}
+{"timestamp":1773470377301,"level":"INFO","category":"SYSTEM","message":"[WS Server] Screener filters updated: minL2SpreadPct=5 fundingType=favourable sortBy=l2Spread banned=0 onlySafe=false"}
+{"timestamp":1773470399033,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $0.0190 | Target: $0.0771 | SL: -$0.5136 | Margin: $5.14"}
+{"timestamp":1773470402375,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $0.0163 | Target: $0.0771 | SL: -$0.5136 | Margin: $5.14"}
+{"timestamp":1773470403299,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $0.0150 | Target: $0.0771 | SL: -$0.5136 | Margin: $5.14"}

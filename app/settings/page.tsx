@@ -193,30 +193,34 @@ export default function SettingsPage() {
       }
       // Push saved config to the running WS engine so it uses new values immediately.
       try {
-        const wsUrl = `ws://${typeof window !== "undefined" ? window.location.hostname : "localhost"}:8080`;
-        const ws = new WebSocket(wsUrl);
-        ws.onopen = () => {
-          ws.send(
-            JSON.stringify({
-              action: "set_auto_exit_settings",
-              payload: {
-                autoTrade: settings.autoTrade,
-                autoExit: settings.autoExit,
-                stoplossPercent: settings.stoplossPercent,
-                targetPercent: settings.targetPercent,
-                slippagePercent: settings.slippagePercent,
-                feesPercent: settings.feesPercent,
-                leverage: settings.leverage,
-                capitalPercent: settings.capitalPercent,
-                maxTradeSlot: settings.maxTradeSlot,
-                userEmail: session?.user?.email ?? undefined,
-              },
-            })
-          );
-          setTimeout(() => ws.close(), 500);
+        const payload = {
+          action: "set_auto_exit_settings",
+          payload: {
+            autoTrade: settings.autoTrade,
+            autoExit: settings.autoExit,
+            stoplossPercent: settings.stoplossPercent,
+            targetPercent: settings.targetPercent,
+            slippagePercent: settings.slippagePercent,
+            feesPercent: settings.feesPercent,
+            leverage: settings.leverage,
+            capitalPercent: settings.capitalPercent,
+            maxTradeSlot: settings.maxTradeSlot,
+            userEmail: session?.user?.email ?? undefined,
+          },
         };
+        const msg = JSON.stringify(payload);
+        if (wsRef.current?.readyState === WebSocket.OPEN) {
+          wsRef.current.send(msg);
+        } else {
+          const wsUrl = `ws://${typeof window !== "undefined" ? window.location.hostname : "localhost"}:8080`;
+          const ws = new WebSocket(wsUrl);
+          ws.onopen = () => {
+            ws.send(msg);
+            setTimeout(() => ws.close(), 1500);
+          };
+        }
       } catch {
-        // WS sync is best-effort; config is already saved to file
+        // WS sync is best-effort; config is already saved to file and will be picked up by server within 10s
       }
       showToast("Settings saved and synced to bot", "success");
     } catch {

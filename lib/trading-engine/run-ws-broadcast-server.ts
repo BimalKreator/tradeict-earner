@@ -303,6 +303,30 @@ function loadAutoExitSettings(): Partial<ExecutionSettings> {
   return defaults;
 }
 
+/** Re-read settings from file so we pick up changes saved via Settings page (API) even if WS sync failed. */
+function reloadAutoExitSettingsFromFile(): void {
+  try {
+    if (!fs.existsSync(SETTINGS_FILE)) return;
+    const raw = fs.readFileSync(SETTINGS_FILE, "utf-8");
+    const data = JSON.parse(raw) as Partial<ExecutionSettings>;
+    if (typeof data.autoTrade === "boolean") autoExitSettings.autoTrade = data.autoTrade;
+    if (typeof data.autoExit === "boolean") autoExitSettings.autoExit = data.autoExit;
+    if (typeof data.stoplossPercent === "number" && data.stoplossPercent >= 0) autoExitSettings.stoplossPercent = data.stoplossPercent;
+    if (typeof data.targetPercent === "number" && data.targetPercent >= 0) autoExitSettings.targetPercent = data.targetPercent;
+    if (typeof data.slippagePercent === "number" && data.slippagePercent >= 0) autoExitSettings.slippagePercent = data.slippagePercent;
+    if (typeof data.feesPercent === "number" && data.feesPercent >= 0) autoExitSettings.feesPercent = data.feesPercent;
+    if (typeof data.maxTradeSlot === "number") autoExitSettings.maxTradeSlot = data.maxTradeSlot;
+    if (typeof data.autoTradeUserEmail === "string" && data.autoTradeUserEmail.trim()) {
+      autoExitSettings.autoTradeUserEmail = data.autoTradeUserEmail.trim();
+    }
+    if (data.pnlCalculationMethod === "ORDERBOOK_DOUBLE_QTY" || data.pnlCalculationMethod === "L2_VWAP") {
+      autoExitSettings.pnlCalculationMethod = data.pnlCalculationMethod;
+    }
+  } catch {
+    // ignore read errors
+  }
+}
+
 function saveAutoExitSettings(): void {
   try {
     fs.writeFileSync(SETTINGS_FILE, JSON.stringify(autoExitSettings, null, 2), "utf-8");
@@ -562,6 +586,9 @@ async function main() {
   };
   startAutoExitMonitor(getSettings, getContext);
   console.log(`[WS Server] Auto-Exit monitor started (autoExit=${!!autoExitSettings.autoExit}).`);
+
+  // Re-read settings file periodically so Settings page saves (via API) take effect even if WS sync failed
+  setInterval(reloadAutoExitSettingsFromFile, 10_000);
 
   if (lastCredentials) {
     console.log("[WS Server] Found API keys in ENV. Auto-starting Private WS Manager...");
