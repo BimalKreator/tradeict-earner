@@ -259,6 +259,26 @@ function combinedPnlFromL2TwoBooks(
   return pnl;
 }
 
+/** Net funding profit in USD for next round (same as Dashboard). Negative = flipped. */
+function combinedFundingUsd(
+  pos: GroupedPosition,
+  state: { binanceFunding?: number | null; bybitFunding?: number | null } | undefined
+): number {
+  if (!state) return 0;
+  let usd = 0;
+  if (pos.binance && state.binanceFunding != null) {
+    const sideMult = pos.binance.side === "Long" ? 1 : -1;
+    const posValue = pos.binance.quantity * (pos.binance.markPrice ?? pos.binance.entryPrice);
+    usd += -1 * sideMult * posValue * state.binanceFunding;
+  }
+  if (pos.bybit && state.bybitFunding != null) {
+    const sideMult = pos.bybit.side === "Long" ? 1 : -1;
+    const posValue = pos.bybit.quantity * (pos.bybit.markPrice ?? pos.bybit.entryPrice);
+    usd += -1 * sideMult * posValue * state.bybitFunding;
+  }
+  return usd;
+}
+
 export interface AutoExitContext {
   credentials: ExchangeCredentials;
   privateWs: PrivateWSManager;
@@ -266,6 +286,8 @@ export interface AutoExitContext {
   /** Use same orderbook as Dashboard (WsManager) so trigger PnL matches displayed Live PnL. */
   getLiveOrderbook?: (symbol: string) => OrderbookSnapshot | null;
   getBybitLiveOrderbook?: (symbol: string) => OrderbookSnapshot | null;
+  /** Live symbol states (funding rates, next funding time) for funding-flip exit. */
+  getStates?: () => { symbol: string; binanceFunding?: number | null; bybitFunding?: number | null; binanceNextFundingTime?: number; bybitNextFundingTime?: number }[];
   defaultSettings: ExecutionSettings;
 }
 
@@ -433,6 +455,34 @@ export function startAutoExitMonitor(
       console.log(`[AUTO-EXIT Tracker] ${symbol} | Live PnL: $${combinedPnl.toFixed(4)} | Target: $${targetAmount.toFixed(4)} | SL: -$${stoplossAmount.toFixed(4)} | Margin: $${margin.toFixed(2)}`);
     }
 
+    // Funding flip exit: if funding flipped (netFundingUsd < 0), exit if PnL > 0 or force-exit if ≤10m to next funding
+    if (settings.fundingFlipExit && ctx.getStates) {
+      const state = ctx.getStates().find((s: { symbol: string }) => normalizeSymbol(s.symbol) === symbol);
+      if (state) {
+        const netFundingUsd = combinedFundingUsd(pos, state);
+        if (netFundingUsd < 0) {
+          if (combinedPnl > 0) {
+            exitLocks.add(pos.symbol);
+            console.log(`[CHUNK-SYSTEM] Auto-Exit: ${pos.symbol} funding flipped (PnL positive). Triggering exit.`);
+            triggerExit(pos, ctx, "Funding Flip (PnL Positive)").finally(() => exitLocks.delete(pos.symbol));
+            return;
+          }
+          const t1 = (state as { binanceNextFundingTime?: number }).binanceNextFundingTime ?? Infinity;
+          const t2 = (state as { bybitNextFundingTime?: number }).bybitNextFundingTime ?? Infinity;
+          const nextFunding = Math.min(t1, t2);
+          if (Number.isFinite(nextFunding)) {
+            const timeRemaining = nextFunding - Date.now();
+            if (timeRemaining > 0 && timeRemaining <= 10 * 60 * 1000) {
+              exitLocks.add(pos.symbol);
+              console.log(`[CHUNK-SYSTEM] Auto-Exit: ${pos.symbol} funding flipped (forced exit < 10m to funding). Triggering exit.`);
+              triggerExit(pos, ctx, "Funding Flip (Forced Exit < 10m)").finally(() => exitLocks.delete(pos.symbol));
+              return;
+            }
+          }
+        }
+      }
+    }
+
     if (combinedPnl >= targetAmount && targetAmount > 0) {
       exitLocks.add(pos.symbol);
       console.log(`[CHUNK-SYSTEM] Auto-Exit: ${pos.symbol} target hit! PnL=$${combinedPnl.toFixed(4)} >= Target=$${targetAmount.toFixed(4)}. Triggering exit.`);
@@ -514,6 +564,34 @@ export function startAutoExitMonitor(
           const tradeValue = qty * entryPrice;
           const stoplossAmount = margin * stoplossPct;
           const targetAmount = (margin * targetPct) + (tradeValue * feesPct);
+
+          if (settings.fundingFlipExit && ctx.getStates) {
+            const state = ctx.getStates().find((s: { symbol: string }) => normalizeSymbol(s.symbol) === pos.symbol);
+            if (state) {
+              const netFundingUsd = combinedFundingUsd(pos, state);
+              if (netFundingUsd < 0) {
+                if (combinedPnl > 0) {
+                  exitLocks.add(pos.symbol);
+                  console.log(`[CHUNK-SYSTEM] Auto-Exit (REST): ${pos.symbol} funding flipped (PnL positive). Triggering exit.`);
+                  triggerExit(pos, ctx, "Funding Flip (PnL Positive)").finally(() => exitLocks.delete(pos.symbol));
+                  break;
+                }
+                const t1 = (state as { binanceNextFundingTime?: number }).binanceNextFundingTime ?? Infinity;
+                const t2 = (state as { bybitNextFundingTime?: number }).bybitNextFundingTime ?? Infinity;
+                const nextFunding = Math.min(t1, t2);
+                if (Number.isFinite(nextFunding)) {
+                  const timeRemaining = nextFunding - Date.now();
+                  if (timeRemaining > 0 && timeRemaining <= 10 * 60 * 1000) {
+                    exitLocks.add(pos.symbol);
+                    console.log(`[CHUNK-SYSTEM] Auto-Exit (REST): ${pos.symbol} funding flipped (forced exit < 10m). Triggering exit.`);
+                    triggerExit(pos, ctx, "Funding Flip (Forced Exit < 10m)").finally(() => exitLocks.delete(pos.symbol));
+                    break;
+                  }
+                }
+              }
+            }
+          }
+
           if (combinedPnl >= targetAmount && targetAmount > 0) {
             exitLocks.add(pos.symbol);
             console.log(`[CHUNK-SYSTEM] Auto-Exit (REST): ${pos.symbol} target hit! PnL=$${combinedPnl.toFixed(4)} >= Target=$${targetAmount.toFixed(4)}. Triggering exit.`);

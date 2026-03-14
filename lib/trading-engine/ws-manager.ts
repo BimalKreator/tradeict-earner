@@ -472,6 +472,8 @@ export class WsManager {
     s.bybitFunding = this.bybitFunding.get(symbol) ?? s.bybitFunding;
     s.binanceFundingInterval = this.binanceIntervals.get(symbol) ?? 28800000;
     s.bybitFundingInterval = this.bybitIntervals.get(symbol) ?? 28800000;
+    s.binanceNextFundingTime = this.binanceNextFunding.get(symbol);
+    s.bybitNextFundingTime = this.bybitNextFunding.get(symbol);
     s.has3xLiquidity = binanceHas3x && bybitHas3x;
     s.lastUpdate = now;
 

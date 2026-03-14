@@ -584,7 +584,16 @@ export default function DashboardPage() {
                   return (
                     <Fragment key={pos.symbol}>
                       <tr className="border-b border-white/[0.04] hover:bg-white/[0.02] transition-colors">
-                        <td className="p-4 font-medium text-white">{pos.symbol}</td>
+                        <td className="p-4 font-medium">
+                          <div className="flex items-center gap-2">
+                            <span className="text-white">{pos.symbol}</span>
+                            {combinedFundingUsd < 0 && (
+                              <span className="text-[9px] bg-red-500/20 text-red-400 border border-red-500/30 px-1.5 py-0.5 rounded uppercase font-bold tracking-wider">
+                                Flip
+                              </span>
+                            )}
+                          </div>
+                        </td>
                         <td className="p-4 text-right font-medium text-slate-300">
                           {l2Spread > 0 ? `${l2Spread.toFixed(4)}%` : "-"}
                         </td>

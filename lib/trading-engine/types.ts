@@ -18,6 +18,9 @@ export interface SymbolState {
   /** Funding interval (ms). Derived from nextFundingTime jumps via WS; default 8h until detected. */
   binanceFundingInterval?: number | null;
   bybitFundingInterval?: number | null;
+  /** Next funding time (ms) from exchange. */
+  binanceNextFundingTime?: number;
+  bybitNextFundingTime?: number;
   lastUpdate: number;
   /** How long (ms) absolute L2 spread % has stayed above the stability threshold. */
   spreadStableMs: number;

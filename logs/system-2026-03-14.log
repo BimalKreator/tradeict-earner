@@ -9309,3 +9309,59 @@
 {"timestamp":1773489061367,"level":"INFO","category":"SYSTEM","message":"[WS Server] Listening on ws://0.0.0.0:8080"}
 {"timestamp":1773489061367,"level":"INFO","category":"SYSTEM","message":"[WS Server] Tracking 50 symbols: 0GUSDT, 1000000MOGUSDT, 1000BONKUSDT, 1000CATUSDT, 1000FLOKIUSDT, 1000LUNCUSDT, 1000PEPEUSDT, 1000RATSUSDT..."}
 {"timestamp":1773489061369,"level":"INFO","category":"EXIT","message":"[WS Server] Auto-Exit monitor started (autoExit=true)."}
+{"timestamp":1773489782758,"level":"INFO","category":"EXIT","message":"[WS Server] Auto-Exit settings loaded: autoExit=true autoTrade=false pnlMethod=L2_VWAP autoTradeUser=admin@tradeictearner.online"}
+{"timestamp":1773489782970,"level":"INFO","category":"SYSTEM","message":"[WsManager] Bybit Linear WebSocket connected"}
+{"timestamp":1773489783161,"level":"INFO","category":"SYSTEM","message":"[WsManager] Binance Futures WebSocket connected"}
+{"timestamp":1773489792994,"level":"INFO","category":"SYSTEM","message":"[WS Server] Listening on ws://0.0.0.0:8080"}
+{"timestamp":1773489792995,"level":"INFO","category":"SYSTEM","message":"[WS Server] Tracking 50 symbols: 0GUSDT, 1000000MOGUSDT, 1000BONKUSDT, 1000CATUSDT, 1000FLOKIUSDT, 1000LUNCUSDT, 1000PEPEUSDT, 1000RATSUSDT..."}
+{"timestamp":1773489792997,"level":"INFO","category":"EXIT","message":"[WS Server] Auto-Exit monitor started (autoExit=true)."}
+{"timestamp":1773489867289,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client connected. Total: 1"}
+{"timestamp":1773489867471,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client connected. Total: 2"}
+{"timestamp":1773489867571,"level":"INFO","category":"EXIT","message":"[WS Server] Auto-Exit settings updated from client: autoExit=true autoTrade=false pnlMethod=L2_VWAP autoTradeUser=admin@tradeictearner.online"}
+{"timestamp":1773489867638,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client connected. Total: 3"}
+{"timestamp":1773489868925,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client disconnected. Total: 2"}
+{"timestamp":1773489871438,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client disconnected. Total: 1"}
+{"timestamp":1773490066767,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client disconnected. Total: 0"}
+{"timestamp":1773491797670,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client connected. Total: 1"}
+{"timestamp":1773491797746,"level":"INFO","category":"EXIT","message":"[WS Server] Auto-Exit settings updated from client: autoExit=true autoTrade=false pnlMethod=L2_VWAP autoTradeUser=admin@tradeictearner.online"}
+{"timestamp":1773491798970,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client disconnected. Total: 0"}
+{"timestamp":1773491800840,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client connected. Total: 1"}
+{"timestamp":1773491801101,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client connected. Total: 2"}
+{"timestamp":1773491801832,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client disconnected. Total: 1"}
+{"timestamp":1773491808808,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client connected. Total: 2"}
+{"timestamp":1773491809419,"level":"INFO","category":"SYSTEM","message":"[WS Server] Screener filters updated: minL2SpreadPct=5 fundingType=favourable sortBy=l2Spread banned=0 onlySafe=false"}
+{"timestamp":1773491810218,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client connected. Total: 3"}
+{"timestamp":1773491812396,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client connected. Total: 4"}
+{"timestamp":1773491812999,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client connected. Total: 5"}
+{"timestamp":1773491814559,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client connected. Total: 6"}
+{"timestamp":1773491814747,"level":"INFO","category":"SYSTEM","message":"[WS Server] Screener filters updated: minL2SpreadPct=5 fundingType=favourable sortBy=l2Spread banned=0 onlySafe=false"}
+{"timestamp":1773491819433,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client disconnected. Total: 5"}
+{"timestamp":1773491820017,"level":"INFO","category":"SYSTEM","message":"[WS Server] Screener filters updated: minL2SpreadPct=0 fundingType=favourable sortBy=l2Spread banned=0 onlySafe=false"}
+{"timestamp":1773491827218,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client disconnected. Total: 4"}
+{"timestamp":1773491830240,"level":"INFO","category":"SYSTEM","message":"[WS Server] Screener filters updated: minL2SpreadPct=0 fundingType=favourable sortBy=fundingSpread banned=0 onlySafe=false"}
+{"timestamp":1773491837996,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client disconnected. Total: 3"}
+{"timestamp":1773491841206,"level":"INFO","category":"SYSTEM","message":"[WS Server] Screener filters updated: minL2SpreadPct=0 fundingType=favourable sortBy=fundingSpread banned=0 onlySafe=true"}
+{"timestamp":1773491841475,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client disconnected. Total: 2"}
+{"timestamp":1773491844355,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client disconnected. Total: 1"}
+{"timestamp":1773491845572,"level":"INFO","category":"SYSTEM","message":"[WS Server] Screener filters updated: minL2SpreadPct=0 fundingType=favourable sortBy=fundingSpread banned=0 onlySafe=false"}
+{"timestamp":1773492252466,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client disconnected. Total: 0"}
+{"timestamp":1773492411362,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client connected. Total: 1"}
+{"timestamp":1773492411671,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client connected. Total: 2"}
+{"timestamp":1773492412298,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client disconnected. Total: 1"}
+{"timestamp":1773492413290,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client connected. Total: 2"}
+{"timestamp":1773492413564,"level":"INFO","category":"SYSTEM","message":"[WS Server] Screener filters updated: minL2SpreadPct=0 fundingType=favourable sortBy=fundingSpread banned=0 onlySafe=false"}
+{"timestamp":1773492414468,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client disconnected. Total: 1"}
+{"timestamp":1773492422764,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client connected. Total: 2"}
+{"timestamp":1773492423390,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client connected. Total: 3"}
+{"timestamp":1773492425464,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client disconnected. Total: 2"}
+{"timestamp":1773492430124,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client disconnected. Total: 1"}
+{"timestamp":1773492901345,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client disconnected. Total: 0"}
+{"timestamp":1773493695849,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client connected. Total: 1"}
+{"timestamp":1773493696038,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client connected. Total: 2"}
+{"timestamp":1773493696133,"level":"INFO","category":"EXIT","message":"[WS Server] Auto-Exit settings updated from client: autoExit=true autoTrade=false pnlMethod=L2_VWAP autoTradeUser=admin@tradeictearner.online"}
+{"timestamp":1773493696215,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client connected. Total: 3"}
+{"timestamp":1773493697398,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client disconnected. Total: 2"}
+{"timestamp":1773493699898,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client disconnected. Total: 1"}
+{"timestamp":1773493705486,"level":"INFO","category":"EXIT","message":"[WS Server] Auto-Exit settings loaded: autoExit=true autoTrade=false fundingFlipExit=false pnlMethod=L2_VWAP autoTradeUser=admin@tradeictearner.online"}
+{"timestamp":1773493705717,"level":"INFO","category":"SYSTEM","message":"[WsManager] Bybit Linear WebSocket connected"}
+{"timestamp":1773493705908,"level":"INFO","category":"SYSTEM","message":"[WsManager] Binance Futures WebSocket connected"}

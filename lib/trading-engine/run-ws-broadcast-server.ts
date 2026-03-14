@@ -276,6 +276,7 @@ function loadAutoExitSettings(): Partial<ExecutionSettings> {
     feesPercent: typeof process.env.FEES_PERCENT !== "undefined" ? parseFloat(process.env.FEES_PERCENT) || 0.1 : 0.1,
     autoTrade: false,
     maxTradeSlot: 5,
+    fundingFlipExit: false,
   };
   try {
     if (fs.existsSync(SETTINGS_FILE)) {
@@ -288,6 +289,7 @@ function loadAutoExitSettings(): Partial<ExecutionSettings> {
       if (typeof data.feesPercent === "number" && data.feesPercent >= 0) defaults.feesPercent = data.feesPercent;
       if (typeof data.autoTrade === "boolean") defaults.autoTrade = data.autoTrade;
       if (typeof data.maxTradeSlot === "number") defaults.maxTradeSlot = data.maxTradeSlot;
+      if (typeof data.fundingFlipExit === "boolean") defaults.fundingFlipExit = data.fundingFlipExit;
       if (typeof data.autoTradeUserEmail === "string" && data.autoTradeUserEmail.trim()) {
         defaults.autoTradeUserEmail = data.autoTradeUserEmail.trim();
       }
@@ -299,7 +301,7 @@ function loadAutoExitSettings(): Partial<ExecutionSettings> {
     console.warn("[WS Server] Could not load auto-exit-settings.json:", e);
   }
   if (!defaults.pnlCalculationMethod) defaults.pnlCalculationMethod = "L2_VWAP";
-  console.log("[WS Server] Auto-Exit settings loaded: autoExit=" + defaults.autoExit + " autoTrade=" + defaults.autoTrade + " pnlMethod=" + (defaults.pnlCalculationMethod ?? "L2_VWAP") + (defaults.autoTradeUserEmail ? " autoTradeUser=" + defaults.autoTradeUserEmail : ""));
+  console.log("[WS Server] Auto-Exit settings loaded: autoExit=" + defaults.autoExit + " autoTrade=" + defaults.autoTrade + " fundingFlipExit=" + !!defaults.fundingFlipExit + " pnlMethod=" + (defaults.pnlCalculationMethod ?? "L2_VWAP") + (defaults.autoTradeUserEmail ? " autoTradeUser=" + defaults.autoTradeUserEmail : ""));
   return defaults;
 }
 
@@ -557,6 +559,7 @@ async function main() {
       fetchOrderbook: fetchOrderbookSnapshot,
       getLiveOrderbook: (sym: string) => manager.getLiveOrderbook(sym),
       getBybitLiveOrderbook: (sym: string) => manager.getBybitLiveOrderbook(sym),
+      getStates: () => manager.getStates(),
       defaultSettings: getSettings(),
     };
   };
@@ -747,7 +750,7 @@ async function main() {
           }
           return;
         }
-        const payloadMsg = msg.payload as { autoExit?: boolean; stoplossPercent?: number; targetPercent?: number; slippagePercent?: number; feesPercent?: number; leverage?: number; capitalPercent?: number; autoTrade?: boolean; maxTradeSlot?: number; userEmail?: string; pnlCalculationMethod?: "L2_VWAP" | "ORDERBOOK_DOUBLE_QTY" } | undefined;
+        const payloadMsg = msg.payload as { autoExit?: boolean; stoplossPercent?: number; targetPercent?: number; slippagePercent?: number; feesPercent?: number; leverage?: number; capitalPercent?: number; autoTrade?: boolean; maxTradeSlot?: number; fundingFlipExit?: boolean; userEmail?: string; pnlCalculationMethod?: "L2_VWAP" | "ORDERBOOK_DOUBLE_QTY" } | undefined;
         if (msg.action === "set_auto_exit_settings" && payloadMsg) {
           if (typeof payloadMsg.autoExit === "boolean") autoExitSettings.autoExit = payloadMsg.autoExit;
           if (typeof payloadMsg.stoplossPercent === "number" && payloadMsg.stoplossPercent >= 0) autoExitSettings.stoplossPercent = payloadMsg.stoplossPercent;
@@ -758,6 +761,7 @@ async function main() {
           if (typeof payloadMsg.capitalPercent === "number") autoExitSettings.capitalPercent = payloadMsg.capitalPercent;
           if (typeof payloadMsg.autoTrade === "boolean") autoExitSettings.autoTrade = payloadMsg.autoTrade;
           if (typeof payloadMsg.maxTradeSlot === "number") autoExitSettings.maxTradeSlot = payloadMsg.maxTradeSlot;
+          if (typeof payloadMsg.fundingFlipExit === "boolean") autoExitSettings.fundingFlipExit = payloadMsg.fundingFlipExit;
           if (typeof payloadMsg.userEmail === "string" && payloadMsg.userEmail.trim()) {
             autoExitSettings.autoTradeUserEmail = payloadMsg.userEmail.trim();
           }

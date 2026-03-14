@@ -12,6 +12,7 @@ const CONFIG_FILE = path.join(process.cwd(), "auto-exit-settings.json");
 const DEFAULT_CONFIG = {
   autoTrade: false,
   autoExit: false,
+  fundingFlipExit: false,
   capitalPercent: 10,
   maxTradeSlot: 5,
   leverage: 3,
@@ -29,6 +30,7 @@ export async function GET() {
     return NextResponse.json({
       autoTrade: typeof parsed.autoTrade === "boolean" ? parsed.autoTrade : DEFAULT_CONFIG.autoTrade,
       autoExit: typeof parsed.autoExit === "boolean" ? parsed.autoExit : DEFAULT_CONFIG.autoExit,
+      fundingFlipExit: typeof parsed.fundingFlipExit === "boolean" ? parsed.fundingFlipExit : DEFAULT_CONFIG.fundingFlipExit,
       capitalPercent: typeof parsed.capitalPercent === "number" ? parsed.capitalPercent : DEFAULT_CONFIG.capitalPercent,
       maxTradeSlot: typeof parsed.maxTradeSlot === "number" ? parsed.maxTradeSlot : DEFAULT_CONFIG.maxTradeSlot,
       leverage: typeof parsed.leverage === "number" ? parsed.leverage : DEFAULT_CONFIG.leverage,
@@ -61,6 +63,7 @@ export async function POST(request: Request) {
     const config = {
       autoTrade: typeof body.autoTrade === "boolean" ? body.autoTrade : DEFAULT_CONFIG.autoTrade,
       autoExit: typeof body.autoExit === "boolean" ? body.autoExit : DEFAULT_CONFIG.autoExit,
+      fundingFlipExit: typeof body.fundingFlipExit === "boolean" ? body.fundingFlipExit : DEFAULT_CONFIG.fundingFlipExit,
       capitalPercent: typeof body.capitalPercent === "number" ? body.capitalPercent : DEFAULT_CONFIG.capitalPercent,
       maxTradeSlot: typeof body.maxTradeSlot === "number" ? body.maxTradeSlot : DEFAULT_CONFIG.maxTradeSlot,
       leverage: typeof body.leverage === "number" ? body.leverage : DEFAULT_CONFIG.leverage,

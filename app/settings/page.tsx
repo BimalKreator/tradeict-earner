@@ -28,6 +28,7 @@ function maskValue(val: string): string {
 export interface SettingsState {
   autoTrade: boolean;
   autoExit: boolean;
+  fundingFlipExit: boolean;
   capitalPercent: number;
   maxTradeSlot: number;
   leverage: number;
@@ -40,6 +41,7 @@ export interface SettingsState {
 const DEFAULT_SETTINGS: SettingsState = {
   autoTrade: false,
   autoExit: false,
+  fundingFlipExit: false,
   capitalPercent: 10,
   maxTradeSlot: 5,
   leverage: 3,
@@ -98,6 +100,7 @@ export default function SettingsPage() {
         setSettings({
           autoTrade: typeof data.autoTrade === "boolean" ? data.autoTrade : DEFAULT_SETTINGS.autoTrade,
           autoExit: typeof data.autoExit === "boolean" ? data.autoExit : DEFAULT_SETTINGS.autoExit,
+          fundingFlipExit: typeof data.fundingFlipExit === "boolean" ? data.fundingFlipExit : DEFAULT_SETTINGS.fundingFlipExit,
           capitalPercent: typeof data.capitalPercent === "number" ? data.capitalPercent : DEFAULT_SETTINGS.capitalPercent,
           maxTradeSlot: typeof data.maxTradeSlot === "number" ? data.maxTradeSlot : DEFAULT_SETTINGS.maxTradeSlot,
           leverage: typeof data.leverage === "number" ? data.leverage : DEFAULT_SETTINGS.leverage,
@@ -185,6 +188,7 @@ export default function SettingsPage() {
       const configPayload = {
         autoTrade: settings.autoTrade,
         autoExit: settings.autoExit,
+        fundingFlipExit: settings.fundingFlipExit,
         stoplossPercent: settings.stoplossPercent,
         targetPercent: settings.targetPercent,
         slippagePercent: settings.slippagePercent,
@@ -374,6 +378,29 @@ export default function SettingsPage() {
                 <span
                   className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition ${
                     settings.autoTrade ? "translate-x-5" : "translate-x-0.5"
+                  }`}
+                />
+              </button>
+            </div>
+            <div className="flex items-center justify-between rounded-xl border border-white/[0.1] bg-white/[0.06] px-4 py-3">
+              <div>
+                <label className="text-sm font-medium text-slate-300">Funding Flip Exit</label>
+                <p className="text-xs text-slate-500 mt-0.5">Auto-exit flipped funding trades if PnL is positive, or force-exit 10 mins before next funding.</p>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={settings.fundingFlipExit}
+                onClick={() => update("fundingFlipExit", !settings.fundingFlipExit)}
+                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/50 ${
+                  settings.fundingFlipExit
+                    ? "border-blue-500/50 bg-blue-500/30"
+                    : "border-white/[0.2] bg-white/[0.08]"
+                }`}
+              >
+                <span
+                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition ${
+                    settings.fundingFlipExit ? "translate-x-5" : "translate-x-0.5"
                   }`}
                 />
               </button>

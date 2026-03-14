@@ -44,6 +44,8 @@ export interface ExecutionSettings {
   autoTradeUserEmail?: string;
   /** How to compute unrealized PnL and Target/SL: L2 VWAP (avg price over 2x qty) or orderbook price at 2x qty level. */
   pnlCalculationMethod?: "L2_VWAP" | "ORDERBOOK_DOUBLE_QTY";
+  /** Auto-exit when funding flips: exit if PnL > 0, or force-exit if ≤10m to next funding. */
+  fundingFlipExit?: boolean;
 }
 
 export interface ExchangeCredentials {
