@@ -589,3 +589,121 @@
 {"timestamp":1773458886844,"level":"ERROR","category":"SYSTEM","message":"[FATAL] Uncaught Exception: {\"code\":\"EADDRINUSE\",\"errno\":-98,\"syscall\":\"listen\",\"address\":\"::\",\"port\":8080}"}
 {"timestamp":1773458886993,"level":"INFO","category":"SYSTEM","message":"[WsManager] Bybit Linear WebSocket connected"}
 {"timestamp":1773458887187,"level":"INFO","category":"SYSTEM","message":"[WsManager] Binance Futures WebSocket connected"}
+{"timestamp":1773458889894,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.0138 | Target: $0.4779 | SL: -$2.0845 | Margin: $20.85"}
+{"timestamp":1773458890636,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.0138 | Target: $0.4779 | SL: -$2.0845 | Margin: $20.85"}
+{"timestamp":1773458891437,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.0138 | Target: $0.4779 | SL: -$2.0845 | Margin: $20.85"}
+{"timestamp":1773458897004,"level":"INFO","category":"SYSTEM","message":"[WS Server] Listening on ws://0.0.0.0:8080"}
+{"timestamp":1773458897004,"level":"INFO","category":"SYSTEM","message":"[WS Server] Tracking 50 symbols: 0GUSDT, 1000000MOGUSDT, 1000BONKUSDT, 1000CATUSDT, 1000FLOKIUSDT, 1000LUNCUSDT, 1000PEPEUSDT, 1000RATSUSDT..."}
+{"timestamp":1773458897005,"level":"INFO","category":"EXIT","message":"[WS Server] Auto-Exit monitor started (autoExit=true)."}
+{"timestamp":1773458902466,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client disconnected. Total: 1"}
+{"timestamp":1773458907096,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] Using API keys for admin@tradeictearner.online (from Save settings)."}
+{"timestamp":1773458907096,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] Skipped: private WS not connected."}
+{"timestamp":1773458909219,"level":"INFO","category":"EXIT","message":"[CHUNK-SYSTEM] Auto-Exit Bybit depth WS connected."}
+{"timestamp":1773458909407,"level":"INFO","category":"EXIT","message":"[CHUNK-SYSTEM] Auto-Exit Binance depth WS connected."}
+{"timestamp":1773458912125,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.0823 | Target: $0.4778 | SL: -$2.0840 | Margin: $20.84"}
+{"timestamp":1773458925565,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.3667 | Target: $0.4777 | SL: -$2.0830 | Margin: $20.83"}
+{"timestamp":1773458954012,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client disconnected. Total: 0"}
+{"timestamp":1773458954266,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client connected. Total: 1"}
+{"timestamp":1773458954737,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client connected. Total: 2"}
+{"timestamp":1773458954939,"level":"INFO","category":"EXIT","message":"[WS Server] Auto-Exit settings updated from client: autoExit=true autoTrade=true autoTradeUser=admin@tradeictearner.online"}
+{"timestamp":1773458963857,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.1403 | Target: $0.4776 | SL: -$2.0824 | Margin: $20.82"}
+{"timestamp":1773458965758,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.1403 | Target: $0.4776 | SL: -$2.0824 | Margin: $20.82"}
+{"timestamp":1773458968010,"level":"INFO","category":"EXIT","message":"[WS Server] Auto-Exit settings updated from client: autoExit=true autoTrade=true autoTradeUser=admin@tradeictearner.online"}
+{"timestamp":1773458969185,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.1403 | Target: $0.4775 | SL: -$2.0819 | Margin: $20.82"}
+{"timestamp":1773458976452,"level":"INFO","category":"EXIT","message":"[WS Server] Auto-Exit settings updated from client: autoExit=true autoTrade=true autoTradeUser=admin@tradeictearner.online"}
+{"timestamp":1773458978155,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client disconnected. Total: 1"}
+{"timestamp":1773458996172,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.0336 | Target: $0.4772 | SL: -$2.0794 | Margin: $20.79"}
+{"timestamp":1773458996521,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.2621 | Target: $0.4772 | SL: -$2.0794 | Margin: $20.79"}
+{"timestamp":1773459000158,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.2621 | Target: $0.4774 | SL: -$2.0806 | Margin: $20.81"}
+{"timestamp":1773459000358,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.2099 | Target: $0.4774 | SL: -$2.0806 | Margin: $20.81"}
+{"timestamp":1773459037097,"level":"INFO","category":"EXIT","message":"[CHUNK-SYSTEM] Auto-Exit: Private WS disconnected. Reconnecting..."}
+{"timestamp":1773459055657,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.2099 | Target: $0.4778 | SL: -$2.0840 | Margin: $20.84"}
+{"timestamp":1773459058323,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.1576 | Target: $0.4778 | SL: -$2.0840 | Margin: $20.84"}
+{"timestamp":1773459061803,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.0766 | Target: $0.4778 | SL: -$2.0840 | Margin: $20.84"}
+{"timestamp":1773459063477,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.0766 | Target: $0.4778 | SL: -$2.0840 | Margin: $20.84"}
+{"timestamp":1773459065127,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.1576 | Target: $0.4779 | SL: -$2.0845 | Margin: $20.85"}
+{"timestamp":1773459072825,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.0766 | Target: $0.4779 | SL: -$2.0851 | Margin: $20.85"}
+{"timestamp":1773459076023,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.1576 | Target: $0.4779 | SL: -$2.0851 | Margin: $20.85"}
+{"timestamp":1773459120597,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.1576 | Target: $0.4777 | SL: -$2.0835 | Margin: $20.83"}
+{"timestamp":1773459123518,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.1576 | Target: $0.4777 | SL: -$2.0835 | Margin: $20.83"}
+{"timestamp":1773459125799,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.1336 | Target: $0.4776 | SL: -$2.0824 | Margin: $20.82"}
+{"timestamp":1773459129838,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.1576 | Target: $0.4776 | SL: -$2.0824 | Margin: $20.82"}
+{"timestamp":1773459130558,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.2504 | Target: $0.4776 | SL: -$2.0824 | Margin: $20.82"}
+{"timestamp":1773459130657,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.0530 | Target: $0.4776 | SL: -$2.0824 | Margin: $20.82"}
+{"timestamp":1773459135140,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.1053 | Target: $0.4775 | SL: -$2.0814 | Margin: $20.81"}
+{"timestamp":1773459167260,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.2260 | Target: $0.4775 | SL: -$2.0814 | Margin: $20.81"}
+{"timestamp":1773459173853,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.0530 | Target: $0.4775 | SL: -$2.0814 | Margin: $20.81"}
+{"timestamp":1773459174285,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.0530 | Target: $0.4775 | SL: -$2.0814 | Margin: $20.81"}
+{"timestamp":1773459182298,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.1576 | Target: $0.4775 | SL: -$2.0818 | Margin: $20.82"}
+{"timestamp":1773459183198,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.1576 | Target: $0.4775 | SL: -$2.0818 | Margin: $20.82"}
+{"timestamp":1773459184403,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.1576 | Target: $0.4775 | SL: -$2.0818 | Margin: $20.82"}
+{"timestamp":1773459195217,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.1138 | Target: $0.4776 | SL: -$2.0824 | Margin: $20.82"}
+{"timestamp":1773459209258,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.1576 | Target: $0.4777 | SL: -$2.0830 | Margin: $20.83"}
+{"timestamp":1773459211458,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.1576 | Target: $0.4777 | SL: -$2.0830 | Margin: $20.83"}
+{"timestamp":1773459212198,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.1576 | Target: $0.4777 | SL: -$2.0830 | Margin: $20.83"}
+{"timestamp":1773459228525,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.1229 | Target: $0.4774 | SL: -$2.0811 | Margin: $20.81"}
+{"timestamp":1773459228978,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.1576 | Target: $0.4774 | SL: -$2.0811 | Margin: $20.81"}
+{"timestamp":1773459229998,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.1382 | Target: $0.4774 | SL: -$2.0810 | Margin: $20.81"}
+{"timestamp":1773459231379,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.2084 | Target: $0.4774 | SL: -$2.0810 | Margin: $20.81"}
+{"timestamp":1773459231519,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.2084 | Target: $0.4774 | SL: -$2.0810 | Margin: $20.81"}
+{"timestamp":1773459231629,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.0530 | Target: $0.4775 | SL: -$2.0813 | Margin: $20.81"}
+{"timestamp":1773459233057,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.2084 | Target: $0.4773 | SL: -$2.0803 | Margin: $20.80"}
+{"timestamp":1773459233835,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.0530 | Target: $0.4773 | SL: -$2.0803 | Margin: $20.80"}
+{"timestamp":1773459234657,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.0530 | Target: $0.4773 | SL: -$2.0803 | Margin: $20.80"}
+{"timestamp":1773459236538,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.2084 | Target: $0.4773 | SL: -$2.0803 | Margin: $20.80"}
+{"timestamp":1773459238323,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.0530 | Target: $0.4773 | SL: -$2.0803 | Margin: $20.80"}
+{"timestamp":1773459244058,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.1544 | Target: $0.4774 | SL: -$2.0809 | Margin: $20.81"}
+{"timestamp":1773459245258,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.1576 | Target: $0.4774 | SL: -$2.0808 | Margin: $20.81"}
+{"timestamp":1773459245457,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.1053 | Target: $0.4774 | SL: -$2.0808 | Margin: $20.81"}
+{"timestamp":1773459247218,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.1053 | Target: $0.4774 | SL: -$2.0808 | Margin: $20.81"}
+{"timestamp":1773459248058,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.1860 | Target: $0.4774 | SL: -$2.0810 | Margin: $20.81"}
+{"timestamp":1773459248835,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.1423 | Target: $0.4774 | SL: -$2.0810 | Margin: $20.81"}
+{"timestamp":1773459249691,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client disconnected. Total: 0"}
+{"timestamp":1773459250898,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.1996 | Target: $0.4774 | SL: -$2.0810 | Margin: $20.81"}
+{"timestamp":1773459254458,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.1053 | Target: $0.4774 | SL: -$2.0811 | Margin: $20.81"}
+{"timestamp":1773459255740,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.1053 | Target: $0.4774 | SL: -$2.0811 | Margin: $20.81"}
+{"timestamp":1773459256778,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.1053 | Target: $0.4774 | SL: -$2.0811 | Margin: $20.81"}
+{"timestamp":1773459258557,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.2307 | Target: $0.4774 | SL: -$2.0811 | Margin: $20.81"}
+{"timestamp":1773459260457,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.2307 | Target: $0.4773 | SL: -$2.0803 | Margin: $20.80"}
+{"timestamp":1773459261857,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.2065 | Target: $0.4773 | SL: -$2.0803 | Margin: $20.80"}
+{"timestamp":1773459263357,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.1905 | Target: $0.4773 | SL: -$2.0803 | Margin: $20.80"}
+{"timestamp":1773459265158,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.1053 | Target: $0.4773 | SL: -$2.0803 | Margin: $20.80"}
+{"timestamp":1773459265257,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.1905 | Target: $0.4773 | SL: -$2.0803 | Margin: $20.80"}
+{"timestamp":1773459269018,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.1053 | Target: $0.4773 | SL: -$2.0803 | Margin: $20.80"}
+{"timestamp":1773459271318,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.1053 | Target: $0.4773 | SL: -$2.0803 | Margin: $20.80"}
+{"timestamp":1773459274257,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.1905 | Target: $0.4771 | SL: -$2.0788 | Margin: $20.79"}
+{"timestamp":1773459276058,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.1053 | Target: $0.4771 | SL: -$2.0788 | Margin: $20.79"}
+{"timestamp":1773459280670,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.1053 | Target: $0.4771 | SL: -$2.0783 | Margin: $20.78"}
+{"timestamp":1773459280857,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.1905 | Target: $0.4771 | SL: -$2.0783 | Margin: $20.78"}
+{"timestamp":1773459287058,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.1905 | Target: $0.4771 | SL: -$2.0788 | Margin: $20.79"}
+{"timestamp":1773459287217,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.1905 | Target: $0.4771 | SL: -$2.0788 | Margin: $20.79"}
+{"timestamp":1773459287257,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.1053 | Target: $0.4771 | SL: -$2.0788 | Margin: $20.79"}
+{"timestamp":1773459287757,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.1905 | Target: $0.4771 | SL: -$2.0788 | Margin: $20.79"}
+{"timestamp":1773459288657,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.1905 | Target: $0.4771 | SL: -$2.0788 | Margin: $20.79"}
+{"timestamp":1773459289957,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.1053 | Target: $0.4771 | SL: -$2.0788 | Margin: $20.79"}
+{"timestamp":1773459290673,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.1656 | Target: $0.4771 | SL: -$2.0788 | Margin: $20.79"}
+{"timestamp":1773459290838,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.1576 | Target: $0.4771 | SL: -$2.0788 | Margin: $20.79"}
+{"timestamp":1773459291957,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.1053 | Target: $0.4771 | SL: -$2.0788 | Margin: $20.79"}
+{"timestamp":1773459294757,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.1576 | Target: $0.4773 | SL: -$2.0798 | Margin: $20.80"}
+{"timestamp":1773459295658,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.1958 | Target: $0.4773 | SL: -$2.0800 | Margin: $20.80"}
+{"timestamp":1773459299057,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.1958 | Target: $0.4773 | SL: -$2.0798 | Margin: $20.80"}
+{"timestamp":1773459315157,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.1753 | Target: $0.4773 | SL: -$2.0803 | Margin: $20.80"}
+{"timestamp":1773459335317,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.1229 | Target: $0.4775 | SL: -$2.0815 | Margin: $20.81"}
+{"timestamp":1773459335607,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.0817 | Target: $0.4775 | SL: -$2.0815 | Margin: $20.81"}
+{"timestamp":1773459336478,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.0817 | Target: $0.4775 | SL: -$2.0815 | Margin: $20.81"}
+{"timestamp":1773459337358,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.2099 | Target: $0.4775 | SL: -$2.0815 | Margin: $20.81"}
+{"timestamp":1773459341657,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.1204 | Target: $0.4775 | SL: -$2.0816 | Margin: $20.82"}
+{"timestamp":1773459353460,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.2099 | Target: $0.4775 | SL: -$2.0814 | Margin: $20.81"}
+{"timestamp":1773459355371,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.2099 | Target: $0.4775 | SL: -$2.0814 | Margin: $20.81"}
+{"timestamp":1773459358058,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.2099 | Target: $0.4775 | SL: -$2.0814 | Margin: $20.81"}
+{"timestamp":1773459358107,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.2099 | Target: $0.4775 | SL: -$2.0814 | Margin: $20.81"}
+{"timestamp":1773459358478,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.0615 | Target: $0.4775 | SL: -$2.0814 | Margin: $20.81"}
+{"timestamp":1773459359403,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.1576 | Target: $0.4775 | SL: -$2.0817 | Margin: $20.82"}
+{"timestamp":1773459361719,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.1038 | Target: $0.4775 | SL: -$2.0814 | Margin: $20.81"}
+{"timestamp":1773459381558,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.2099 | Target: $0.4775 | SL: -$2.0820 | Margin: $20.82"}
+{"timestamp":1773459383958,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.2099 | Target: $0.4776 | SL: -$2.0821 | Margin: $20.82"}
+{"timestamp":1773459385278,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.0790 | Target: $0.4776 | SL: -$2.0821 | Margin: $20.82"}
+{"timestamp":1773459389978,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.0790 | Target: $0.4776 | SL: -$2.0824 | Margin: $20.82"}
+{"timestamp":1773459391657,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.2099 | Target: $0.4776 | SL: -$2.0824 | Margin: $20.82"}
+{"timestamp":1773459405258,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.0790 | Target: $0.4776 | SL: -$2.0824 | Margin: $20.82"}
+{"timestamp":1773459411284,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.2099 | Target: $0.4776 | SL: -$2.0824 | Margin: $20.82"}

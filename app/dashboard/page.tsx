@@ -140,28 +140,41 @@ function DownIcon({ open }: { open: boolean }) {
 export default function DashboardPage() {
   const [positions, setPositions] = useState<GroupedPosition[]>([]);
   const [loading, setLoading] = useState(true);
-  const [states, setStates] = useState<SymbolState[]>([]);
-  const [marketStates, setMarketStates] = useState<any[]>([]);
   const [connected, setConnected] = useState(false);
   const [expandedSymbol, setExpandedSymbol] = useState<string | null>(null);
   const [closingId, setClosingId] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
   const [settings, setSettings] = useState<SettingsState>(DEFAULT_SETTINGS);
-  const [positionStats, setPositionStats] = useState<Record<string, { binanceExitVWAP: number; bybitExitVWAP: number }>>({});
   const [openingBalances, setOpeningBalances] = useState<{ binance: number; bybit: number }>({
     binance: DEFAULT_OPENING_BINANCE,
     bybit: DEFAULT_OPENING_BYBIT,
   });
   const [balances, setBalances] = useState<{ binance: number; bybit: number } | null>(null);
-  const [wsActiveSymbols, setWsActiveSymbols] = useState<string[]>([]);
-  const [systemState, setSystemState] = useState<{ binanceBanUntil: number; bybitBanUntil: number }>({ binanceBanUntil: 0, bybitBanUntil: 0 });
   const [banCountdown, setBanCountdown] = useState<string>("");
+
+  // Single batched state for WS "state" messages to avoid multiple re-renders per message
+  const [wsState, setWsState] = useState<{
+    states: SymbolState[];
+    positionStats: Record<string, { binanceExitVWAP: number; bybitExitVWAP: number }>;
+    wsActiveSymbols: string[];
+    systemState: { binanceBanUntil: number; bybitBanUntil: number };
+  }>({
+    states: [],
+    positionStats: {},
+    wsActiveSymbols: [],
+    systemState: { binanceBanUntil: 0, bybitBanUntil: 0 },
+  });
+  const { states, positionStats, wsActiveSymbols, systemState } = wsState;
   const { data: session } = useSession();
   const wsRef = useRef<WebSocket | null>(null);
   const toastRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fetchPositions = useCallback(() => {
-    setLoading(true);
+    setLoading((prev) => {
+      if (positions.length === 0) return true;
+      return prev;
+    });
+    const isInitialLoad = positions.length === 0;
     fetch("/api/positions", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -173,8 +186,10 @@ export default function DashboardPage() {
         else setPositions(data.positions ?? []);
       })
       .catch(() => setPositions([]))
-      .finally(() => setLoading(false));
-  }, []);
+      .finally(() => {
+        if (isInitialLoad) setLoading(false);
+      });
+  }, [positions.length]);
 
   // Sync stoploss/target/pnlMethod from backend so Dashboard matches Settings (PC and mobile).
   useEffect(() => {
@@ -258,25 +273,32 @@ export default function DashboardPage() {
           status?: string;
           done?: boolean;
         };
-        if (msg.type === "state" && Array.isArray(msg.states)) {
-          setStates(msg.states);
-          setMarketStates(msg.states);
-        }
-        if (msg.type === "state" && msg.systemState && typeof msg.systemState === "object") {
-          setSystemState({
-            binanceBanUntil: Number((msg.systemState as { binanceBanUntil?: number }).binanceBanUntil) || 0,
-            bybitBanUntil: Number((msg.systemState as { bybitBanUntil?: number }).bybitBanUntil) || 0,
-          });
-        }
-        if (msg.type === "state" && msg.positionStats && typeof msg.positionStats === "object") {
-          setPositionStats(msg.positionStats as Record<string, { binanceExitVWAP: number; bybitExitVWAP: number }>);
-        }
-        if (msg.type === "state" && Array.isArray(msg.activePositions)) {
-          const next = msg.activePositions.map((s) => String(s).toUpperCase()).sort();
-          setWsActiveSymbols((prev) => {
-            if (prev.length !== next.length) return next;
-            if (prev.join(",") === next.join(",")) return prev;
-            return next;
+        if (msg.type === "state") {
+          setWsState((prev) => {
+            const nextStates = Array.isArray(msg.states) ? msg.states : prev.states;
+            const nextSystemState =
+              msg.systemState && typeof msg.systemState === "object"
+                ? {
+                    binanceBanUntil: Number((msg.systemState as { binanceBanUntil?: number }).binanceBanUntil) || 0,
+                    bybitBanUntil: Number((msg.systemState as { bybitBanUntil?: number }).bybitBanUntil) || 0,
+                  }
+                : prev.systemState;
+            const nextPositionStats =
+              msg.positionStats && typeof msg.positionStats === "object"
+                ? (msg.positionStats as Record<string, { binanceExitVWAP: number; bybitExitVWAP: number }>)
+                : prev.positionStats;
+            const nextActive =
+              Array.isArray(msg.activePositions)
+                ? msg.activePositions.map((s) => String(s).toUpperCase()).sort()
+                : prev.wsActiveSymbols;
+            const activeUnchanged =
+              prev.wsActiveSymbols.length === nextActive.length && prev.wsActiveSymbols.join(",") === nextActive.join(",");
+            return {
+              states: nextStates,
+              positionStats: nextPositionStats,
+              wsActiveSymbols: activeUnchanged ? prev.wsActiveSymbols : nextActive,
+              systemState: nextSystemState,
+            };
           });
         }
         if (msg.action === "TRADE_UPDATE" && msg.done) {
@@ -507,7 +529,7 @@ export default function DashboardPage() {
               </tr>
             </thead>
             <tbody>
-              {loading ? (
+              {loading && positions.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="p-8 text-center text-slate-500">
                     Loading positions…
@@ -523,7 +545,7 @@ export default function DashboardPage() {
                 positions.map((pos) => {
                   const exitVWAPs = positionStats[pos.symbol];
                   const wsState = states.find((s) => s.symbol === pos.symbol);
-                  const mkt = marketStates.find((s: { symbol?: string }) => s.symbol === pos.symbol);
+                  const mkt = states.find((s: { symbol?: string }) => s.symbol === pos.symbol);
                   const l2Spread =
                     mkt?.binanceVWAP && mkt?.bybitVWAP
                       ? Math.abs(((mkt.bybitVWAP - mkt.binanceVWAP) / mkt.binanceVWAP) * 100)
