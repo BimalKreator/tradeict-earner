@@ -1,8 +1,12 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import TerminalLogsTab from "./TerminalLogsTab";
+
+type LogsTab = "trade" | "terminal";
 
 export default function LogsPage() {
+  const [activeTab, setActiveTab] = useState<LogsTab>("trade");
   const [logs, setLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedLogId, setExpandedLogId] = useState<string | null>(null);
@@ -25,9 +29,38 @@ export default function LogsPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl md:text-3xl font-bold text-white">Trade History</h1>
-      <p className="text-slate-400 text-sm mt-1">Real executed entry/exit prices and combined PnL from exchanges.</p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-bold text-white">Logs</h1>
+          <p className="text-slate-400 text-sm mt-1">
+            {activeTab === "trade" ? "Real executed entry/exit prices and combined PnL from exchanges." : "Last 48 hours of system terminal logs."}
+          </p>
+        </div>
+        <div className="flex rounded-xl border border-white/[0.1] bg-white/[0.06] p-1">
+          <button
+            type="button"
+            onClick={() => setActiveTab("trade")}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              activeTab === "trade" ? "bg-blue-500/30 text-white" : "text-slate-400 hover:text-white"
+            }`}
+          >
+            Trade History
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("terminal")}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              activeTab === "terminal" ? "bg-blue-500/30 text-white" : "text-slate-400 hover:text-white"
+            }`}
+          >
+            Terminal Logs
+          </button>
+        </div>
+      </div>
 
+      {activeTab === "terminal" ? (
+        <TerminalLogsTab />
+      ) : (
       <div className="glass-panel overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[1000px]">
@@ -113,6 +146,7 @@ export default function LogsPage() {
           </table>
         </div>
       </div>
+      )}
     </div>
   );
 }

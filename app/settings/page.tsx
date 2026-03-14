@@ -64,7 +64,29 @@ export default function SettingsPage() {
   const [testing, setTesting] = useState<"binance" | "bybit" | null>(null);
   const [savingKeys, setSavingKeys] = useState(false);
   const [savingConfig, setSavingConfig] = useState(false);
+  const [enginePaused, setEnginePaused] = useState(false);
+  const wsRef = useRef<WebSocket | null>(null);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // WebSocket: sync engine pause state and send kill switch actions
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const hostname = window.location.hostname || "localhost";
+    const ws = new WebSocket(`ws://${hostname}:8080`);
+    wsRef.current = ws;
+    ws.onmessage = (event) => {
+      try {
+        const msg = JSON.parse(event.data as string) as { type?: string; systemState?: { isEnginePaused?: boolean } };
+        if (msg.type === "state" && msg.systemState && typeof msg.systemState.isEnginePaused === "boolean") {
+          setEnginePaused(msg.systemState.isEnginePaused);
+        }
+      } catch {}
+    };
+    return () => {
+      wsRef.current = null;
+      ws.close();
+    };
+  }, []);
 
   // Load bot config from backend on mount (no localStorage; avoids overwriting backend with defaults).
   useEffect(() => {
@@ -269,8 +291,49 @@ export default function SettingsPage() {
   const inputClass =
     "w-full rounded-xl border border-white/[0.1] bg-white/[0.06] px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50";
 
+  const toggleEnginePause = () => {
+    const ws = wsRef.current;
+    if (ws?.readyState === WebSocket.OPEN) {
+      const next = !enginePaused;
+      ws.send(JSON.stringify({ action: "toggle_engine_pause", payload: { isPaused: next } }));
+      setEnginePaused(next);
+    } else {
+      showToast("Not connected to trade server", "error");
+    }
+  };
+
   return (
     <div className="space-y-6 lg:space-y-8">
+      {/* Master Engine Switch - prominent at top */}
+      <div className={`glass-panel p-5 md:p-6 border-2 ${enginePaused ? "border-red-500/50 bg-red-500/5" : "border-emerald-500/50 bg-emerald-500/5"}`}>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h2 className="text-lg font-semibold text-white">Master Engine Switch</h2>
+            <p className="text-slate-400 text-sm mt-0.5">
+              {enginePaused ? "All bot operations (auto-trade, auto-exit) are paused." : "Engine is running. Pause to safely stop all bot activity without killing the process."}
+            </p>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={!enginePaused}
+            onClick={toggleEnginePause}
+            className={`relative inline-flex h-8 w-14 shrink-0 cursor-pointer rounded-full border-2 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 ${
+              enginePaused ? "border-red-500 bg-red-500/30 focus:ring-red-500" : "border-emerald-500 bg-emerald-500/30 focus:ring-emerald-500"
+            }`}
+          >
+            <span
+              className={`pointer-events-none inline-block h-7 w-7 transform rounded-full bg-white shadow ring-0 transition translate-y-0.5 ${
+                enginePaused ? "translate-x-0.5" : "translate-x-6"
+              }`}
+            />
+          </button>
+        </div>
+        <p className="text-slate-500 text-xs mt-3">
+          {enginePaused ? "● Paused — Click switch to resume" : "● Running — Click switch to pause"}
+        </p>
+      </div>
+
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-white">Settings</h1>

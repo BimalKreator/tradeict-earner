@@ -2,6 +2,7 @@ import WebSocket from "ws";
 import type { Orderbook, OrderbookLevel, SymbolState, VWAPResult } from "./types";
 import type { OrderbookSnapshot } from "./execution-engine";
 import { calculateVWAP as calcVWAP } from "./vwap";
+import { reportBinanceBan, reportBybitBan, parseBanUntilFromError } from "./system-state";
 
 /** Calculate VWAP for buy side; checks 3x liquidity. */
 export function calculateVWAP(orderbook: Orderbook, targetAmount: number): VWAPResult {
@@ -237,6 +238,9 @@ export class WsManager {
           const t2 = Number(binData[1].fundingTime);
           if (t1 && t2) this.binanceIntervals.set(symbol, Math.abs(t1 - t2));
         }
+      } else if (binRes.status === 418 || binRes.status === 429) {
+        const text = await binRes.text();
+        reportBinanceBan(parseBanUntilFromError(binRes.status, text));
       }
 
       const bybRes = await fetch(
@@ -251,6 +255,9 @@ export class WsManager {
           const t2 = Number(list[1].fundingRateTimestamp);
           if (t1 && t2) this.bybitIntervals.set(symbol, Math.abs(t1 - t2));
         }
+      } else if (bybRes.status === 418 || bybRes.status === 429) {
+        const text = await bybRes.text();
+        reportBybitBan(parseBanUntilFromError(bybRes.status, text));
       }
     } catch (err) {
       console.error(`[WsManager] Failed to fetch REST funding interval for ${symbol}`, err);

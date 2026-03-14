@@ -396,6 +396,8 @@ export function startAutoExitMonitor(
   };
 
   const fetchPositionsIntoCache = async () => {
+    const { getSystemState } = await import("./system-state");
+    if (getSystemState().isEnginePaused) return;
     const settings = getSettings();
     if (!settings.autoExit || isFetchingPositions) return;
     isFetchingPositions = true;

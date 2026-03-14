@@ -7,6 +7,9 @@
  * Or:  npm run ws-server
  */
 
+import { initLogger, cleanupOldLogs } from "./logger";
+initLogger();
+
 process.on("uncaughtException", (err) => {
   console.error("[FATAL] Uncaught Exception:", err);
 });
@@ -35,6 +38,7 @@ import {
 import { startAutoExitMonitor, getDeepExitVWAPByQuantity } from "./auto-exit";
 import { findUserByEmail } from "../auth-users";
 import type { RawPosition } from "./execution-engine";
+import { getSystemState, setEnginePaused } from "./system-state";
 
 dotenv.config({ path: path.join(process.cwd(), ".env.local") });
 dotenv.config({ path: path.join(process.cwd(), ".env") }); // Fallback
@@ -489,12 +493,15 @@ async function main() {
         maxTradeSlot: autoExitSettings.maxTradeSlot,
         activePositions: [...cachedActivePositions],
         positionStats,
+        systemState: getSystemState(),
       });
     },
   });
 
   const symbols = await manager.start();
-  console.log(`[WS Server] Listening on ws://0.0.0.0:${PORT}`);
+  console.log(`[WS Server] Listening on ws://0.0.0.0:${PORT}");
+  cleanupOldLogs();
+  setInterval(cleanupOldLogs, 60 * 60 * 1000); // every hour
 
   // Keep cached grouped positions (with quantities) up to date for positionStats deep exit VWAP.
   setInterval(async () => {
@@ -514,6 +521,7 @@ async function main() {
   const getSettings = (): ExecutionSettings => ({ ...DEFAULT_EXECUTION_SETTINGS, ...autoExitSettings });
   const getContext = () => {
     if (!lastCredentials) return null;
+    if (getSystemState().isEnginePaused) return null;
     if (!privateWsManager || !privateWsManager.isConnected()) {
       const now = Date.now();
       // Only allow 1 reconnect attempt every 60 seconds to avoid Binance 418 IP bans
@@ -546,6 +554,7 @@ async function main() {
 
   let isAutoTradeRunning = false;
   setInterval(async () => {
+    if (getSystemState().isEnginePaused) return;
     if (!autoExitSettings.autoTrade || isTradeExecuting || isAutoTradeRunning) return;
 
     let creds = lastCredentials;
@@ -669,6 +678,7 @@ async function main() {
           maxTradeSlot: autoExitSettings.maxTradeSlot,
           activePositions: [...cachedActivePositions],
           positionStats,
+          systemState: getSystemState(),
         })
       );
     } catch (e) {
@@ -689,6 +699,12 @@ async function main() {
             bybitApiSecret?: string;
           };
         };
+        if (msg.action === "toggle_engine_pause") {
+          const payload = msg.payload as { isPaused?: boolean } | undefined;
+          setEnginePaused(!!payload?.isPaused);
+          broadcast({ type: "state", systemState: getSystemState() });
+          return;
+        }
         if (msg.action === "set_trade_amount") {
           const amount = Number(msg.amount);
           if (Number.isFinite(amount) && amount > 0) {

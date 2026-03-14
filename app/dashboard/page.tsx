@@ -150,6 +150,8 @@ export default function DashboardPage() {
   });
   const [balances, setBalances] = useState<{ binance: number; bybit: number } | null>(null);
   const [wsActiveSymbols, setWsActiveSymbols] = useState<string[]>([]);
+  const [systemState, setSystemState] = useState<{ binanceBanUntil: number; bybitBanUntil: number }>({ binanceBanUntil: 0, bybitBanUntil: 0 });
+  const [banCountdown, setBanCountdown] = useState<string>("");
   const { data: session } = useSession();
   const wsRef = useRef<WebSocket | null>(null);
   const toastRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -253,6 +255,12 @@ export default function DashboardPage() {
           setStates(msg.states);
           setMarketStates(msg.states);
         }
+        if (msg.type === "state" && msg.systemState && typeof msg.systemState === "object") {
+          setSystemState({
+            binanceBanUntil: Number((msg.systemState as { binanceBanUntil?: number }).binanceBanUntil) || 0,
+            bybitBanUntil: Number((msg.systemState as { bybitBanUntil?: number }).bybitBanUntil) || 0,
+          });
+        }
         if (msg.type === "state" && msg.positionStats && typeof msg.positionStats === "object") {
           setPositionStats(msg.positionStats as Record<string, { binanceExitVWAP: number; bybitExitVWAP: number }>);
         }
@@ -350,8 +358,40 @@ export default function DashboardPage() {
       : "—";
   const openingBreakdown = `Total Opening: $${totalOpening.toFixed(2)} (Binance: $${openingBalances.binance.toFixed(2)} | Bybit: $${openingBalances.bybit.toFixed(2)})`;
 
+  // IP ban countdown: update every second
+  const banEndMs = Math.max(systemState.binanceBanUntil, systemState.bybitBanUntil);
+  const binanceBanned = systemState.binanceBanUntil > Date.now();
+  const bybitBanned = systemState.bybitBanUntil > Date.now();
+  useEffect(() => {
+    if (banEndMs <= 0) {
+      setBanCountdown("");
+      return;
+    }
+    const format = (ms: number) => {
+      const m = Math.floor(ms / 60000);
+      const s = Math.floor((ms % 60000) / 1000);
+      return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+    };
+    const tick = () => {
+      const rem = Math.max(0, banEndMs - Date.now());
+      setBanCountdown(rem > 0 ? format(rem) : "");
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [banEndMs]);
+
   return (
     <div className="space-y-6 lg:space-y-8">
+      {(binanceBanned || bybitBanned) && (
+        <div className="sticky top-0 z-50 rounded-xl border-2 border-red-500/60 bg-red-950/95 backdrop-blur px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <p className="text-red-200 font-semibold">
+            WARNING: {binanceBanned && bybitBanned ? "Binance & Bybit" : binanceBanned ? "Binance" : "Bybit"} IP Banned. Trading paused. Cooldown ends in: {banCountdown || "00:00"}
+          </p>
+          <span className="text-red-300/90 text-sm">Resume when countdown reaches 00:00</span>
+        </div>
+      )}
+
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <h1 className="text-2xl md:text-3xl font-bold text-white">Dashboard</h1>
       </div>

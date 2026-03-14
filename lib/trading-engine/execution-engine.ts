@@ -7,6 +7,7 @@ import WebSocket from "ws";
 import crypto from "crypto";
 import fs from "fs";
 import path from "path";
+import { reportBinanceBan, reportBybitBan, parseBanUntilFromError } from "./system-state";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -147,8 +148,12 @@ export async function createBinanceListenKey(apiKey: string, apiSecret: string):
     method: "POST",
     headers: { "X-MBX-APIKEY": apiKey },
   });
-  if (!res.ok) throw new Error(`Binance listenKey: ${res.status} ${await res.text()}`);
-  const data = (await res.json()) as { listenKey?: string };
+  const text = await res.text();
+  if (!res.ok) {
+    if (res.status === 418 || res.status === 429) reportBinanceBan(parseBanUntilFromError(res.status, text));
+    throw new Error(`Binance listenKey: ${res.status} ${text}`);
+  }
+  const data = JSON.parse(text) as { listenKey?: string };
   if (!data.listenKey) throw new Error("Binance listenKey missing");
   cachedListenKey = data.listenKey;
   listenKeyTimestamp = Date.now();
@@ -187,8 +192,17 @@ export async function placeBinanceOrder(
     headers: { "X-MBX-APIKEY": apiKey, "Content-Type": "application/x-www-form-urlencoded" },
     body: body.toString(),
   });
-  const data = (await res.json()) as { orderId?: number; status?: string; msg?: string };
-  if (!res.ok) throw new Error(data.msg ?? `Binance order: ${res.status}`);
+  const text = await res.text();
+  if (!res.ok) {
+    if (res.status === 418 || res.status === 429) reportBinanceBan(parseBanUntilFromError(res.status, text));
+    let errMsg = text;
+    try {
+      const parsed = JSON.parse(text) as { msg?: string };
+      if (parsed.msg) errMsg = parsed.msg;
+    } catch {}
+    throw new Error(errMsg || `Binance order: ${res.status}`);
+  }
+  const data = JSON.parse(text) as { orderId?: number; status?: string; msg?: string };
   return { orderId: String(data.orderId ?? ""), status: data.status ?? "UNKNOWN" };
 }
 
@@ -206,8 +220,12 @@ export async function getBinanceBalance(apiKey: string, apiSecret: string): Prom
   const res = await fetch(`${BINANCE_BASE}/fapi/v2/account?${query}&signature=${signature}`, {
     headers: { "X-MBX-APIKEY": apiKey },
   });
-  if (!res.ok) throw new Error(`Binance account: ${res.status}`);
-  const data = (await res.json()) as {
+  const text = await res.text();
+  if (!res.ok) {
+    if (res.status === 418 || res.status === 429) reportBinanceBan(parseBanUntilFromError(res.status, text));
+    throw new Error(`Binance account: ${res.status} ${text}`);
+  }
+  const data = JSON.parse(text) as {
     totalMarginBalance?: string;
     totalInitialMargin?: string;
     availableBalance?: string;
@@ -242,8 +260,12 @@ export async function getBinancePositions(apiKey: string, apiSecret: string): Pr
   const res = await fetch(`${BINANCE_BASE}/fapi/v2/positionRisk?${query}&signature=${signature}`, {
     headers: { "X-MBX-APIKEY": apiKey },
   });
-  if (!res.ok) throw new Error(`Binance positions: ${res.status}`);
-  const arr = (await res.json()) as {
+  const text = await res.text();
+  if (!res.ok) {
+    if (res.status === 418 || res.status === 429) reportBinanceBan(parseBanUntilFromError(res.status, text));
+    throw new Error(`Binance positions: ${res.status} ${text}`);
+  }
+  const arr = JSON.parse(text) as {
     symbol: string;
     positionAmt: string;
     entryPrice: string;
@@ -325,9 +347,11 @@ export async function placeBybitOrder(
     },
     body: payloadString,
   });
-  const data = (await res.json()) as { result?: { orderId?: string; orderStatus?: string }; retMsg?: string; retCode?: number };
+  const text = await res.text();
+  if (res.status === 418 || res.status === 429) reportBybitBan(parseBanUntilFromError(res.status, text));
+  const data = JSON.parse(text) as { result?: { orderId?: string; orderStatus?: string }; retMsg?: string; retCode?: number };
   if (data.retCode !== 0 && data.retCode != null) throw new Error(data.retMsg ?? "Bybit order failed");
-  if (!res.ok) throw new Error(`Bybit order: ${res.status}`);
+  if (!res.ok) throw new Error(`Bybit order: ${res.status} ${text}`);
   const result = data.result ?? {};
   return { orderId: result.orderId ?? "", orderStatus: result.orderStatus ?? "Unknown" };
 }
@@ -349,7 +373,9 @@ async function fetchBybitBalanceWithAccountType(
       "X-BAPI-RECV-WINDOW": recvWindow,
     },
   });
-  const data = (await res.json()) as {
+  const text = await res.text();
+  if (res.status === 418 || res.status === 429) reportBybitBan(parseBanUntilFromError(res.status, text));
+  const data = JSON.parse(text) as {
     retCode?: number;
     retMsg?: string;
     result?: {
@@ -363,7 +389,7 @@ async function fetchBybitBalanceWithAccountType(
   if (data.retCode !== 0 && data.retCode != null) {
     throw new Error(data.retMsg ?? `Bybit balance: ${data.retCode}`);
   }
-  if (!res.ok) throw new Error(`Bybit balance: ${res.status}`);
+  if (!res.ok) throw new Error(`Bybit balance: ${res.status} ${text}`);
   const list = data.result?.list ?? [];
   const acc = list[0];
   const total = parseFloat(acc?.totalEquity ?? "0") || 0;
@@ -415,8 +441,12 @@ export async function getBybitPositions(apiKey: string, apiSecret: string): Prom
       "X-BAPI-RECV-WINDOW": recvWindow,
     },
   });
-  if (!res.ok) throw new Error(`Bybit positions: ${res.status}`);
-  const data = (await res.json()) as {
+  const text = await res.text();
+  if (!res.ok) {
+    if (res.status === 418 || res.status === 429) reportBybitBan(parseBanUntilFromError(res.status, text));
+    throw new Error(`Bybit positions: ${res.status} ${text}`);
+  }
+  const data = JSON.parse(text) as {
     retCode?: number;
     result?: {
       list?: {

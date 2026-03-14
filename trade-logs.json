@@ -1,5 +1,122 @@
 [
   {
+    "id": "bac69da0-690d-4fff-97cb-6f4f9ab64b5a",
+    "symbol": "AKEUSDT",
+    "qty": 527600,
+    "timestamp": 1773454064700,
+    "binanceEntry": 0.0002050647803,
+    "binanceExit": 0.0001955,
+    "binancePnl": -5.04637808,
+    "bybitEntry": 0.00020471,
+    "bybitExit": 0.0001965,
+    "bybitPnl": 4.16838972,
+    "combinedPnlUsd": -0.8779883599999998,
+    "combinedPnlPct": -4.216981962220409,
+    "exitReason": "Manual Exit",
+    "executionLogs": [
+      "Close attempt 1/15 (Bybit: 527600 Binance: 527600)",
+      "Position fully closed."
+    ],
+    "userEmail": "admin@tradeictearner.online"
+  },
+  {
+    "id": "301eccd2-f416-40f6-9959-0e706dc04eef",
+    "symbol": "ACXUSDT",
+    "qty": 1059,
+    "timestamp": 1773454060491,
+    "binanceEntry": 0.04655,
+    "binanceExit": 0.04679,
+    "binancePnl": 0.25416,
+    "bybitEntry": 0.04655,
+    "bybitExit": 0.04679303,
+    "bybitPnl": -0.36362626,
+    "combinedPnlUsd": -0.10946625999999998,
+    "combinedPnlPct": -0.732455881071496,
+    "exitReason": "Manual Exit",
+    "executionLogs": [
+      "Close attempt 1/15 (Bybit: 1059 Binance: 1059)",
+      "Position fully closed."
+    ],
+    "userEmail": "admin@tradeictearner.online"
+  },
+  {
+    "id": "79194ae7-fbc6-4cf1-bfc3-58ed49dda80d",
+    "symbol": "1000CATUSDT",
+    "qty": 47525,
+    "timestamp": 1773454054119,
+    "binanceEntry": 0.001852,
+    "binanceExit": 0.0018,
+    "binancePnl": -2.4713,
+    "bybitEntry": 0.00185012,
+    "bybitExit": 0.0018005,
+    "bybitPnl": 2.3150001,
+    "combinedPnlUsd": -0.15629990000000005,
+    "combinedPnlPct": -0.6075497676916533,
+    "exitReason": "Manual Exit",
+    "executionLogs": [
+      "Close attempt 1/15 (Bybit: 47525 Binance: 47525)",
+      "Position fully closed."
+    ],
+    "userEmail": "admin@tradeictearner.online"
+  },
+  {
+    "id": "85b0c790-847d-4e84-b37c-4472ed5e0bf0",
+    "symbol": "ARBUSDT",
+    "qty": 56.1,
+    "timestamp": 1773423721104,
+    "binanceEntry": 0.107,
+    "binanceExit": 0.1035,
+    "binancePnl": -0.19635,
+    "bybitEntry": 0.10694,
+    "bybitExit": 0.10357,
+    "bybitPnl": 0.18315058,
+    "combinedPnlUsd": -0.01319941999999999,
+    "combinedPnlPct": -0.22689084593325434,
+    "exitReason": "Target Hit",
+    "executionLogs": [
+      "Close attempt 1/15 (Bybit: 56.1 Binance: 56.1)",
+      "Position fully closed."
+    ]
+  },
+  {
+    "id": "0b8d5a2a-ea68-4af7-af25-0a6ce31460d5",
+    "symbol": "ARKMUSDT",
+    "qty": 50,
+    "timestamp": 1773423716277,
+    "binanceEntry": 0.1194,
+    "binanceExit": 0.1153,
+    "binancePnl": -0.205,
+    "bybitEntry": 0.11936,
+    "bybitExit": 0.11538,
+    "bybitPnl": 0.1931262,
+    "combinedPnlUsd": -0.01187379999999999,
+    "combinedPnlPct": -0.20534099328666988,
+    "exitReason": "Target Hit",
+    "executionLogs": [
+      "Close attempt 1/15 (Bybit: 50 Binance: 50)",
+      "Position fully closed."
+    ]
+  },
+  {
+    "id": "0dbe9c99-57fe-43bb-b25f-25942ccd29d8",
+    "symbol": "ANIMEUSDT",
+    "qty": 16520,
+    "timestamp": 1773422843270,
+    "binanceEntry": 0.004727846368,
+    "binanceExit": 0.004701,
+    "binancePnl": -0.44350199,
+    "bybitEntry": 0.0047298,
+    "bybitExit": 0.004705,
+    "bybitPnl": 0.31616152,
+    "combinedPnlUsd": -0.12734047000000004,
+    "combinedPnlPct": -0.40844493446964014,
+    "exitReason": "Target Hit",
+    "executionLogs": [
+      "Close attempt 1/15 (Bybit: 16520 Binance: 16520)",
+      "Position fully closed."
+    ]
+  },
+  {
     "id": "cc9dff74-e8ae-4b7b-bcb2-a563fe65b223",
     "symbol": "ARIAUSDT",
     "qty": 45,
