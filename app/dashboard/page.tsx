@@ -65,6 +65,11 @@ function formatNumber(num: number | undefined | null): string {
   return num.toLocaleString(undefined, { minimumFractionDigits: 4, maximumFractionDigits: 4 });
 }
 
+function formatPrice6(num: number | undefined | null): string {
+  if (num == null) return "0.000000";
+  return num.toLocaleString(undefined, { minimumFractionDigits: 6, maximumFractionDigits: 6 });
+}
+
 function loadOpeningBalances(): { binance: number; bybit: number } {
   if (typeof window === "undefined") return { binance: DEFAULT_OPENING_BINANCE, bybit: DEFAULT_OPENING_BYBIT };
   try {
@@ -649,10 +654,10 @@ export default function DashboardPage() {
                                         </span>
                                       </td>
                                       <td className="p-3 text-right text-slate-300">{pos.binance.quantity.toLocaleString(undefined, { maximumFractionDigits: 6 })}</td>
-                                      <td className="p-3 text-right text-slate-300">${formatNumber(pos.binance.entryPrice)}</td>
+                                      <td className="p-3 text-right text-slate-300">${formatPrice6(pos.binance.entryPrice)}</td>
                                       <td className="p-3 text-right text-slate-300">${formatNumber(pos.binance.liquidationPrice)}</td>
                                       <td className="p-3 text-right text-slate-300">${formatNumber(pos.binance.marginUsed)}</td>
-                                      <td className="p-3 text-right text-slate-200">${formatNumber((exitVWAPs?.binanceExitVWAP ?? 0) > 0 ? exitVWAPs!.binanceExitVWAP : pos.binance.markPrice)}</td>
+                                      <td className="p-3 text-right text-slate-200">${formatPrice6((exitVWAPs?.binanceExitVWAP ?? 0) > 0 ? exitVWAPs!.binanceExitVWAP : pos.binance.markPrice)}</td>
                                       <td className="p-3 text-right">
                                         <span className={legPnl(pos.binance, (exitVWAPs?.binanceExitVWAP ?? 0) > 0 ? exitVWAPs!.binanceExitVWAP : null) >= 0 ? "text-emerald-400" : "text-red-400"}>
                                           {legPnl(pos.binance, (exitVWAPs?.binanceExitVWAP ?? 0) > 0 ? exitVWAPs!.binanceExitVWAP : null) >= 0 ? "+" : ""}${legPnl(pos.binance, (exitVWAPs?.binanceExitVWAP ?? 0) > 0 ? exitVWAPs!.binanceExitVWAP : null).toFixed(4)}
@@ -674,10 +679,10 @@ export default function DashboardPage() {
                                         </span>
                                       </td>
                                       <td className="p-3 text-right text-slate-300">{pos.bybit.quantity.toLocaleString(undefined, { maximumFractionDigits: 6 })}</td>
-                                      <td className="p-3 text-right text-slate-300">${formatNumber(pos.bybit.entryPrice)}</td>
+                                      <td className="p-3 text-right text-slate-300">${formatPrice6(pos.bybit.entryPrice)}</td>
                                       <td className="p-3 text-right text-slate-300">${formatNumber(pos.bybit.liquidationPrice)}</td>
                                       <td className="p-3 text-right text-slate-300">${formatNumber(pos.bybit.marginUsed)}</td>
-                                      <td className="p-3 text-right text-slate-200">${formatNumber((exitVWAPs?.bybitExitVWAP ?? 0) > 0 ? exitVWAPs!.bybitExitVWAP : pos.bybit.markPrice)}</td>
+                                      <td className="p-3 text-right text-slate-200">${formatPrice6((exitVWAPs?.bybitExitVWAP ?? 0) > 0 ? exitVWAPs!.bybitExitVWAP : pos.bybit.markPrice)}</td>
                                       <td className="p-3 text-right">
                                         <span className={legPnl(pos.bybit, (exitVWAPs?.bybitExitVWAP ?? 0) > 0 ? exitVWAPs!.bybitExitVWAP : null) >= 0 ? "text-emerald-400" : "text-red-400"}>
                                           {legPnl(pos.bybit, (exitVWAPs?.bybitExitVWAP ?? 0) > 0 ? exitVWAPs!.bybitExitVWAP : null) >= 0 ? "+" : ""}${legPnl(pos.bybit, (exitVWAPs?.bybitExitVWAP ?? 0) > 0 ? exitVWAPs!.bybitExitVWAP : null).toFixed(4)}

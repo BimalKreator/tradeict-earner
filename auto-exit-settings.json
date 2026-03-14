@@ -5,8 +5,9 @@
   "slippagePercent": 0.1,
   "feesPercent": 0.2,
   "autoTrade": false,
-  "maxTradeSlot": 3,
+  "maxTradeSlot": 2,
   "autoTradeUserEmail": "admin@tradeictearner.online",
+  "pnlCalculationMethod": "L2_VWAP",
   "leverage": 10,
   "capitalPercent": 20
 }

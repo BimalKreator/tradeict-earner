@@ -9249,3 +9249,63 @@
 {"timestamp":1773487363352,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $0.1022 | Target: $0.1268 | SL: -$0.5064 | Margin: $5.06"}
 {"timestamp":1773487371572,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $0.1022 | Target: $0.1268 | SL: -$0.5064 | Margin: $5.06"}
 {"timestamp":1773487400576,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $0.1048 | Target: $0.1269 | SL: -$0.5069 | Margin: $5.07"}
+{"timestamp":1773487404554,"level":"INFO","category":"EXIT","message":"[WS Server] Auto-Exit settings loaded: autoExit=true autoTrade=false pnlMethod=L2_VWAP autoTradeUser=admin@tradeictearner.online"}
+{"timestamp":1773487404770,"level":"INFO","category":"SYSTEM","message":"[WsManager] Bybit Linear WebSocket connected"}
+{"timestamp":1773487404964,"level":"INFO","category":"SYSTEM","message":"[WsManager] Binance Futures WebSocket connected"}
+{"timestamp":1773487414744,"level":"INFO","category":"SYSTEM","message":"[WS Server] Listening on ws://0.0.0.0:8080"}
+{"timestamp":1773487414745,"level":"INFO","category":"SYSTEM","message":"[WS Server] Tracking 50 symbols: 0GUSDT, 1000000MOGUSDT, 1000BONKUSDT, 1000CATUSDT, 1000FLOKIUSDT, 1000LUNCUSDT, 1000PEPEUSDT, 1000RATSUSDT..."}
+{"timestamp":1773487414747,"level":"INFO","category":"EXIT","message":"[WS Server] Auto-Exit monitor started (autoExit=true)."}
+{"timestamp":1773487450693,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client connected. Total: 1"}
+{"timestamp":1773487450770,"level":"INFO","category":"SYSTEM","message":"[WS Server] Screener filters updated: minL2SpreadPct=5 fundingType=favourable sortBy=l2Spread banned=0 onlySafe=false"}
+{"timestamp":1773487450858,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client connected. Total: 2"}
+{"timestamp":1773487450936,"level":"INFO","category":"EXIT","message":"[WS Server] Auto-Exit settings updated from client: autoExit=true autoTrade=false pnlMethod=L2_VWAP autoTradeUser=admin@tradeictearner.online"}
+{"timestamp":1773487453849,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client disconnected. Total: 1"}
+{"timestamp":1773487880369,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client disconnected. Total: 0"}
+{"timestamp":1773488065074,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client connected. Total: 1"}
+{"timestamp":1773488065152,"level":"INFO","category":"SYSTEM","message":"[WS Server] Screener filters updated: minL2SpreadPct=5 fundingType=favourable sortBy=l2Spread banned=0 onlySafe=false"}
+{"timestamp":1773488065243,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client connected. Total: 2"}
+{"timestamp":1773488065319,"level":"INFO","category":"EXIT","message":"[WS Server] Auto-Exit settings updated from client: autoExit=true autoTrade=false pnlMethod=L2_VWAP autoTradeUser=admin@tradeictearner.online"}
+{"timestamp":1773488066790,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client connected. Total: 3"}
+{"timestamp":1773488066976,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client connected. Total: 4"}
+{"timestamp":1773488067671,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client disconnected. Total: 3"}
+{"timestamp":1773488070849,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client disconnected. Total: 2"}
+{"timestamp":1773488075087,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client disconnected. Total: 1"}
+{"timestamp":1773488140761,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client disconnected. Total: 0"}
+{"timestamp":1773488401037,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client connected. Total: 1"}
+{"timestamp":1773488401114,"level":"INFO","category":"SYSTEM","message":"[WS Server] Screener filters updated: minL2SpreadPct=5 fundingType=favourable sortBy=l2Spread banned=0 onlySafe=false"}
+{"timestamp":1773488455266,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client connected. Total: 2"}
+{"timestamp":1773488455579,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client connected. Total: 3"}
+{"timestamp":1773488458598,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client disconnected. Total: 2"}
+{"timestamp":1773488485169,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client disconnected. Total: 1"}
+{"timestamp":1773488518547,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client connected. Total: 2"}
+{"timestamp":1773488518635,"level":"INFO","category":"SYSTEM","message":"[WS Server] Screener filters updated: minL2SpreadPct=5 fundingType=favourable sortBy=l2Spread banned=0 onlySafe=false"}
+{"timestamp":1773488520442,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client connected. Total: 3"}
+{"timestamp":1773488524494,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client connected. Total: 4"}
+{"timestamp":1773488525861,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client connected. Total: 5"}
+{"timestamp":1773488532740,"level":"INFO","category":"EXIT","message":"[WS Server] Auto-Exit settings updated from client: autoExit=true autoTrade=false pnlMethod=L2_VWAP autoTradeUser=admin@tradeictearner.online"}
+{"timestamp":1773488535441,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client disconnected. Total: 4"}
+{"timestamp":1773488537024,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client connected. Total: 5"}
+{"timestamp":1773488538187,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client connected. Total: 6"}
+{"timestamp":1773488539591,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client disconnected. Total: 5"}
+{"timestamp":1773488540779,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client connected. Total: 6"}
+{"timestamp":1773488541147,"level":"INFO","category":"SYSTEM","message":"[WS Server] Screener filters updated: minL2SpreadPct=5 fundingType=favourable sortBy=l2Spread banned=0 onlySafe=false"}
+{"timestamp":1773488542440,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client connected. Total: 7"}
+{"timestamp":1773488542504,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client disconnected. Total: 6"}
+{"timestamp":1773488542586,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client disconnected. Total: 5"}
+{"timestamp":1773488548297,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client disconnected. Total: 4"}
+{"timestamp":1773488550379,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client disconnected. Total: 3"}
+{"timestamp":1773488550393,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client disconnected. Total: 2"}
+{"timestamp":1773488556697,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client connected. Total: 3"}
+{"timestamp":1773488556968,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client connected. Total: 4"}
+{"timestamp":1773488558493,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client disconnected. Total: 3"}
+{"timestamp":1773488566462,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client disconnected. Total: 2"}
+{"timestamp":1773488583513,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client disconnected. Total: 1"}
+{"timestamp":1773488725124,"level":"INFO","category":"SYSTEM","message":"[WsManager] Binance WebSocket closed"}
+{"timestamp":1773488725124,"level":"INFO","category":"SYSTEM","message":"[WsManager] Reconnecting Binance in 5s..."}
+{"timestamp":1773488730338,"level":"INFO","category":"SYSTEM","message":"[WsManager] Binance Futures WebSocket connected"}
+{"timestamp":1773489051158,"level":"INFO","category":"EXIT","message":"[WS Server] Auto-Exit settings loaded: autoExit=true autoTrade=false pnlMethod=L2_VWAP autoTradeUser=admin@tradeictearner.online"}
+{"timestamp":1773489051383,"level":"INFO","category":"SYSTEM","message":"[WsManager] Bybit Linear WebSocket connected"}
+{"timestamp":1773489051572,"level":"INFO","category":"SYSTEM","message":"[WsManager] Binance Futures WebSocket connected"}
+{"timestamp":1773489061367,"level":"INFO","category":"SYSTEM","message":"[WS Server] Listening on ws://0.0.0.0:8080"}
+{"timestamp":1773489061367,"level":"INFO","category":"SYSTEM","message":"[WS Server] Tracking 50 symbols: 0GUSDT, 1000000MOGUSDT, 1000BONKUSDT, 1000CATUSDT, 1000FLOKIUSDT, 1000LUNCUSDT, 1000PEPEUSDT, 1000RATSUSDT..."}
+{"timestamp":1773489061369,"level":"INFO","category":"EXIT","message":"[WS Server] Auto-Exit monitor started (autoExit=true)."}
