@@ -247,6 +247,7 @@ export default function DashboardPage() {
           states?: SymbolState[];
           activePositions?: string[];
           positionStats?: Record<string, { binanceExitVWAP: number; bybitExitVWAP: number }>;
+          systemState?: { binanceBanUntil?: number; bybitBanUntil?: number };
           action?: string;
           status?: string;
           done?: boolean;

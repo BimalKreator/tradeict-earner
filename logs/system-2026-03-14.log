@@ -1,0 +1,42 @@
+{"timestamp":1773456624161,"level":"INFO","category":"EXIT","message":"[WS Server] Auto-Exit settings loaded: autoExit=true autoTrade=true autoTradeUser=admin@tradeictearner.online"}
+{"timestamp":1773456624382,"level":"INFO","category":"SYSTEM","message":"[WsManager] Bybit Linear WebSocket connected"}
+{"timestamp":1773456624575,"level":"INFO","category":"SYSTEM","message":"[WsManager] Binance Futures WebSocket connected"}
+{"timestamp":1773456634398,"level":"INFO","category":"SYSTEM","message":"[WS Server] Listening on ws://0.0.0.0:8080"}
+{"timestamp":1773456634398,"level":"INFO","category":"SYSTEM","message":"[WS Server] Tracking 50 symbols: 0GUSDT, 1000000MOGUSDT, 1000BONKUSDT, 1000CATUSDT, 1000FLOKIUSDT, 1000LUNCUSDT, 1000PEPEUSDT, 1000RATSUSDT..."}
+{"timestamp":1773456634399,"level":"INFO","category":"EXIT","message":"[WS Server] Auto-Exit monitor started (autoExit=true)."}
+{"timestamp":1773456644488,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] Using API keys for admin@tradeictearner.online (from Save settings)."}
+{"timestamp":1773456644495,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] Skipped: private WS not connected."}
+{"timestamp":1773456654487,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] No eligible tokens (slots 0/3). Filters or market may exclude all."}
+{"timestamp":1773456664486,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] No eligible tokens (slots 0/3). Filters or market may exclude all."}
+{"timestamp":1773456674486,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] No eligible tokens (slots 0/3). Filters or market may exclude all."}
+{"timestamp":1773456684488,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] No eligible tokens (slots 0/3). Filters or market may exclude all."}
+{"timestamp":1773456694489,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] No eligible tokens (slots 0/3). Filters or market may exclude all."}
+{"timestamp":1773456704492,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] No eligible tokens (slots 0/3). Filters or market may exclude all."}
+{"timestamp":1773456714489,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] No eligible tokens (slots 0/3). Filters or market may exclude all."}
+{"timestamp":1773456724498,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] No eligible tokens (slots 0/3). Filters or market may exclude all."}
+{"timestamp":1773456734489,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] No eligible tokens (slots 0/3). Filters or market may exclude all."}
+{"timestamp":1773456744495,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] No eligible tokens (slots 0/3). Filters or market may exclude all."}
+{"timestamp":1773456754491,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] No eligible tokens (slots 0/3). Filters or market may exclude all."}
+{"timestamp":1773456764493,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] No eligible tokens (slots 0/3). Filters or market may exclude all."}
+{"timestamp":1773456774492,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] No eligible tokens (slots 0/3). Filters or market may exclude all."}
+{"timestamp":1773456784490,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] No eligible tokens (slots 0/3). Filters or market may exclude all."}
+{"timestamp":1773456794494,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] No eligible tokens (slots 0/3). Filters or market may exclude all."}
+{"timestamp":1773456804502,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] No eligible tokens (slots 0/3). Filters or market may exclude all."}
+{"timestamp":1773456814491,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] No eligible tokens (slots 0/3). Filters or market may exclude all."}
+{"timestamp":1773456824495,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] No eligible tokens (slots 0/3). Filters or market may exclude all."}
+{"timestamp":1773456834494,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] No eligible tokens (slots 0/3). Filters or market may exclude all."}
+{"timestamp":1773456844506,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] No eligible tokens (slots 0/3). Filters or market may exclude all."}
+{"timestamp":1773456854493,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] No eligible tokens (slots 0/3). Filters or market may exclude all."}
+{"timestamp":1773456864493,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] No eligible tokens (slots 0/3). Filters or market may exclude all."}
+{"timestamp":1773456874494,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] No eligible tokens (slots 0/3). Filters or market may exclude all."}
+{"timestamp":1773456884494,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] No eligible tokens (slots 0/3). Filters or market may exclude all."}
+{"timestamp":1773456894497,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] No eligible tokens (slots 0/3). Filters or market may exclude all."}
+{"timestamp":1773456904496,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] No eligible tokens (slots 0/3). Filters or market may exclude all."}
+{"timestamp":1773456914497,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] No eligible tokens (slots 0/3). Filters or market may exclude all."}
+{"timestamp":1773456924502,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] No eligible tokens (slots 0/3). Filters or market may exclude all."}
+{"timestamp":1773456934497,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] No eligible tokens (slots 0/3). Filters or market may exclude all."}
+{"timestamp":1773456944495,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] No eligible tokens (slots 0/3). Filters or market may exclude all."}
+{"timestamp":1773456954499,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] No eligible tokens (slots 0/3). Filters or market may exclude all."}
+{"timestamp":1773456964497,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] No eligible tokens (slots 0/3). Filters or market may exclude all."}
+{"timestamp":1773456974497,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] No eligible tokens (slots 0/3). Filters or market may exclude all."}
+{"timestamp":1773456984507,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] No eligible tokens (slots 0/3). Filters or market may exclude all."}

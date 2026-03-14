@@ -499,7 +499,7 @@ async function main() {
   });
 
   const symbols = await manager.start();
-  console.log(`[WS Server] Listening on ws://0.0.0.0:${PORT}");
+  console.log("[WS Server] Listening on ws://0.0.0.0:" + PORT);
   cleanupOldLogs();
   setInterval(cleanupOldLogs, 60 * 60 * 1000); // every hour
 
