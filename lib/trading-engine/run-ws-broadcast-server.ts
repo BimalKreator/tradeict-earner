@@ -773,6 +773,23 @@ async function main() {
           }
           saveAutoExitSettings();
           console.log("[WS Server] Auto-Exit settings updated from client: autoExit=" + autoExitSettings.autoExit + " autoTrade=" + autoExitSettings.autoTrade + " pnlMethod=" + (autoExitSettings.pnlCalculationMethod ?? "L2_VWAP") + (autoExitSettings.autoTradeUserEmail ? " autoTradeUser=" + autoExitSettings.autoTradeUserEmail : ""));
+          // Force immediate recomputation and broadcast so UI updates instantly when PnL method changes
+          const method = autoExitSettings.pnlCalculationMethod === "ORDERBOOK_DOUBLE_QTY" ? "ORDERBOOK_DOUBLE_QTY" : "L2_VWAP";
+          const newStats = computePositionStats(
+            cachedGroupedPositions,
+            (sym) => manager.getLiveOrderbook(sym),
+            (sym) => manager.getBybitLiveOrderbook(sym),
+            method
+          );
+          broadcast({
+            type: "state",
+            states: manager.getStates(),
+            ts: Date.now(),
+            maxTradeSlot: autoExitSettings.maxTradeSlot,
+            activePositions: [...cachedActivePositions],
+            positionStats: newStats,
+            systemState: getSystemState(),
+          });
           return;
         }
         if (msg.action === "EXECUTE_MANUAL_TRADE") {

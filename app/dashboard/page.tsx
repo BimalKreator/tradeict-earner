@@ -85,29 +85,29 @@ function loadOpeningBalances(): { binance: number; bybit: number } {
   }
 }
 
-/** Live group PnL using precise deep-exit VWAP (positionStats) when available; else exchange mark. */
+/** Live group PnL: use positionStats exit VWAP when strictly > 0 (L2_VWAP or ORDERBOOK_DOUBLE_QTY); else mark price. */
 function liveGroupPnl(
   pos: GroupedPosition,
   exitVWAPs: { binanceExitVWAP: number; bybitExitVWAP: number } | undefined
 ): number {
-  const binanceMark = exitVWAPs?.binanceExitVWAP ?? pos.markPriceBinance;
-  const bybitMark = exitVWAPs?.bybitExitVWAP ?? pos.markPriceBybit;
+  const binanceMark = pos.markPriceBinance ?? pos.binance?.markPrice;
+  const bybitMark = pos.markPriceBybit ?? pos.bybit?.markPrice;
   if (pos.binance && pos.bybit) {
     const b = pos.binance;
     const y = pos.bybit;
-    const markB = (exitVWAPs?.binanceExitVWAP ?? 0) > 0 ? exitVWAPs!.binanceExitVWAP : (binanceMark ?? b.markPrice);
-    const markY = (exitVWAPs?.bybitExitVWAP ?? 0) > 0 ? exitVWAPs!.bybitExitVWAP : (bybitMark ?? y.markPrice);
+    const markB = (exitVWAPs?.binanceExitVWAP != null && exitVWAPs.binanceExitVWAP > 0) ? exitVWAPs.binanceExitVWAP : (binanceMark ?? b.markPrice);
+    const markY = (exitVWAPs?.bybitExitVWAP != null && exitVWAPs.bybitExitVWAP > 0) ? exitVWAPs.bybitExitVWAP : (bybitMark ?? y.markPrice);
     const pnlB = b.side === "Long" ? (markB - b.entryPrice) * b.quantity : (b.entryPrice - markB) * b.quantity;
     const pnlY = y.side === "Long" ? (markY - y.entryPrice) * y.quantity : (y.entryPrice - markY) * y.quantity;
     return pnlB + pnlY;
   }
   if (pos.binance) {
-    const mark = (exitVWAPs?.binanceExitVWAP ?? 0) > 0 ? exitVWAPs!.binanceExitVWAP : (binanceMark ?? pos.binance.markPrice);
+    const mark = (exitVWAPs?.binanceExitVWAP != null && exitVWAPs.binanceExitVWAP > 0) ? exitVWAPs.binanceExitVWAP : (binanceMark ?? pos.binance.markPrice);
     const b = pos.binance;
     return b.side === "Long" ? (mark - b.entryPrice) * b.quantity : (b.entryPrice - mark) * b.quantity;
   }
   if (pos.bybit) {
-    const mark = (exitVWAPs?.bybitExitVWAP ?? 0) > 0 ? exitVWAPs!.bybitExitVWAP : (bybitMark ?? pos.bybit.markPrice);
+    const mark = (exitVWAPs?.bybitExitVWAP != null && exitVWAPs.bybitExitVWAP > 0) ? exitVWAPs.bybitExitVWAP : (bybitMark ?? pos.bybit.markPrice);
     const y = pos.bybit;
     return y.side === "Long" ? (mark - y.entryPrice) * y.quantity : (y.entryPrice - mark) * y.quantity;
   }

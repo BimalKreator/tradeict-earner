@@ -1,14 +1,15 @@
 {
+  "autoTrade": true,
   "autoExit": true,
+  "fundingFlipExit": true,
+  "capitalPercent": 40,
+  "fixedCapitalPerTrade": 20,
+  "maxTradeSlot": 2,
+  "leverage": 5,
   "stoplossPercent": 15,
   "targetPercent": 1.3,
   "slippagePercent": 0.1,
   "feesPercent": 0.2,
-  "autoTrade": true,
-  "maxTradeSlot": 2,
-  "fundingFlipExit": true,
-  "autoTradeUserEmail": "admin@tradeictearner.online",
   "pnlCalculationMethod": "L2_VWAP",
-  "leverage": 5,
-  "capitalPercent": 40
+  "autoTradeUserEmail": "admin@tradeictearner.online"
 }

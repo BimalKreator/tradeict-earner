@@ -1,5 +1,25 @@
 [
   {
+    "id": "abd1ffb0-2b75-46ae-9244-9341ed99511b",
+    "symbol": "ACTUSDT",
+    "qty": 4885,
+    "timestamp": 1773498984384,
+    "binanceEntry": 0.01367,
+    "binanceExit": 0.01374,
+    "binancePnl": 0.34195,
+    "bybitEntry": 0.01368323,
+    "bybitExit": 0.013762,
+    "bybitPnl": -0.45853349,
+    "combinedPnlUsd": -0.11658349000000001,
+    "combinedPnlPct": -0.4340978304537479,
+    "exitReason": "Funding Flip (PnL Positive)",
+    "executionLogs": [
+      "Close attempt 1/15 (Bybit: 4885 Binance: 4885)",
+      "Position fully closed."
+    ],
+    "userEmail": "admin@tradeictearner.online"
+  },
+  {
     "id": "49a3eead-dfbf-484a-95d6-1c8e59a3dd95",
     "symbol": "ALCHUSDT",
     "qty": 2984,
