@@ -1,4 +1,5 @@
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
@@ -56,6 +57,7 @@ export async function POST(request: Request) {
     } catch {
       // no existing file
     }
+    // Merge incoming payload exactly; use defaults only for missing fields (no cached state).
     const config = {
       autoTrade: typeof body.autoTrade === "boolean" ? body.autoTrade : DEFAULT_CONFIG.autoTrade,
       autoExit: typeof body.autoExit === "boolean" ? body.autoExit : DEFAULT_CONFIG.autoExit,

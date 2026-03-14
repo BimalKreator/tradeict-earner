@@ -181,34 +181,35 @@ export default function SettingsPage() {
   const saveConfigToBackend = useCallback(async () => {
     setSavingConfig(true);
     try {
+      // Single payload so POST body and WebSocket payload stay identical (including Auto Trade toggle).
+      const configPayload = {
+        autoTrade: settings.autoTrade,
+        autoExit: settings.autoExit,
+        stoplossPercent: settings.stoplossPercent,
+        targetPercent: settings.targetPercent,
+        slippagePercent: settings.slippagePercent,
+        feesPercent: settings.feesPercent,
+        leverage: settings.leverage,
+        capitalPercent: settings.capitalPercent,
+        maxTradeSlot: settings.maxTradeSlot,
+      };
       const res = await fetch("/api/settings/config", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(settings),
+        body: JSON.stringify(configPayload),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         showToast((data as { error?: string }).error ?? "Failed to save settings", "error");
         return;
       }
-      // Push saved config to the running WS engine so it uses new values immediately.
+      // Push same config to the running WS engine so it uses new values immediately.
       try {
-        const payload = {
+        const wsPayload = {
           action: "set_auto_exit_settings",
-          payload: {
-            autoTrade: settings.autoTrade,
-            autoExit: settings.autoExit,
-            stoplossPercent: settings.stoplossPercent,
-            targetPercent: settings.targetPercent,
-            slippagePercent: settings.slippagePercent,
-            feesPercent: settings.feesPercent,
-            leverage: settings.leverage,
-            capitalPercent: settings.capitalPercent,
-            maxTradeSlot: settings.maxTradeSlot,
-            userEmail: session?.user?.email ?? undefined,
-          },
+          payload: { ...configPayload, userEmail: session?.user?.email ?? undefined },
         };
-        const msg = JSON.stringify(payload);
+        const msg = JSON.stringify(wsPayload);
         if (wsRef.current?.readyState === WebSocket.OPEN) {
           wsRef.current.send(msg);
         } else {
@@ -220,7 +221,7 @@ export default function SettingsPage() {
           };
         }
       } catch {
-        // WS sync is best-effort; config is already saved to file and will be picked up by server within 10s
+        // WS sync is best-effort; config is already saved via POST
       }
       showToast("Settings saved and synced to bot", "success");
     } catch {

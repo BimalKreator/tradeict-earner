@@ -1,11 +1,11 @@
 {
   "autoExit": true,
   "stoplossPercent": 10,
-  "targetPercent": 1.3,
+  "targetPercent": 2.3,
   "slippagePercent": 0.1,
   "feesPercent": 0.2,
   "autoTrade": false,
-  "maxTradeSlot": 1,
+  "maxTradeSlot": 3,
   "autoTradeUserEmail": "admin@tradeictearner.online",
   "leverage": 10,
   "capitalPercent": 20
