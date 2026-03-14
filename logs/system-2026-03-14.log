@@ -9365,3 +9365,478 @@
 {"timestamp":1773493705486,"level":"INFO","category":"EXIT","message":"[WS Server] Auto-Exit settings loaded: autoExit=true autoTrade=false fundingFlipExit=false pnlMethod=L2_VWAP autoTradeUser=admin@tradeictearner.online"}
 {"timestamp":1773493705717,"level":"INFO","category":"SYSTEM","message":"[WsManager] Bybit Linear WebSocket connected"}
 {"timestamp":1773493705908,"level":"INFO","category":"SYSTEM","message":"[WsManager] Binance Futures WebSocket connected"}
+{"timestamp":1773493715680,"level":"INFO","category":"SYSTEM","message":"[WS Server] Listening on ws://0.0.0.0:8080"}
+{"timestamp":1773493715680,"level":"INFO","category":"SYSTEM","message":"[WS Server] Tracking 50 symbols: 0GUSDT, 1000000MOGUSDT, 1000BONKUSDT, 1000CATUSDT, 1000FLOKIUSDT, 1000LUNCUSDT, 1000PEPEUSDT, 1000RATSUSDT..."}
+{"timestamp":1773493715681,"level":"INFO","category":"EXIT","message":"[WS Server] Auto-Exit monitor started (autoExit=true)."}
+{"timestamp":1773493719840,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client connected. Total: 1"}
+{"timestamp":1773493726652,"level":"INFO","category":"EXIT","message":"[WS Server] Auto-Exit settings updated from client: autoExit=true autoTrade=false pnlMethod=L2_VWAP autoTradeUser=admin@tradeictearner.online"}
+{"timestamp":1773493733550,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client connected. Total: 2"}
+{"timestamp":1773493733965,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client connected. Total: 3"}
+{"timestamp":1773493745810,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client connected. Total: 4"}
+{"timestamp":1773493745924,"level":"INFO","category":"SYSTEM","message":"[WS Server] Screener filters updated: minL2SpreadPct=0 fundingType=favourable sortBy=fundingSpread banned=0 onlySafe=false"}
+{"timestamp":1773493746082,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client disconnected. Total: 3"}
+{"timestamp":1773493755221,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client connected. Total: 4"}
+{"timestamp":1773493763453,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client disconnected. Total: 3"}
+{"timestamp":1773493771283,"level":"INFO","category":"EXIT","message":"[WS Server] Auto-Exit settings updated from client: autoExit=true autoTrade=false pnlMethod=L2_VWAP autoTradeUser=admin@tradeictearner.online"}
+{"timestamp":1773493775265,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client disconnected. Total: 2"}
+{"timestamp":1773493781636,"level":"INFO","category":"EXIT","message":"[WS Server] Auto-Exit settings updated from client: autoExit=true autoTrade=true pnlMethod=L2_VWAP autoTradeUser=admin@tradeictearner.online"}
+{"timestamp":1773493784451,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client connected. Total: 3"}
+{"timestamp":1773493785136,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client disconnected. Total: 2"}
+{"timestamp":1773493785689,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client connected. Total: 3"}
+{"timestamp":1773493785777,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] Using API keys for admin@tradeictearner.online (from Save settings)."}
+{"timestamp":1773493785779,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] Skipped: private WS not connected."}
+{"timestamp":1773493787887,"level":"INFO","category":"EXIT","message":"[CHUNK-SYSTEM] Auto-Exit Bybit depth WS connected."}
+{"timestamp":1773493788079,"level":"INFO","category":"EXIT","message":"[CHUNK-SYSTEM] Auto-Exit Binance depth WS connected."}
+{"timestamp":1773493792656,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client disconnected. Total: 2"}
+{"timestamp":1773493795776,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] Empty slot found (1/2). Initiating trade for Top Token: ALCHUSDT"}
+{"timestamp":1773493795948,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Starting chunk trade: symbol=ALCHUSDT side=Long Bybit / Short Binance minChunkNotional=$6 liquidityFraction=0.5 reduceOnly=false"}
+{"timestamp":1773493795948,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] Starting trade…"}
+{"timestamp":1773493796071,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Step sizes: Bybit=1 Binance=1"}
+{"timestamp":1773493796170,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Requested Lev: 10, Max Allowed: 20, Using: 10"}
+{"timestamp":1773493796171,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Auto Target Notional=$209.08, Target Total Qty=3011 (Cap%: 40%, Lev: 10)"}
+{"timestamp":1773493796171,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] First chunk: minNotional=$6 priceBybit=0.06943 -> qty(raw)=86.41797493878727 qty(formatted)=86.00000000"}
+{"timestamp":1773493796171,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Sending Chunk 1 to Bybit: qty=86.00000000 price=0.06950"}
+{"timestamp":1773493796196,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Chunk 1 Bybit order placed: orderId=8e920bb6-419e-427b-907a-5dc6c1b72725. Waiting for confirmation..."}
+{"timestamp":1773493796197,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] Chunk 1 placed"}
+{"timestamp":1773493796625,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Bybit order 8e920bb6-419e-427b-907a-5dc6c1b72725 execution list total filled: 86"}
+{"timestamp":1773493796626,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Order 8e920bb6-419e-427b-907a-5dc6c1b72725 confirmed in 400ms (REST-Fallback)"}
+{"timestamp":1773493796626,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Confirmation from Bybit: filledQty=86"}
+{"timestamp":1773493796626,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Sending Chunk 1 to Binance: qty=86.00000000 price=0.06935"}
+{"timestamp":1773493796706,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Waiting for Binance Chunk 1 confirmation..."}
+{"timestamp":1773493796710,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Order 2257976047 confirmed in 4ms (WS-Live)"}
+{"timestamp":1773493796710,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Chunk 1 complete. Bybit orderId=8e920bb6-419e-427b-907a-5dc6c1b72725 Binance orderId=2257976047"}
+{"timestamp":1773493796710,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] Chunk 1 complete"}
+{"timestamp":1773493796710,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Chunk 2+: firstRowQty=645 frac=0.5 (liquidity fraction for subsequent chunks)"}
+{"timestamp":1773493796710,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Sending Chunk 2 to Bybit: qty=322.00000000 price=0.06950"}
+{"timestamp":1773493796710,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] Chunk 2 placed"}
+{"timestamp":1773493796994,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $-0.0104 | Target: $0.1291 | SL: -$0.5165 | Margin: $5.17"}
+{"timestamp":1773493797152,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Bybit order 8634fd89-f446-49ef-a752-d65e9864f6fc execution list total filled: 322"}
+{"timestamp":1773493797153,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Order 8634fd89-f446-49ef-a752-d65e9864f6fc confirmed in 400ms (REST-Fallback)"}
+{"timestamp":1773493797153,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Chunk 2 Bybit confirmed: filledQty=322. Sending to Binance..."}
+{"timestamp":1773493797155,"level":"INFO","category":"EXIT","message":"[CHUNK-SYSTEM] Auto-Exit Binance depth WS connected."}
+{"timestamp":1773493797174,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $-0.0097 | Target: $0.1291 | SL: -$0.5165 | Margin: $5.17"}
+{"timestamp":1773493797231,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Waiting for Binance Chunk 2 confirmation..."}
+{"timestamp":1773493797239,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Order 2257976057 confirmed in 3ms (WS-Live)"}
+{"timestamp":1773493797239,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Chunk 2 complete."}
+{"timestamp":1773493797239,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] Chunk 2 complete"}
+{"timestamp":1773493797239,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Sending Chunk 3 to Bybit: qty=322.00000000 price=0.06950"}
+{"timestamp":1773493797239,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] Chunk 3 placed"}
+{"timestamp":1773493797680,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Bybit order 1f6ae24d-a355-4783-983e-a6757dcaeb7b execution list total filled: 322"}
+{"timestamp":1773493797680,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Order 1f6ae24d-a355-4783-983e-a6757dcaeb7b confirmed in 400ms (REST-Fallback)"}
+{"timestamp":1773493797680,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Chunk 3 Bybit confirmed: filledQty=322. Sending to Binance..."}
+{"timestamp":1773493797759,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Waiting for Binance Chunk 3 confirmation..."}
+{"timestamp":1773493797759,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Order 2257976063 confirmed in 0ms (WS-Live)"}
+{"timestamp":1773493797760,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Chunk 3 complete."}
+{"timestamp":1773493797760,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] Chunk 3 complete"}
+{"timestamp":1773493797760,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Sending Chunk 4 to Bybit: qty=322.00000000 price=0.06950"}
+{"timestamp":1773493797760,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] Chunk 4 placed"}
+{"timestamp":1773493798194,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Bybit order abe06dc1-88f7-4fe1-ad4b-b55bd6f70e85 execution list total filled: 322"}
+{"timestamp":1773493798195,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Order abe06dc1-88f7-4fe1-ad4b-b55bd6f70e85 confirmed in 401ms (REST-Fallback)"}
+{"timestamp":1773493798195,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Chunk 4 Bybit confirmed: filledQty=322. Sending to Binance..."}
+{"timestamp":1773493798271,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Waiting for Binance Chunk 4 confirmation..."}
+{"timestamp":1773493798274,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Order 2257976073 confirmed in 3ms (WS-Live)"}
+{"timestamp":1773493798274,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Chunk 4 complete."}
+{"timestamp":1773493798274,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] Chunk 4 complete"}
+{"timestamp":1773493798274,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Sending Chunk 5 to Bybit: qty=322.00000000 price=0.06950"}
+{"timestamp":1773493798275,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] Chunk 5 placed"}
+{"timestamp":1773493798712,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Bybit order 58cde6c1-9860-4120-ba81-686e31ffb293 execution list total filled: 322"}
+{"timestamp":1773493798712,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Order 58cde6c1-9860-4120-ba81-686e31ffb293 confirmed in 401ms (REST-Fallback)"}
+{"timestamp":1773493798712,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Chunk 5 Bybit confirmed: filledQty=322. Sending to Binance..."}
+{"timestamp":1773493798789,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Waiting for Binance Chunk 5 confirmation..."}
+{"timestamp":1773493798790,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Order 2257976091 confirmed in 1ms (WS-Live)"}
+{"timestamp":1773493798792,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Chunk 5 complete."}
+{"timestamp":1773493798792,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] Chunk 5 complete"}
+{"timestamp":1773493798792,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Sending Chunk 6 to Bybit: qty=322.00000000 price=0.06950"}
+{"timestamp":1773493798792,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] Chunk 6 placed"}
+{"timestamp":1773493799236,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Bybit order f7820292-4aad-44ac-ac40-bc666b5a979e execution list total filled: 322"}
+{"timestamp":1773493799236,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Order f7820292-4aad-44ac-ac40-bc666b5a979e confirmed in 401ms (REST-Fallback)"}
+{"timestamp":1773493799237,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Chunk 6 Bybit confirmed: filledQty=322. Sending to Binance..."}
+{"timestamp":1773493799314,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Waiting for Binance Chunk 6 confirmation..."}
+{"timestamp":1773493799316,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Order 2257976098 confirmed in 2ms (WS-Live)"}
+{"timestamp":1773493799316,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Chunk 6 complete."}
+{"timestamp":1773493799316,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] Chunk 6 complete"}
+{"timestamp":1773493799316,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Sending Chunk 7 to Bybit: qty=322.00000000 price=0.06950"}
+{"timestamp":1773493799316,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] Chunk 7 placed"}
+{"timestamp":1773493799331,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] ALCHUSDT | Live PnL: $-0.0034 | Target: $0.0394 | SL: -$0.1196 | Margin: $1.20"}
+{"timestamp":1773493799694,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $-0.0097 | Target: $0.1291 | SL: -$0.5165 | Margin: $5.17"}
+{"timestamp":1773493799761,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Bybit order c299a21f-8ac6-44f1-876d-256b074cafbd execution list total filled: 322"}
+{"timestamp":1773493799761,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Order c299a21f-8ac6-44f1-876d-256b074cafbd confirmed in 401ms (REST-Fallback)"}
+{"timestamp":1773493799761,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Chunk 7 Bybit confirmed: filledQty=322. Sending to Binance..."}
+{"timestamp":1773493799837,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Waiting for Binance Chunk 7 confirmation..."}
+{"timestamp":1773493799838,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Order 2257976100 confirmed in 1ms (WS-Live)"}
+{"timestamp":1773493799838,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Chunk 7 complete."}
+{"timestamp":1773493799839,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] Chunk 7 complete"}
+{"timestamp":1773493799839,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Sending Chunk 8 to Bybit: qty=322.00000000 price=0.06950"}
+{"timestamp":1773493799839,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] Chunk 8 placed"}
+{"timestamp":1773493800250,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $-0.0110 | Target: $0.1291 | SL: -$0.5165 | Margin: $5.17"}
+{"timestamp":1773493800274,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Bybit order 1697f529-69b2-4361-b21c-7228dcb93cf7 execution list total filled: 322"}
+{"timestamp":1773493800277,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Order 1697f529-69b2-4361-b21c-7228dcb93cf7 confirmed in 401ms (REST-Fallback)"}
+{"timestamp":1773493800284,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Chunk 8 Bybit confirmed: filledQty=322. Sending to Binance..."}
+{"timestamp":1773493800363,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Waiting for Binance Chunk 8 confirmation..."}
+{"timestamp":1773493800365,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Order 2257976104 confirmed in 2ms (WS-Live)"}
+{"timestamp":1773493800365,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Chunk 8 complete."}
+{"timestamp":1773493800365,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] Chunk 8 complete"}
+{"timestamp":1773493800365,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Sending Chunk 9 to Bybit: qty=322.00000000 price=0.06950"}
+{"timestamp":1773493800365,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] Chunk 9 placed"}
+{"timestamp":1773493800806,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Bybit order c26c083b-8352-4b39-abaa-da29d3009c20 execution list total filled: 322"}
+{"timestamp":1773493800806,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Order c26c083b-8352-4b39-abaa-da29d3009c20 confirmed in 400ms (REST-Fallback)"}
+{"timestamp":1773493800806,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Chunk 9 Bybit confirmed: filledQty=322. Sending to Binance..."}
+{"timestamp":1773493800915,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Waiting for Binance Chunk 9 confirmation..."}
+{"timestamp":1773493800922,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Order 2257976124 confirmed in 3ms (WS-Live)"}
+{"timestamp":1773493800922,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Chunk 9 complete."}
+{"timestamp":1773493800922,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] Chunk 9 complete"}
+{"timestamp":1773493800922,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Sending Chunk 10 to Bybit: qty=322.00000000 price=0.06950"}
+{"timestamp":1773493800923,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] Chunk 10 placed"}
+{"timestamp":1773493801366,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Bybit order 7f5ee6a7-3379-463f-afb3-07e5a581fe5b execution list total filled: 322"}
+{"timestamp":1773493801366,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Order 7f5ee6a7-3379-463f-afb3-07e5a581fe5b confirmed in 405ms (REST-Fallback)"}
+{"timestamp":1773493801367,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Chunk 10 Bybit confirmed: filledQty=322. Sending to Binance..."}
+{"timestamp":1773493801445,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Waiting for Binance Chunk 10 confirmation..."}
+{"timestamp":1773493801453,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Order 2257976129 confirmed in 8ms (WS-Live)"}
+{"timestamp":1773493801453,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Chunk 10 complete."}
+{"timestamp":1773493801453,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] Chunk 10 complete"}
+{"timestamp":1773493801453,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Sending Chunk 11 to Bybit: qty=27.00000000 price=0.06950"}
+{"timestamp":1773493801453,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] Chunk 11 placed"}
+{"timestamp":1773493801508,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Chunk 11 error: Order does not meet minimum order value 5USDT. Abort reason: Bybit failed."}
+{"timestamp":1773493801508,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] Trade failed: Order does not meet minimum order value 5USDT"}
+{"timestamp":1773493801508,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Final completion: 11 chunk(s) executed."}
+{"timestamp":1773493801633,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] 4USDT | Live PnL: $-0.0110 | Target: $0.1291 | SL: -$0.5165 | Margin: $5.17"}
+{"timestamp":1773493801827,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client connected. Total: 3"}
+{"timestamp":1773493801992,"level":"INFO","category":"SYSTEM","message":"[WS Server] Screener filters updated: minL2SpreadPct=0 fundingType=favourable sortBy=fundingSpread banned=0 onlySafe=false"}
+{"timestamp":1773493805144,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client connected. Total: 4"}
+{"timestamp":1773493805968,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client connected. Total: 5"}
+{"timestamp":1773493810642,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client disconnected. Total: 4"}
+{"timestamp":1773493814101,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client disconnected. Total: 3"}
+{"timestamp":1773493818561,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Manual trade requested via WS: symbol=4USDT side=Long isExit=true"}
+{"timestamp":1773493818767,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Close attempt 1/15 (Bybit: 651 Binance: 651)"}
+{"timestamp":1773493819317,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Bybit order 8c424c27-a0a8-4a43-9535-adb9fdd58824 execution list total filled: 651"}
+{"timestamp":1773493819318,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Order 8c424c27-a0a8-4a43-9535-adb9fdd58824 confirmed in 400ms (REST-Fallback)"}
+{"timestamp":1773493819890,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Order 865225589 confirmed in 400ms (REST-Fallback)"}
+{"timestamp":1773493819890,"level":"INFO","category":"MONITOR","message":"[CHUNK-SYSTEM] Position fully closed."}
+{"timestamp":1773493821062,"level":"INFO","category":"EXIT","message":"[CHUNK-SYSTEM] Auto-Exit Binance depth WS connected."}
+{"timestamp":1773493823030,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] ALCHUSDT | Live PnL: $-0.2746 | Target: $1.3672 | SL: -$4.1470 | Margin: $41.47"}
+{"timestamp":1773493823114,"level":"INFO","category":"SYSTEM","message":"[LOGGER] Real Exit Logged for 4USDT: PnL $-0.03 (-0.61%)"}
+{"timestamp":1773493823342,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client connected. Total: 4"}
+{"timestamp":1773493823870,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client connected. Total: 5"}
+{"timestamp":1773493825520,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client disconnected. Total: 4"}
+{"timestamp":1773493825771,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] Empty slot found (1/2). Initiating trade for Top Token: AKEUSDT"}
+{"timestamp":1773493825938,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Starting chunk trade: symbol=AKEUSDT side=Long Binance / Short Bybit minChunkNotional=$6 liquidityFraction=0.5 reduceOnly=false"}
+{"timestamp":1773493825938,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] Starting trade…"}
+{"timestamp":1773493826069,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Step sizes: Bybit=100 Binance=1"}
+{"timestamp":1773493826231,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Requested Lev: 10, Max Allowed: 10, Using: 10"}
+{"timestamp":1773493826236,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Auto Target Notional=$136.34, Target Total Qty=641900 (Cap%: 40%, Lev: 10)"}
+{"timestamp":1773493826236,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] First chunk: minNotional=$6 priceBybit=0.0002124 -> qty(raw)=28248.58757062147 qty(formatted)=28200.00000000"}
+{"timestamp":1773493826236,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Sending Chunk 1 to Bybit: qty=28200.00000000 price=0.00021220"}
+{"timestamp":1773493826254,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Chunk 1 Bybit order placed: orderId=1b0c66d7-be65-41fb-944e-95a8d8d53507. Waiting for confirmation..."}
+{"timestamp":1773493826254,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] Chunk 1 placed"}
+{"timestamp":1773493826678,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Bybit order 1b0c66d7-be65-41fb-944e-95a8d8d53507 execution list total filled: 28200"}
+{"timestamp":1773493826678,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Order 1b0c66d7-be65-41fb-944e-95a8d8d53507 confirmed in 400ms (REST-Fallback)"}
+{"timestamp":1773493826678,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Confirmation from Bybit: filledQty=28200"}
+{"timestamp":1773493826679,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Sending Chunk 1 to Binance: qty=28200.00000000 price=0.00021270"}
+{"timestamp":1773493826774,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Waiting for Binance Chunk 1 confirmation..."}
+{"timestamp":1773493826775,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Order 433283912 confirmed in 1ms (WS-Live)"}
+{"timestamp":1773493826775,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Chunk 1 complete. Bybit orderId=1b0c66d7-be65-41fb-944e-95a8d8d53507 Binance orderId=433283912"}
+{"timestamp":1773493826775,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] Chunk 1 complete"}
+{"timestamp":1773493826775,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Chunk 2+: firstRowQty=49436 frac=0.5 (liquidity fraction for subsequent chunks)"}
+{"timestamp":1773493826775,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Sending Chunk 2 to Bybit: qty=24700.00000000 price=0.00021220"}
+{"timestamp":1773493826776,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] Chunk 2 placed"}
+{"timestamp":1773493827149,"level":"INFO","category":"EXIT","message":"[CHUNK-SYSTEM] Auto-Exit Binance depth WS connected."}
+{"timestamp":1773493827215,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Bybit order 0e898b8b-89f9-49f8-87f2-7ec9a7f9b28f execution list total filled: 24700"}
+{"timestamp":1773493827215,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Order 0e898b8b-89f9-49f8-87f2-7ec9a7f9b28f confirmed in 400ms (REST-Fallback)"}
+{"timestamp":1773493827215,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Chunk 2 Bybit confirmed: filledQty=24700. Sending to Binance..."}
+{"timestamp":1773493827291,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Waiting for Binance Chunk 2 confirmation..."}
+{"timestamp":1773493827767,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Order 433283914 confirmed in 401ms (REST-Fallback)"}
+{"timestamp":1773493827767,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Chunk 2 complete."}
+{"timestamp":1773493827767,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] Chunk 2 complete"}
+{"timestamp":1773493827767,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Sending Chunk 3 to Bybit: qty=24700.00000000 price=0.00021220"}
+{"timestamp":1773493827767,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] Chunk 3 placed"}
+{"timestamp":1773493828202,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Bybit order 9cc2ce61-354b-41b3-b5ba-fa5bf0871ec2 execution list total filled: 24700"}
+{"timestamp":1773493828202,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Order 9cc2ce61-354b-41b3-b5ba-fa5bf0871ec2 confirmed in 400ms (REST-Fallback)"}
+{"timestamp":1773493828202,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Chunk 3 Bybit confirmed: filledQty=24700. Sending to Binance..."}
+{"timestamp":1773493828277,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Waiting for Binance Chunk 3 confirmation..."}
+{"timestamp":1773493828279,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Order 433283915 confirmed in 1ms (WS-Live)"}
+{"timestamp":1773493828279,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Chunk 3 complete."}
+{"timestamp":1773493828279,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] Chunk 3 complete"}
+{"timestamp":1773493828279,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Sending Chunk 4 to Bybit: qty=24700.00000000 price=0.00021220"}
+{"timestamp":1773493828279,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] Chunk 4 placed"}
+{"timestamp":1773493828715,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Bybit order 560c22e2-ef63-4ff5-95d3-52ad9fd566fe execution list total filled: 24700"}
+{"timestamp":1773493828715,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Order 560c22e2-ef63-4ff5-95d3-52ad9fd566fe confirmed in 401ms (REST-Fallback)"}
+{"timestamp":1773493828716,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Chunk 4 Bybit confirmed: filledQty=24700. Sending to Binance..."}
+{"timestamp":1773493828789,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Waiting for Binance Chunk 4 confirmation..."}
+{"timestamp":1773493828790,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Order 433283916 confirmed in 0ms (WS-Live)"}
+{"timestamp":1773493828790,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Chunk 4 complete."}
+{"timestamp":1773493828791,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] Chunk 4 complete"}
+{"timestamp":1773493828791,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Sending Chunk 5 to Bybit: qty=24700.00000000 price=0.00021220"}
+{"timestamp":1773493828791,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] Chunk 5 placed"}
+{"timestamp":1773493829230,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Bybit order 11fb45c2-1ddd-4c64-80d7-d12d9757c70a execution list total filled: 24700"}
+{"timestamp":1773493829231,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Order 11fb45c2-1ddd-4c64-80d7-d12d9757c70a confirmed in 400ms (REST-Fallback)"}
+{"timestamp":1773493829231,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Chunk 5 Bybit confirmed: filledQty=24700. Sending to Binance..."}
+{"timestamp":1773493829306,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Waiting for Binance Chunk 5 confirmation..."}
+{"timestamp":1773493829308,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Order 433283917 confirmed in 2ms (WS-Live)"}
+{"timestamp":1773493829308,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Chunk 5 complete."}
+{"timestamp":1773493829308,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] Chunk 5 complete"}
+{"timestamp":1773493829308,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Sending Chunk 6 to Bybit: qty=24700.00000000 price=0.00021220"}
+{"timestamp":1773493829308,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] Chunk 6 placed"}
+{"timestamp":1773493829739,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Bybit order 5dbdff01-cdb7-466f-a6cc-ac5612bc0f6b execution list total filled: 24700"}
+{"timestamp":1773493829739,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Order 5dbdff01-cdb7-466f-a6cc-ac5612bc0f6b confirmed in 400ms (REST-Fallback)"}
+{"timestamp":1773493829739,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Chunk 6 Bybit confirmed: filledQty=24700. Sending to Binance..."}
+{"timestamp":1773493829815,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Waiting for Binance Chunk 6 confirmation..."}
+{"timestamp":1773493829816,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Order 433283918 confirmed in 1ms (WS-Live)"}
+{"timestamp":1773493829816,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Chunk 6 complete."}
+{"timestamp":1773493829816,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] Chunk 6 complete"}
+{"timestamp":1773493829816,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Sending Chunk 7 to Bybit: qty=24700.00000000 price=0.00021220"}
+{"timestamp":1773493829816,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] Chunk 7 placed"}
+{"timestamp":1773493830264,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Bybit order 2b9d9c1a-337d-4a85-9e21-36a355264344 execution list total filled: 24700"}
+{"timestamp":1773493830264,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Order 2b9d9c1a-337d-4a85-9e21-36a355264344 confirmed in 400ms (REST-Fallback)"}
+{"timestamp":1773493830264,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Chunk 7 Bybit confirmed: filledQty=24700. Sending to Binance..."}
+{"timestamp":1773493830345,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Waiting for Binance Chunk 7 confirmation..."}
+{"timestamp":1773493830348,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Order 433283920 confirmed in 3ms (WS-Live)"}
+{"timestamp":1773493830348,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Chunk 7 complete."}
+{"timestamp":1773493830348,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] Chunk 7 complete"}
+{"timestamp":1773493830348,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Sending Chunk 8 to Bybit: qty=24700.00000000 price=0.00021220"}
+{"timestamp":1773493830349,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] Chunk 8 placed"}
+{"timestamp":1773493830667,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client connected. Total: 5"}
+{"timestamp":1773493830782,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Bybit order 6cab61da-3e47-4e0b-9bbe-3e634feeb80c execution list total filled: 24700"}
+{"timestamp":1773493830782,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Order 6cab61da-3e47-4e0b-9bbe-3e634feeb80c confirmed in 400ms (REST-Fallback)"}
+{"timestamp":1773493830782,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Chunk 8 Bybit confirmed: filledQty=24700. Sending to Binance..."}
+{"timestamp":1773493830856,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Waiting for Binance Chunk 8 confirmation..."}
+{"timestamp":1773493830857,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Order 433283921 confirmed in 1ms (WS-Live)"}
+{"timestamp":1773493830858,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Chunk 8 complete."}
+{"timestamp":1773493830858,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] Chunk 8 complete"}
+{"timestamp":1773493830858,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Sending Chunk 9 to Bybit: qty=24700.00000000 price=0.00021220"}
+{"timestamp":1773493830858,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] Chunk 9 placed"}
+{"timestamp":1773493831302,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Bybit order 9cffcd7d-663f-42cf-96cb-0b9f7b0fbcef execution list total filled: 24700"}
+{"timestamp":1773493831302,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Order 9cffcd7d-663f-42cf-96cb-0b9f7b0fbcef confirmed in 400ms (REST-Fallback)"}
+{"timestamp":1773493831302,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Chunk 9 Bybit confirmed: filledQty=24700. Sending to Binance..."}
+{"timestamp":1773493831377,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Waiting for Binance Chunk 9 confirmation..."}
+{"timestamp":1773493831589,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client disconnected. Total: 4"}
+{"timestamp":1773493831852,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Order 433283926 confirmed in 400ms (REST-Fallback)"}
+{"timestamp":1773493831853,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Chunk 9 complete."}
+{"timestamp":1773493831853,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] Chunk 9 complete"}
+{"timestamp":1773493831853,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Sending Chunk 10 to Bybit: qty=24700.00000000 price=0.00021220"}
+{"timestamp":1773493831853,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] Chunk 10 placed"}
+{"timestamp":1773493831981,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client connected. Total: 5"}
+{"timestamp":1773493832287,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Bybit order 1d11fa3b-6bda-47ad-ab18-2868d9c237ea execution list total filled: 24700"}
+{"timestamp":1773493832287,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Order 1d11fa3b-6bda-47ad-ab18-2868d9c237ea confirmed in 400ms (REST-Fallback)"}
+{"timestamp":1773493832287,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Chunk 10 Bybit confirmed: filledQty=24700. Sending to Binance..."}
+{"timestamp":1773493832363,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Waiting for Binance Chunk 10 confirmation..."}
+{"timestamp":1773493832364,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Order 433283928 confirmed in 1ms (WS-Live)"}
+{"timestamp":1773493832364,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Chunk 10 complete."}
+{"timestamp":1773493832364,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] Chunk 10 complete"}
+{"timestamp":1773493832364,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Sending Chunk 11 to Bybit: qty=24700.00000000 price=0.00021220"}
+{"timestamp":1773493832364,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] Chunk 11 placed"}
+{"timestamp":1773493832799,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Bybit order 78936949-4f1a-4e84-8ced-4fc3535d7075 execution list total filled: 24700"}
+{"timestamp":1773493832799,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Order 78936949-4f1a-4e84-8ced-4fc3535d7075 confirmed in 401ms (REST-Fallback)"}
+{"timestamp":1773493832799,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Chunk 11 Bybit confirmed: filledQty=24700. Sending to Binance..."}
+{"timestamp":1773493832872,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Waiting for Binance Chunk 11 confirmation..."}
+{"timestamp":1773493832874,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Order 433283930 confirmed in 2ms (WS-Live)"}
+{"timestamp":1773493832874,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Chunk 11 complete."}
+{"timestamp":1773493832874,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] Chunk 11 complete"}
+{"timestamp":1773493832874,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Final completion: 11 chunk(s) executed."}
+{"timestamp":1773493832874,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] Trade completed"}
+{"timestamp":1773493834137,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client disconnected. Total: 4"}
+{"timestamp":1773493836572,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client disconnected. Total: 3"}
+{"timestamp":1773493836597,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $-0.1094 | Target: $0.3877 | SL: -$1.1772 | Margin: $11.77"}
+{"timestamp":1773493837701,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.0073 | Target: $0.3877 | SL: -$1.1772 | Margin: $11.77"}
+{"timestamp":1773493838337,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.0073 | Target: $0.3877 | SL: -$1.1772 | Margin: $11.77"}
+{"timestamp":1773493838397,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.0073 | Target: $0.3877 | SL: -$1.1772 | Margin: $11.77"}
+{"timestamp":1773493838944,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] ALCHUSDT | Live PnL: $-0.2664 | Target: $1.3672 | SL: -$4.1470 | Margin: $41.47"}
+{"timestamp":1773493839197,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.0073 | Target: $0.3875 | SL: -$1.1763 | Margin: $11.76"}
+{"timestamp":1773493839776,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] ALCHUSDT | Live PnL: $-0.2691 | Target: $1.3672 | SL: -$4.1470 | Margin: $41.47"}
+{"timestamp":1773493851411,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client disconnected. Total: 2"}
+{"timestamp":1773493852750,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client disconnected. Total: 1"}
+{"timestamp":1773493854061,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client connected. Total: 2"}
+{"timestamp":1773493854167,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] ALCHUSDT | Live PnL: $-0.3038 | Target: $1.3672 | SL: -$4.1470 | Margin: $41.47"}
+{"timestamp":1773493854183,"level":"INFO","category":"SYSTEM","message":"[WS Server] Screener filters updated: minL2SpreadPct=0 fundingType=favourable sortBy=fundingSpread banned=0 onlySafe=false"}
+{"timestamp":1773493856233,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client disconnected. Total: 1"}
+{"timestamp":1773493856313,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.0469 | Target: $0.3874 | SL: -$1.1760 | Margin: $11.76"}
+{"timestamp":1773493856678,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.0469 | Target: $0.3874 | SL: -$1.1760 | Margin: $11.76"}
+{"timestamp":1773493859951,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] ALCHUSDT | Live PnL: $-0.3038 | Target: $1.3672 | SL: -$4.1470 | Margin: $41.47"}
+{"timestamp":1773493862217,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.1020 | Target: $0.3871 | SL: -$1.1749 | Margin: $11.75"}
+{"timestamp":1773493862913,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.1020 | Target: $0.3871 | SL: -$1.1749 | Margin: $11.75"}
+{"timestamp":1773493865554,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] ALCHUSDT | Live PnL: $-0.3958 | Target: $1.3672 | SL: -$4.1470 | Margin: $41.47"}
+{"timestamp":1773493869848,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client connected. Total: 2"}
+{"timestamp":1773493870421,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client connected. Total: 3"}
+{"timestamp":1773493872321,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client disconnected. Total: 2"}
+{"timestamp":1773493874057,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.0668 | Target: $0.3869 | SL: -$1.1736 | Margin: $11.74"}
+{"timestamp":1773493876352,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] ALCHUSDT | Live PnL: $-0.3368 | Target: $1.3670 | SL: -$4.1461 | Margin: $41.46"}
+{"timestamp":1773493878406,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] ALCHUSDT | Live PnL: $-0.3643 | Target: $1.3670 | SL: -$4.1461 | Margin: $41.46"}
+{"timestamp":1773493881102,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client connected. Total: 3"}
+{"timestamp":1773493882169,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] ALCHUSDT | Live PnL: $-0.3297 | Target: $1.3669 | SL: -$4.1455 | Margin: $41.45"}
+{"timestamp":1773493886584,"level":"INFO","category":"EXIT","message":"[WS Server] Auto-Exit settings updated from client: autoExit=true autoTrade=true pnlMethod=L2_VWAP autoTradeUser=admin@tradeictearner.online"}
+{"timestamp":1773493893640,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] ALCHUSDT | Live PnL: $-0.3148 | Target: $1.3669 | SL: -$4.1455 | Margin: $41.45"}
+{"timestamp":1773493899633,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client disconnected. Total: 2"}
+{"timestamp":1773493906064,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client disconnected. Total: 1"}
+{"timestamp":1773493918152,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client connected. Total: 2"}
+{"timestamp":1773493918453,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client connected. Total: 3"}
+{"timestamp":1773493919231,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] ALCHUSDT | Live PnL: $-0.2802 | Target: $1.3669 | SL: -$4.1455 | Margin: $41.45"}
+{"timestamp":1773493919947,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client disconnected. Total: 2"}
+{"timestamp":1773493920067,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client disconnected. Total: 1"}
+{"timestamp":1773493924558,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.1020 | Target: $0.3868 | SL: -$1.1733 | Margin: $11.73"}
+{"timestamp":1773493926058,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.1020 | Target: $0.3870 | SL: -$1.1741 | Margin: $11.74"}
+{"timestamp":1773493926178,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.1020 | Target: $0.3870 | SL: -$1.1741 | Margin: $11.74"}
+{"timestamp":1773493928217,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.1020 | Target: $0.3870 | SL: -$1.1741 | Margin: $11.74"}
+{"timestamp":1773493928560,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.1020 | Target: $0.3870 | SL: -$1.1741 | Margin: $11.74"}
+{"timestamp":1773493932005,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client connected. Total: 2"}
+{"timestamp":1773493932171,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] ALCHUSDT | Live PnL: $-0.2752 | Target: $1.3668 | SL: -$4.1452 | Margin: $41.45"}
+{"timestamp":1773493932230,"level":"INFO","category":"SYSTEM","message":"[WS Server] Screener filters updated: minL2SpreadPct=0 fundingType=favourable sortBy=fundingSpread banned=0 onlySafe=false"}
+{"timestamp":1773493937357,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.1657 | Target: $0.3866 | SL: -$1.1727 | Margin: $11.73"}
+{"timestamp":1773493953177,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.1657 | Target: $0.3863 | SL: -$1.1711 | Margin: $11.71"}
+{"timestamp":1773493957658,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.0241 | Target: $0.3863 | SL: -$1.1711 | Margin: $11.71"}
+{"timestamp":1773493957777,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.0436 | Target: $0.3863 | SL: -$1.1711 | Margin: $11.71"}
+{"timestamp":1773493961802,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client disconnected. Total: 1"}
+{"timestamp":1773493962458,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.1593 | Target: $0.3865 | SL: -$1.1719 | Margin: $11.72"}
+{"timestamp":1773493965057,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.1380 | Target: $0.3864 | SL: -$1.1716 | Margin: $11.72"}
+{"timestamp":1773493973871,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.1380 | Target: $0.3865 | SL: -$1.1721 | Margin: $11.72"}
+{"timestamp":1773493975473,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.0830 | Target: $0.3865 | SL: -$1.1721 | Margin: $11.72"}
+{"timestamp":1773493975498,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client disconnected. Total: 0"}
+{"timestamp":1773493986962,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] ALCHUSDT | Live PnL: $-0.3488 | Target: $1.3664 | SL: -$4.1436 | Margin: $41.44"}
+{"timestamp":1773493990757,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.1845 | Target: $0.3864 | SL: -$1.1716 | Margin: $11.72"}
+{"timestamp":1773493990820,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] ALCHUSDT | Live PnL: $-0.3524 | Target: $1.3663 | SL: -$4.1431 | Margin: $41.43"}
+{"timestamp":1773494028097,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] ALCHUSDT | Live PnL: $-0.3615 | Target: $1.3660 | SL: -$4.1416 | Margin: $41.42"}
+{"timestamp":1773494029772,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] ALCHUSDT | Live PnL: $-0.2626 | Target: $1.3660 | SL: -$4.1416 | Margin: $41.42"}
+{"timestamp":1773494041534,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] ALCHUSDT | Live PnL: $-0.3357 | Target: $1.3661 | SL: -$4.1419 | Margin: $41.42"}
+{"timestamp":1773494046811,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] ALCHUSDT | Live PnL: $-0.3957 | Target: $1.3660 | SL: -$4.1419 | Margin: $41.42"}
+{"timestamp":1773494076797,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.1295 | Target: $0.3861 | SL: -$1.1704 | Margin: $11.70"}
+{"timestamp":1773494078918,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.1295 | Target: $0.3862 | SL: -$1.1710 | Margin: $11.71"}
+{"timestamp":1773494082781,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] ALCHUSDT | Live PnL: $-0.2991 | Target: $1.3659 | SL: -$4.1413 | Margin: $41.41"}
+{"timestamp":1773494083772,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] ALCHUSDT | Live PnL: $-0.3120 | Target: $1.3659 | SL: -$4.1413 | Margin: $41.41"}
+{"timestamp":1773494084366,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] ALCHUSDT | Live PnL: $-0.4049 | Target: $1.3659 | SL: -$4.1413 | Margin: $41.41"}
+{"timestamp":1773494094011,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] ALCHUSDT | Live PnL: $-0.3061 | Target: $1.3657 | SL: -$4.1404 | Margin: $41.40"}
+{"timestamp":1773494095976,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] ALCHUSDT | Live PnL: $-0.2936 | Target: $1.3657 | SL: -$4.1404 | Margin: $41.40"}
+{"timestamp":1773494096665,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] ALCHUSDT | Live PnL: $-0.3386 | Target: $1.3657 | SL: -$4.1404 | Margin: $41.40"}
+{"timestamp":1773494097833,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.1845 | Target: $0.3862 | SL: -$1.1709 | Margin: $11.71"}
+{"timestamp":1773494099410,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.0744 | Target: $0.3862 | SL: -$1.1709 | Margin: $11.71"}
+{"timestamp":1773494100188,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] ALCHUSDT | Live PnL: $-0.3394 | Target: $1.3657 | SL: -$4.1404 | Margin: $41.40"}
+{"timestamp":1773494110236,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client connected. Total: 1"}
+{"timestamp":1773494110365,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client disconnected. Total: 0"}
+{"timestamp":1773494110601,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client connected. Total: 1"}
+{"timestamp":1773494111126,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] ALCHUSDT | Live PnL: $-0.0069 | Target: $1.3659 | SL: -$4.1413 | Margin: $41.41"}
+{"timestamp":1773494116317,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.1020 | Target: $0.3865 | SL: -$1.1723 | Margin: $11.72"}
+{"timestamp":1773494120339,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.1020 | Target: $0.3865 | SL: -$1.1723 | Margin: $11.72"}
+{"timestamp":1773494122111,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] ALCHUSDT | Live PnL: $0.1080 | Target: $1.3660 | SL: -$4.1417 | Margin: $41.42"}
+{"timestamp":1773494128322,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] ALCHUSDT | Live PnL: $0.0651 | Target: $1.3662 | SL: -$4.1425 | Margin: $41.43"}
+{"timestamp":1773494132969,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.1570 | Target: $0.3866 | SL: -$1.1726 | Margin: $11.73"}
+{"timestamp":1773494144097,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.3772 | Target: $0.3860 | SL: -$1.1700 | Margin: $11.70"}
+{"timestamp":1773494144297,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] AKEUSDT | Live PnL: $0.3772 | Target: $0.3860 | SL: -$1.1700 | Margin: $11.70"}
+{"timestamp":1773494149878,"level":"INFO","category":"EXIT","message":"[CHUNK-SYSTEM] Auto-Exit: AKEUSDT target hit! PnL=$0.4047 >= Target=$0.3858. Triggering exit."}
+{"timestamp":1773494149963,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Close attempt 1/15 (Bybit: 275200 Binance: 275200)"}
+{"timestamp":1773494150474,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Bybit order 10010598-754f-4e6a-b487-30b405a5d575 execution list total filled: 275200"}
+{"timestamp":1773494150474,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Order 10010598-754f-4e6a-b487-30b405a5d575 confirmed in 400ms (REST-Fallback)"}
+{"timestamp":1773494150967,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client connected. Total: 2"}
+{"timestamp":1773494151046,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Order 433285368 confirmed in 400ms (REST-Fallback)"}
+{"timestamp":1773494151049,"level":"INFO","category":"MONITOR","message":"[CHUNK-SYSTEM] Position fully closed."}
+{"timestamp":1773494151101,"level":"INFO","category":"EXIT","message":"[CHUNK-SYSTEM] Auto-Exit Binance depth WS connected."}
+{"timestamp":1773494154228,"level":"INFO","category":"SYSTEM","message":"[LOGGER] Real Exit Logged for AKEUSDT: PnL $-0.30 (-2.58%)"}
+{"timestamp":1773494154371,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] ALCHUSDT | Live PnL: $0.1520 | Target: $1.3668 | SL: -$4.1452 | Margin: $41.45"}
+{"timestamp":1773494155799,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] Empty slot found (1/2). Initiating trade for Top Token: ACTUSDT"}
+{"timestamp":1773494155969,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Starting chunk trade: symbol=ACTUSDT side=Long Binance / Short Bybit minChunkNotional=$6 liquidityFraction=0.5 reduceOnly=false"}
+{"timestamp":1773494155970,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] Starting trade…"}
+{"timestamp":1773494156077,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Step sizes: Bybit=1 Binance=1"}
+{"timestamp":1773494156181,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Requested Lev: 5, Max Allowed: 10, Using: 5"}
+{"timestamp":1773494156182,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Auto Target Notional=$66.74, Target Total Qty=4885 (Cap%: 40%, Lev: 5)"}
+{"timestamp":1773494156182,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] First chunk: minNotional=$6 priceBybit=0.01366 -> qty(raw)=439.2386530014641 qty(formatted)=439.00000000"}
+{"timestamp":1773494156182,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Sending Chunk 1 to Bybit: qty=439.00000000 price=0.013646"}
+{"timestamp":1773494156197,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Chunk 1 Bybit order placed: orderId=8aeecc55-d1cd-41a9-9341-e864eea464ba. Waiting for confirmation..."}
+{"timestamp":1773494156197,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] Chunk 1 placed"}
+{"timestamp":1773494156581,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] ALCHUSDT | Live PnL: $0.1520 | Target: $1.3668 | SL: -$4.1452 | Margin: $41.45"}
+{"timestamp":1773494156624,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Bybit order 8aeecc55-d1cd-41a9-9341-e864eea464ba execution list total filled: 439"}
+{"timestamp":1773494156624,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Order 8aeecc55-d1cd-41a9-9341-e864eea464ba confirmed in 400ms (REST-Fallback)"}
+{"timestamp":1773494156624,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Confirmation from Bybit: filledQty=439"}
+{"timestamp":1773494156624,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Sending Chunk 1 to Binance: qty=439.00000000 price=0.01368"}
+{"timestamp":1773494156705,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Waiting for Binance Chunk 1 confirmation..."}
+{"timestamp":1773494156705,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Order 3665992133 confirmed in 0ms (WS-Live)"}
+{"timestamp":1773494156705,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Chunk 1 complete. Bybit orderId=8aeecc55-d1cd-41a9-9341-e864eea464ba Binance orderId=3665992133"}
+{"timestamp":1773494156706,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] Chunk 1 complete"}
+{"timestamp":1773494156706,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Chunk 2+: firstRowQty=88808 frac=0.5 (liquidity fraction for subsequent chunks)"}
+{"timestamp":1773494156706,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Sending Chunk 2 to Bybit: qty=4446.00000000 price=0.013646"}
+{"timestamp":1773494156706,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] Chunk 2 placed"}
+{"timestamp":1773494157138,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Bybit order 2cfbba42-8677-4a2f-8431-53be99ab0c3a execution list total filled: 4446"}
+{"timestamp":1773494157139,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Order 2cfbba42-8677-4a2f-8431-53be99ab0c3a confirmed in 400ms (REST-Fallback)"}
+{"timestamp":1773494157139,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Chunk 2 Bybit confirmed: filledQty=4446. Sending to Binance..."}
+{"timestamp":1773494157175,"level":"INFO","category":"EXIT","message":"[CHUNK-SYSTEM] Auto-Exit Binance depth WS connected."}
+{"timestamp":1773494157214,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Waiting for Binance Chunk 2 confirmation..."}
+{"timestamp":1773494157216,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Order 3665992134 confirmed in 2ms (WS-Live)"}
+{"timestamp":1773494157216,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Chunk 2 complete."}
+{"timestamp":1773494157216,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] Chunk 2 complete"}
+{"timestamp":1773494157216,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Target quantity reached (4885/4885). Stopping chunks."}
+{"timestamp":1773494157216,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] Target quantity reached"}
+{"timestamp":1773494157216,"level":"INFO","category":"SYSTEM","message":"[CHUNK-SYSTEM] Final completion: 2 chunk(s) executed."}
+{"timestamp":1773494157216,"level":"INFO","category":"ENTRY","message":"[AUTO-TRADE] Trade completed"}
+{"timestamp":1773494160729,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client disconnected. Total: 1"}
+{"timestamp":1773494160752,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client disconnected. Total: 0"}
+{"timestamp":1773494162059,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client connected. Total: 1"}
+{"timestamp":1773494162141,"level":"INFO","category":"EXIT","message":"[WS Server] Auto-Exit settings updated from client: autoExit=true autoTrade=true pnlMethod=L2_VWAP autoTradeUser=admin@tradeictearner.online"}
+{"timestamp":1773494162354,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] ALCHUSDT | Live PnL: $0.1154 | Target: $1.3668 | SL: -$4.1452 | Margin: $41.45"}
+{"timestamp":1773494164251,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client disconnected. Total: 0"}
+{"timestamp":1773494164837,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client connected. Total: 1"}
+{"timestamp":1773494164926,"level":"INFO","category":"EXIT","message":"[WS Server] Auto-Exit settings updated from client: autoExit=true autoTrade=true pnlMethod=L2_VWAP autoTradeUser=admin@tradeictearner.online"}
+{"timestamp":1773494166258,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client disconnected. Total: 0"}
+{"timestamp":1773494166420,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] ACTUSDT | Live PnL: $-0.0673 | Target: $0.7492 | SL: -$2.6762 | Margin: $26.76"}
+{"timestamp":1773494166607,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client connected. Total: 1"}
+{"timestamp":1773494166827,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client connected. Total: 2"}
+{"timestamp":1773494167304,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client disconnected. Total: 1"}
+{"timestamp":1773494172038,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] ALCHUSDT | Live PnL: $0.1087 | Target: $1.3669 | SL: -$4.1458 | Margin: $41.46"}
+{"timestamp":1773494192533,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client disconnected. Total: 0"}
+{"timestamp":1773494193180,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client connected. Total: 1"}
+{"timestamp":1773494193254,"level":"INFO","category":"EXIT","message":"[WS Server] Auto-Exit settings updated from client: autoExit=true autoTrade=true pnlMethod=L2_VWAP autoTradeUser=admin@tradeictearner.online"}
+{"timestamp":1773494194638,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client disconnected. Total: 0"}
+{"timestamp":1773494215280,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] ACTUSDT | Live PnL: $-0.0526 | Target: $0.7489 | SL: -$2.6750 | Margin: $26.75"}
+{"timestamp":1773494224591,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] ALCHUSDT | Live PnL: $-0.1489 | Target: $1.3667 | SL: -$4.1446 | Margin: $41.45"}
+{"timestamp":1773494227591,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] ALCHUSDT | Live PnL: $-0.3474 | Target: $1.3665 | SL: -$4.1437 | Margin: $41.44"}
+{"timestamp":1773494239235,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] ACTUSDT | Live PnL: $-0.0526 | Target: $0.7491 | SL: -$2.6760 | Margin: $26.76"}
+{"timestamp":1773494242732,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] ALCHUSDT | Live PnL: $-0.2704 | Target: $1.3654 | SL: -$4.1389 | Margin: $41.39"}
+{"timestamp":1773494253241,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] ACTUSDT | Live PnL: $-0.0428 | Target: $0.7491 | SL: -$2.6761 | Margin: $26.76"}
+{"timestamp":1773494254172,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] ALCHUSDT | Live PnL: $-0.2646 | Target: $1.3652 | SL: -$4.1383 | Margin: $41.38"}
+{"timestamp":1773494256967,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] ALCHUSDT | Live PnL: $-0.2713 | Target: $1.3652 | SL: -$4.1383 | Margin: $41.38"}
+{"timestamp":1773494258039,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] ACTUSDT | Live PnL: $-0.0428 | Target: $0.7490 | SL: -$2.6754 | Margin: $26.75"}
+{"timestamp":1773494261599,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] ACTUSDT | Live PnL: $-0.0428 | Target: $0.7490 | SL: -$2.6754 | Margin: $26.75"}
+{"timestamp":1773494262637,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] ALCHUSDT | Live PnL: $-0.2239 | Target: $1.3652 | SL: -$4.1383 | Margin: $41.38"}
+{"timestamp":1773494293111,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] ALCHUSDT | Live PnL: $-0.2839 | Target: $1.3655 | SL: -$4.1396 | Margin: $41.40"}
+{"timestamp":1773494304271,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] ALCHUSDT | Live PnL: $-0.2730 | Target: $1.3653 | SL: -$4.1386 | Margin: $41.39"}
+{"timestamp":1773494304639,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] ALCHUSDT | Live PnL: $-0.2730 | Target: $1.3653 | SL: -$4.1386 | Margin: $41.39"}
+{"timestamp":1773494308751,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] ALCHUSDT | Live PnL: $-0.2721 | Target: $1.3653 | SL: -$4.1386 | Margin: $41.39"}
+{"timestamp":1773494312783,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] ACTUSDT | Live PnL: $-0.0428 | Target: $0.7491 | SL: -$2.6759 | Margin: $26.76"}
+{"timestamp":1773494342648,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client connected. Total: 1"}
+{"timestamp":1773494343055,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client connected. Total: 2"}
+{"timestamp":1773494344763,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client disconnected. Total: 1"}
+{"timestamp":1773494347621,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] ACTUSDT | Live PnL: $-0.0783 | Target: $0.7491 | SL: -$2.6761 | Margin: $26.76"}
+{"timestamp":1773494348896,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client disconnected. Total: 0"}
+{"timestamp":1773494349520,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] ACTUSDT | Live PnL: $-0.0832 | Target: $0.7491 | SL: -$2.6761 | Margin: $26.76"}
+{"timestamp":1773494349986,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client connected. Total: 1"}
+{"timestamp":1773494350160,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client connected. Total: 2"}
+{"timestamp":1773494350242,"level":"INFO","category":"EXIT","message":"[WS Server] Auto-Exit settings updated from client: autoExit=true autoTrade=true pnlMethod=L2_VWAP autoTradeUser=admin@tradeictearner.online"}
+{"timestamp":1773494350385,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client connected. Total: 3"}
+{"timestamp":1773494351350,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client disconnected. Total: 2"}
+{"timestamp":1773494355739,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] ALCHUSDT | Live PnL: $-0.2645 | Target: $1.3649 | SL: -$4.1368 | Margin: $41.37"}
+{"timestamp":1773494356851,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client disconnected. Total: 1"}
+{"timestamp":1773494357031,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] ALCHUSDT | Live PnL: $-0.2645 | Target: $1.3649 | SL: -$4.1368 | Margin: $41.37"}
+{"timestamp":1773494361342,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] ACTUSDT | Live PnL: $-0.0799 | Target: $0.7489 | SL: -$2.6750 | Margin: $26.75"}
+{"timestamp":1773494364914,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] ALCHUSDT | Live PnL: $-0.3888 | Target: $1.3648 | SL: -$4.1364 | Margin: $41.36"}
+{"timestamp":1773494391059,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] ACTUSDT | Live PnL: $-0.0673 | Target: $0.7493 | SL: -$2.6770 | Margin: $26.77"}
+{"timestamp":1773494394898,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] ALCHUSDT | Live PnL: $-0.3666 | Target: $1.3650 | SL: -$4.1373 | Margin: $41.37"}
+{"timestamp":1773494401080,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] ACTUSDT | Live PnL: $-0.0722 | Target: $0.7493 | SL: -$2.6770 | Margin: $26.77"}
+{"timestamp":1773494414531,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] ALCHUSDT | Live PnL: $-0.3863 | Target: $1.3650 | SL: -$4.1374 | Margin: $41.37"}
+{"timestamp":1773494425661,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] ACTUSDT | Live PnL: $-0.0722 | Target: $0.7494 | SL: -$2.6772 | Margin: $26.77"}
+{"timestamp":1773494429640,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] ACTUSDT | Live PnL: $-0.0722 | Target: $0.7494 | SL: -$2.6772 | Margin: $26.77"}
+{"timestamp":1773494436279,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] ACTUSDT | Live PnL: $-0.0722 | Target: $0.7491 | SL: -$2.6760 | Margin: $26.76"}
+{"timestamp":1773494472169,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] ALCHUSDT | Live PnL: $-0.3169 | Target: $1.3642 | SL: -$4.1339 | Margin: $41.34"}
+{"timestamp":1773494472438,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] ALCHUSDT | Live PnL: $-0.2556 | Target: $1.3642 | SL: -$4.1339 | Margin: $41.34"}
+{"timestamp":1773494474191,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] ALCHUSDT | Live PnL: $-0.1313 | Target: $1.3642 | SL: -$4.1339 | Margin: $41.34"}
+{"timestamp":1773494474403,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] ALCHUSDT | Live PnL: $-0.1271 | Target: $1.3642 | SL: -$4.1339 | Margin: $41.34"}
+{"timestamp":1773494480395,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] ALCHUSDT | Live PnL: $-0.1214 | Target: $1.3632 | SL: -$4.1297 | Margin: $41.30"}
+{"timestamp":1773494484302,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] ALCHUSDT | Live PnL: $-0.1230 | Target: $1.3632 | SL: -$4.1297 | Margin: $41.30"}
+{"timestamp":1773494528525,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] ACTUSDT | Live PnL: $-0.0673 | Target: $0.7493 | SL: -$2.6770 | Margin: $26.77"}
+{"timestamp":1773494537071,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] ALCHUSDT | Live PnL: $-0.5672 | Target: $1.3631 | SL: -$4.1291 | Margin: $41.29"}
+{"timestamp":1773494538452,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] ALCHUSDT | Live PnL: $-0.4035 | Target: $1.3612 | SL: -$4.1207 | Margin: $41.21"}
+{"timestamp":1773494538532,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] ALCHUSDT | Live PnL: $-0.3627 | Target: $1.3612 | SL: -$4.1207 | Margin: $41.21"}
+{"timestamp":1773494538612,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] ALCHUSDT | Live PnL: $-0.3310 | Target: $1.3612 | SL: -$4.1207 | Margin: $41.21"}
+{"timestamp":1773494538770,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] ALCHUSDT | Live PnL: $-0.2502 | Target: $1.3612 | SL: -$4.1207 | Margin: $41.21"}
+{"timestamp":1773494540351,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] ALCHUSDT | Live PnL: $-0.2101 | Target: $1.3612 | SL: -$4.1207 | Margin: $41.21"}
+{"timestamp":1773494545802,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] ALCHUSDT | Live PnL: $-0.2319 | Target: $1.3578 | SL: -$4.1061 | Margin: $41.06"}
+{"timestamp":1773494549480,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] ACTUSDT | Live PnL: $-0.0673 | Target: $0.7492 | SL: -$2.6763 | Margin: $26.76"}
+{"timestamp":1773494551858,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] ALCHUSDT | Live PnL: $-0.3264 | Target: $1.3571 | SL: -$4.1031 | Margin: $41.03"}
+{"timestamp":1773494552061,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] ALCHUSDT | Live PnL: $-0.3035 | Target: $1.3571 | SL: -$4.1031 | Margin: $41.03"}
+{"timestamp":1773494553894,"level":"INFO","category":"SYSTEM","message":"[WS Server] Client connected. Total: 2"}
+{"timestamp":1773494559352,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] ALCHUSDT | Live PnL: $0.4966 | Target: $1.3567 | SL: -$4.1013 | Margin: $41.01"}
+{"timestamp":1773494559431,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] ALCHUSDT | Live PnL: $0.5039 | Target: $1.3567 | SL: -$4.1013 | Margin: $41.01"}
+{"timestamp":1773494560291,"level":"INFO","category":"MONITOR","message":"[AUTO-EXIT Tracker] ALCHUSDT | Live PnL: $0.5156 | Target: $1.3567 | SL: -$4.1013 | Margin: $41.01"}

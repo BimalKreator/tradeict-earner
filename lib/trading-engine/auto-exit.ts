@@ -674,5 +674,14 @@ export function startAutoExitMonitor(
 }
 
 async function triggerExit(pos: GroupedPosition, ctx: AutoExitContext, reason: string): Promise<void> {
-  await executeCloseTrade(pos.symbol, ctx.credentials, ctx.privateWs, ctx.fetchOrderbook, undefined, undefined, reason);
+  const userEmail = ctx.defaultSettings.autoTradeUserEmail;
+  await executeCloseTrade(
+    pos.symbol,
+    ctx.credentials,
+    ctx.privateWs,
+    ctx.fetchOrderbook,
+    undefined,
+    userEmail,
+    reason
+  );
 }

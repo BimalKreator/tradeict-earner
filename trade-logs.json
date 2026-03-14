@@ -1,5 +1,44 @@
 [
   {
+    "id": "6112170a-68f3-401c-a2e6-fa2ddb3b5800",
+    "symbol": "AKEUSDT",
+    "qty": 275200,
+    "timestamp": 1773494154049,
+    "binanceEntry": 0.0002125294855,
+    "binanceExit": 0.0002105,
+    "binancePnl": -0.5585144,
+    "bybitEntry": 0.0002123,
+    "bybitExit": 0.0002109,
+    "bybitPnl": 0.2571688,
+    "combinedPnlUsd": -0.3013456,
+    "combinedPnlPct": -2.578721875984189,
+    "exitReason": "Target Hit",
+    "executionLogs": [
+      "Close attempt 1/15 (Bybit: 275200 Binance: 275200)",
+      "Position fully closed."
+    ]
+  },
+  {
+    "id": "7e25f440-0de1-4c13-9a40-607c4fdad3ef",
+    "symbol": "4USDT",
+    "qty": 651,
+    "timestamp": 1773493822891,
+    "binanceEntry": 0.007946,
+    "binanceExit": 0.007945,
+    "binancePnl": 0.000651,
+    "bybitEntry": 0.00793,
+    "bybitExit": 0.00790014,
+    "bybitPnl": -0.03193196,
+    "combinedPnlUsd": -0.031280960000000003,
+    "combinedPnlPct": -0.6057708268758736,
+    "exitReason": "Manual Exit",
+    "executionLogs": [
+      "Close attempt 1/15 (Bybit: 651 Binance: 651)",
+      "Position fully closed."
+    ],
+    "userEmail": "admin@tradeictearner.online"
+  },
+  {
     "id": "3e805bf5-1d4d-4299-9ab9-ae928ba6b62f",
     "symbol": "ARIAUSDT",
     "qty": 146,
